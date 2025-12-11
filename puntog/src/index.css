@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+
+body{
+    background: #0e0d0d;
+/* background: radial-gradient(circle,rgb(230, 231, 233) 0%, rgba(252, 70, 107, 1) 100%); */
+    font-family: "Montserrat", sans-serif;
+}
+html {
+  scroll-behavior: smooth;
+}
