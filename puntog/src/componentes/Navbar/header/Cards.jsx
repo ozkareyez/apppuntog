@@ -36,7 +36,7 @@ const Cards = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://apppuntog-production.up.railway.app/"
+        "gleaming-motivation-production-4018.up.railway.app/productos"
       );
       if (!response.ok) {
         throw new Error("error al obtener datos del servidor");
