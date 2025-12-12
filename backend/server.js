@@ -11,7 +11,9 @@ const PORT = process.env.PORT || 3002;
 // ---------------------------
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin:
+      process.env.FRONTEND_URL ||
+      "gleaming-motivation-production-4018.up.railway.app/api/productos",
     credentials: true,
   })
 );
@@ -45,7 +47,7 @@ DB.getConnection((err, connection) => {
 // ---------------------------
 app.get("/", (req, res) => {
   res.json({
-    mensaje: "API funcionando correctamente ✔",
+    mensaje: "API funcionando correctamente  ✔",
     ts: new Date().toISOString(),
   });
 });
