@@ -36,7 +36,7 @@ const Cards = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "mysql-production-44c5.up.railway.app/productos"
+        "mysql-production-44c5.up.railway.app/api/productos"
       );
       if (!response.ok) {
         throw new Error("error al obtener datos del servidor");
