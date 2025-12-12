@@ -55,9 +55,15 @@ app.get("/", (req, res) => {
 // GET productos
 // ---------------------------
 app.get("/api/productos", (req, res) => {
-  DB.query("SELECT * FROM productos", (err, rows) => {
-    if (err) return res.status(500).json({ error: "Error cargando productos" });
-    res.json(rows);
+  db.query("SELECT * FROM productos", (err, results) => {
+    if (err) {
+      console.error("ERROR MYSQL:", err);
+      return res.status(500).json({
+        error: "Error cargando productos",
+        detalle: err.message,
+      });
+    }
+    res.json(results);
   });
 });
 
