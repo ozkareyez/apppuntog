@@ -11,9 +11,7 @@ const PORT = process.env.PORT || 3002;
 // ---------------------------
 app.use(
   cors({
-    origin:
-      process.env.FRONTEND_URL ||
-      "gleaming-motivation-production-4018.up.railway.app/api/productos",
+    origin: "https://apppuntog-production.up.railway.app",
     credentials: true,
   })
 );
