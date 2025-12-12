@@ -22,23 +22,24 @@ app.use(express.json());
 // CONEXIÓN MySQL CON POOL (Railway-compatible)
 // ---------------------------
 // server.js (Líneas 26-30 Corregidas)
-const DB = mysql.createPool({
+const db = mysql.createPool({
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
+  waitForConnections: true,
   connectionLimit: 10,
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "tienda",
-  port: process.env.DB_PORT || 3306,
+  queueLimit: 0,
 });
-
 // Probar conexión
-DB.getConnection((err, connection) => {
+db.getConnection((err, conn) => {
   if (err) {
-    console.error("❌ Error conectando MySQL (POOL):", err);
-    process.exit(1);
+    console.error("❌ ERROR MYSQL:", err);
+  } else {
+    console.log("✅ MySQL conectado correctamente");
+    conn.release();
   }
-  console.log("✅ Conexión exitosa a MySQL (POOL)");
-  connection.release();
 });
 
 // ---------------------------
