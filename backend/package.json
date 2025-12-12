@@ -6,8 +6,10 @@
     "express": "^5.1.0",
     "mysql": "^2.18.1"
   },
-
   "scripts": {
-  "start": "node server.js"
-}
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

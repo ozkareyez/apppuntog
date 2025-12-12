@@ -1,42 +1,52 @@
 import express from "express";
-import { createConnection } from "mysql";
+import mysql from "mysql";
 import cors from "cors";
 import ExcelJS from "exceljs";
 
 const app = express();
-// ✅ CAMBIO 1: Usar process.env.PORT para Railway
 const PORT = process.env.PORT || 3002;
 
-// ✅ CAMBIO 2: Configurar CORS para producción
+// ---------------------------
+// CORS
+// ---------------------------
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   })
 );
+
 app.use(express.json());
 
-// --- Conexión MySQL ---
-const DB = createConnection({
+// ---------------------------
+// CONEXIÓN MySQL CON POOL (Railway-compatible)
+// ---------------------------
+const DB = mysql.createPool({
+  connectionLimit: 10,
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "",
   password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "tienda",
+  database: process.env.DB_NAME || "tiendapuntog",
+  port: process.env.DB_PORT || 3306,
 });
 
-DB.connect((err) => {
+// Probar conexión
+DB.getConnection((err, connection) => {
   if (err) {
-    console.error("Error conectando MySQL:", err);
+    console.error("❌ Error conectando MySQL (POOL):", err);
     process.exit(1);
   }
-  console.log("Conexión exitosa a MySQL ✔");
+  console.log("✅ Conexión exitosa a MySQL (POOL)");
+  connection.release();
 });
 
-// ✅ CAMBIO 3: Agregar ruta raíz para verificar que el servidor funciona
+// ---------------------------
+// RUTA DE PRUEBA
+// ---------------------------
 app.get("/", (req, res) => {
   res.json({
     mensaje: "API funcionando correctamente ✔",
-    timestamp: new Date().toISOString(),
+    ts: new Date().toISOString(),
   });
 });
 
@@ -45,23 +55,21 @@ app.get("/", (req, res) => {
 // ---------------------------
 app.get("/api/productos", (req, res) => {
   DB.query("SELECT * FROM productos", (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Error cargando productos" });
-    }
+    if (err) return res.status(500).json({ error: "Error cargando productos" });
     res.json(rows);
   });
 });
 
 // ---------------------------
-// POST enviar-formulario (guardar pedido + detalles)
+// POST enviar-formulario
 // ---------------------------
 app.post("/api/enviar-formulario", (req, res) => {
   const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
+
   if (!nombre || !email || !direccion || !ciudad || !telefono)
     return res.status(400).json({ error: "Faltan datos del cliente" });
 
-  if (!carrito || !Array.isArray(carrito) || carrito.length === 0)
+  if (!carrito || carrito.length === 0)
     return res.status(400).json({ error: "Carrito vacío" });
 
   const total = carrito.reduce(
@@ -69,19 +77,22 @@ app.post("/api/enviar-formulario", (req, res) => {
     0
   );
 
-  const INSERT_PEDIDO = `INSERT INTO pedidos (nombre, email, direccion, ciudad, telefono, total, estado) VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`;
+  const INSERT_PEDIDO = `
+    INSERT INTO pedidos (nombre, email, direccion, ciudad, telefono, total, estado)
+    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
+  `;
 
   DB.query(
     INSERT_PEDIDO,
     [nombre, email, direccion, ciudad, telefono, total],
     (err, result) => {
-      if (err) {
-        console.error("Error insert pedido:", err);
-        return res.status(500).json({ error: "Error guardando pedido" });
-      }
+      if (err) return res.status(500).json({ error: "Error guardando pedido" });
 
       const pedidoId = result.insertId;
-      const INSERT_DETALLE = `INSERT INTO pedido_detalles (pedido_id, producto_id, nombre, precio, cantidad, subtotal) VALUES ?`;
+      const INSERT_DETALLE = `
+        INSERT INTO pedido_detalles (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
+        VALUES ?
+      `;
 
       const detalles = carrito.map((item) => [
         pedidoId,
@@ -89,14 +100,13 @@ app.post("/api/enviar-formulario", (req, res) => {
         item.nombre,
         item.precio,
         item.quantity || item.cantidad || 1,
-        (item.precio || 0) * (item.quantity || item.cantidad || 1),
+        item.precio * (item.quantity || item.cantidad || 1),
       ]);
 
       DB.query(INSERT_DETALLE, [detalles], (err2) => {
-        if (err2) {
-          console.error("Error insert detalles:", err2);
+        if (err2)
           return res.status(500).json({ error: "Error guardando detalles" });
-        }
+
         res.json({ mensaje: "Pedido registrado ✔", pedidoId });
       });
     }
@@ -104,8 +114,7 @@ app.post("/api/enviar-formulario", (req, res) => {
 });
 
 // ---------------------------
-// LISTAR PEDIDOS: filtros (inicio/fin), búsqueda, paginación
-// GET /api/pedidos-completo?page=1&search=xxx&inicio=YYYY-MM-DD&fin=YYYY-MM-DD
+// LISTAR PEDIDOS COMPLETOS
 // ---------------------------
 app.get("/api/pedidos-completo", (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -142,79 +151,59 @@ app.get("/api/pedidos-completo", (req, res) => {
   `;
 
   DB.query(sqlCount, params, (err, countRows) => {
-    if (err) {
-      console.error("Error count:", err);
-      return res.status(500).json({ error: "Error contando pedidos" });
-    }
+    if (err) return res.status(500).json({ error: "Error contando pedidos" });
+
     const total = countRows[0].total || 0;
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
-    const paramsForData = params.slice();
-    paramsForData.push(limit, offset);
+    const paramsForData = [...params, limit, offset];
 
     DB.query(sqlData, paramsForData, (err2, rows) => {
-      if (err2) {
-        console.error("Error data:", err2);
+      if (err2)
         return res.status(500).json({ error: "Error obteniendo pedidos" });
-      }
-      res.json({
-        results: rows,
-        totalPages,
-        page,
-        total,
-      });
+
+      res.json({ results: rows, totalPages, page, total });
     });
   });
 });
 
 // ---------------------------
-// OBTENER DETALLE DEL PEDIDO (productos)
+// DETALLE DEL PEDIDO
 // ---------------------------
 app.get("/api/pedidos-detalle/:id", (req, res) => {
-  const { id } = req.params;
   DB.query(
     "SELECT nombre AS producto, cantidad, precio, subtotal FROM pedido_detalles WHERE pedido_id = ?",
-    [id],
+    [req.params.id],
     (err, rows) => {
-      if (err) {
-        console.error("Error detalle:", err);
+      if (err)
         return res.status(500).json({ error: "Error obteniendo detalle" });
-      }
       res.json(rows);
     }
   );
 });
 
 // ---------------------------
-// ELIMINAR PEDIDO (verifica existencia, elimina detalles primero para compatibilidad)
+// ELIMINAR PEDIDO
 // ---------------------------
 app.delete("/api/pedidos/:id", (req, res) => {
   const { id } = req.params;
-  if (!id) return res.status(400).json({ error: "ID no proporcionado" });
 
   DB.query("SELECT id FROM pedidos WHERE id = ?", [id], (err, sel) => {
-    if (err) {
-      console.error("Error select before delete:", err);
-      return res.status(500).json({ error: "Error interno" });
-    }
+    if (err) return res.status(500).json({ error: "Error interno" });
     if (sel.length === 0)
       return res.status(404).json({ error: "Pedido no existe" });
 
-    // eliminar detalles (si el FK tiene ON DELETE CASCADE esto no es obligatorio, pero es seguro)
     DB.query(
       "DELETE FROM pedido_detalles WHERE pedido_id = ?",
       [id],
       (err2) => {
-        if (err2) {
-          console.error("Error borrando detalles:", err2);
+        if (err2)
           return res.status(500).json({ error: "Error eliminando detalles" });
-        }
 
         DB.query("DELETE FROM pedidos WHERE id = ?", [id], (err3) => {
-          if (err3) {
-            console.error("Error borrando pedido:", err3);
+          if (err3)
             return res.status(500).json({ error: "Error eliminando pedido" });
-          }
+
           res.json({ message: "Pedido eliminado ✔" });
         });
       }
@@ -223,23 +212,22 @@ app.delete("/api/pedidos/:id", (req, res) => {
 });
 
 // ---------------------------
-// CAMBIAR ESTADO (toggle pendiente <-> entregado)
+// CAMBIAR ESTADO
 // ---------------------------
 app.put("/api/pedidos-estado/:id", (req, res) => {
-  const { id } = req.params;
   const sql =
     "UPDATE pedidos SET estado = IF(estado='entregado','pendiente','entregado') WHERE id = ?";
-  DB.query(sql, [id], (err) => {
-    if (err) {
-      console.error("Error toggle estado:", err);
+
+  DB.query(sql, [req.params.id], (err) => {
+    if (err)
       return res.status(500).json({ error: "Error actualizando estado" });
-    }
+
     res.json({ message: "Estado actualizado ✔" });
   });
 });
 
 // ---------------------------
-// EXPORTAR PEDIDOS COMPLETOS A EXCEL
+// EXPORTAR A EXCEL
 // ---------------------------
 app.get("/api/exportar-pedidos-completo", (req, res) => {
   const SQL = `
@@ -262,13 +250,11 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
   `;
 
   DB.query(SQL, async (err, rows) => {
-    if (err) {
-      console.error("Error export:", err);
-      return res.status(500).json({ error: "Error generando excel" });
-    }
+    if (err) return res.status(500).json({ error: "Error generando excel" });
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("PedidosCompletos");
+
     sheet.columns = [
       { header: "Pedido ID", key: "pedido_id", width: 12 },
       { header: "Fecha", key: "fecha", width: 20 },
@@ -283,6 +269,7 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
       { header: "Cantidad", key: "cantidad", width: 12 },
       { header: "Subtotal", key: "subtotal", width: 12 },
     ];
+
     sheet.addRows(rows);
 
     res.setHeader(
@@ -304,24 +291,27 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
 // ---------------------------
 app.post("/api/contacto", (req, res) => {
   const { nombre, email, mensaje } = req.body;
+
   if (!nombre || !email || !mensaje)
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res.status(400).json({ error: "Todos los campos obligatorios" });
+
   DB.query(
     "INSERT INTO contacto (nombre, email, mensaje) VALUES (?, ?, ?)",
     [nombre, email, mensaje],
     (err, result) => {
-      if (err) {
-        console.error("Error contacto:", err);
+      if (err)
         return res.status(500).json({ error: "Error guardando mensaje" });
-      }
+
       res.json({ message: "Mensaje guardado ✔", id: result.insertId });
     }
   );
 });
 
-// ✅ CAMBIO 4: Escuchar en todas las interfaces (no solo localhost)
+// ---------------------------
+// INICIAR SERVIDOR
+// ---------------------------
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
 
 ///----------------------------------------------------------------------------------------------------------------------------------------------//
