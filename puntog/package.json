@@ -23,6 +23,7 @@
     "react-floating-whatsapp": "^5.0.8",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.9.6",
+    "serve": "^14.2.5",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {

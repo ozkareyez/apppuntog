@@ -214,7 +214,7 @@ Gracias por su compra!
           phoneNumber="+573147041149"
           accountName="Punto G"
           statusMessage="tienda on line"
-          chatMessage="buen dia en que te puedo ayudar!!"
+          chatMessage="Buen dia somos PuntoG en que te puedo ayudar!!"
           avatar="/public/imagenes/logo (3).png"
         />
       </div>
