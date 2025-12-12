@@ -21,13 +21,14 @@ app.use(express.json());
 // ---------------------------
 // CONEXIÓN MySQL CON POOL (Railway-compatible)
 // ---------------------------
+// server.js (Líneas 26-30 Corregidas)
 const DB = mysql.createPool({
   connectionLimit: 10,
-  host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-  user: process.env.MYSQLUSER || process.env.DB_USER || "",
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
-  database: process.env.MYSQLDATABASE || process.env.DB_NAME || "tiendapuntog",
-  port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+  host: process.env.DB_HOST || process.env.MYSQLHOST || "localhost",
+  user: process.env.DB_USER || process.env.MYSQLUSER || "",
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || "",
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || "tiendapuntog",
+  port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
 });
 
 // Probar conexión
