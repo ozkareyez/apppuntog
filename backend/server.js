@@ -22,7 +22,7 @@ app.use(express.json());
 // CONEXIÓN MySQL CON POOL (Railway-compatible)
 // ---------------------------
 // server.js (Líneas 26-30 Corregidas)
-const db = mysql.createPool({
+const DB = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
@@ -33,7 +33,7 @@ const db = mysql.createPool({
   queueLimit: 0,
 });
 // Probar conexión
-db.getConnection((err, conn) => {
+DB.getConnection((err, conn) => {
   if (err) {
     console.error("❌ ERROR MYSQL:", err);
   } else {
@@ -56,7 +56,7 @@ app.get("/", (req, res) => {
 // GET productos
 // ---------------------------
 app.get("/api/productos", (req, res) => {
-  db.query("SELECT * FROM productos", (err, results) => {
+  DB.query("SELECT * FROM productos", (err, results) => {
     if (err) {
       console.error("ERROR MYSQL:", err);
       return res.status(500).json({
