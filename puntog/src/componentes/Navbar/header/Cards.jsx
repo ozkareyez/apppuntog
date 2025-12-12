@@ -117,7 +117,7 @@ const Cards = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:3002/api/enviar-formulario",
+        "https://gleaming-motivation-production-4018.up.railway.app/api/enviar-formulario",
         {
           method: "POST",
           headers: {
