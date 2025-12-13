@@ -32,6 +32,19 @@ const DB = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+//////prueba de conexion////appx
+
+DB.query("SELECT DATABASE() AS db", (err, rows) => {
+  console.log("📌 BASE DE DATOS ACTUAL:", rows);
+});
+
+DB.query("SHOW TABLES", (err, rows) => {
+  console.log("📦 TABLAS DISPONIBLES:", rows);
+});
+
+////////////***/////////////////////////////
+
 // Probar conexión
 DB.getConnection((err, conn) => {
   if (err) {
