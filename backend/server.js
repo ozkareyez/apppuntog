@@ -35,13 +35,13 @@ const DB = mysql.createPool({
 
 //////prueba de conexion////appx
 
-DB.query("SELECT DATABASE() AS db", (err, rows) => {
-  console.log("📌 BASE DE DATOS ACTUAL:", rows);
-});
+// DB.query("SELECT DATABASE() AS db", (err, rows) => {
+//   console.log("📌 BASE DE DATOS ACTUAL:", rows);
+// });
 
-DB.query("SHOW TABLES", (err, rows) => {
-  console.log("📦 TABLAS DISPONIBLES:", rows);
-});
+// DB.query("SHOW TABLES", (err, rows) => {
+//   console.log("📦 TABLAS DISPONIBLES:", rows);
+// });
 
 ////////////***/////////////////////////////
 
