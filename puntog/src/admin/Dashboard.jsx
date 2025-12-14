@@ -244,7 +244,7 @@ export default function Dashboard() {
                       {p.estado}
                     </span>
                   </td>
-                  <td className="p-2 border flex gap-2 items-center">
+                  <td className="p-2 border flex gap-2 justify-center">
                     <button
                       className="bg-blue-600 px-3 py-1 rounded"
                       onClick={() => verDetalle(p.id)}
