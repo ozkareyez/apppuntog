@@ -1,5 +1,6 @@
 // Dashboard.jsx
 import { useEffect, useState } from "react";
+import { API_URL } from "../config";
 
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState([]);
@@ -21,7 +22,7 @@ export default function Dashboard() {
       if (fechaInicio) params.append("inicio", fechaInicio);
       if (fechaFin) params.append("fin", fechaFin);
 
-      const url = `http://localhost:3002/api/pedidos-completo?${params.toString()}`;
+      const url = `${API_URL}/api/pedidos-completo`;
       const res = await fetch(url);
       const data = await res.json();
       setPedidos(data.results || []);
@@ -62,7 +63,7 @@ export default function Dashboard() {
   const eliminarPedido = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar este pedido?")) return;
     try {
-      const res = await fetch(`http://localhost:3002/api/pedidos/${id}`, {
+      const res = await fetch(`${API_URL}/api/pedidos/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -82,12 +83,9 @@ export default function Dashboard() {
 
   const cambiarEstado = async (id) => {
     try {
-      const res = await fetch(
-        `http://localhost:3002/api/pedidos-estado/${id}`,
-        {
-          method: "PUT",
-        }
-      );
+      const res = await fetch(`http://${API_URL}/api/pedidos-estado/${id}`, {
+        method: "PUT",
+      });
       if (res.ok) {
         fetchPedidos(pagina);
       } else {
@@ -101,9 +99,7 @@ export default function Dashboard() {
 
   const verDetalle = async (id) => {
     try {
-      const res = await fetch(
-        `http://localhost:3002/api/pedidos-detalle/${id}`
-      );
+      const res = await fetch(`http://${API_URL}/api/pedidos-detalle/${id}`);
       const data = await res.json();
       setDetalle({ pedidoId: id, items: data });
     } catch (err) {
@@ -113,10 +109,7 @@ export default function Dashboard() {
   };
 
   const descargarExcel = () => {
-    window.open(
-      "http://localhost:3002/api/exportar-pedidos-completo",
-      "_blank"
-    );
+    window.open("http://${API_URL}/api/exportar-pedidos-completo", "_blank");
   };
 
   const logout = () => {

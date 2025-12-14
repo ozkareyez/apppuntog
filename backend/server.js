@@ -1,26 +1,20 @@
 import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
+import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-/* ================= CORS ================= */
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  })
-);
-
+/* ================= MIDDLEWARE ================= */
+app.use(cors({ origin: true }));
 app.use(express.json());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ================= IMÁGENES ================= */
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* ================= MYSQL ================= */
@@ -30,135 +24,147 @@ const DB = mysql.createPool({
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
   port: process.env.MYSQLPORT,
-  waitForConnections: true,
-  connectionLimit: 10,
 });
 
 /* ================= ROOT ================= */
-app.get("/", (req, res) => {
-  res.json({ mensaje: "API funcionando correctamente ✔" });
-});
+app.get("/", (_, res) => res.json({ ok: true }));
 
-// =================================================
-// 🛒 PRODUCTOS
-// =================================================
+/* ================= PRODUCTOS ================= */
 app.get("/api/productos", (req, res) => {
   const baseUrl = `${req.protocol}://${req.headers.host}`;
 
-  DB.query("SELECT * FROM productos", (err, results) => {
+  DB.query("SELECT * FROM productos", (err, rows) => {
     if (err) return res.status(500).json(err);
 
-    const productos = results.map((p) => ({
-      ...p,
-      imagen: p.imagen?.startsWith("http")
-        ? p.imagen
-        : `${baseUrl}/images/${p.imagen}`,
-    }));
-
-    res.json(productos);
+    res.json(
+      rows.map((p) => ({
+        ...p,
+        imagen: p.imagen?.startsWith("http")
+          ? p.imagen
+          : `${baseUrl}/images/${p.imagen}`,
+      }))
+    );
   });
 });
 
-// =================================================
-// 🛒 PEDIDOS (CARRITO)
-// =================================================
-app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
-
-  if (!nombre || !email || !direccion || !ciudad || !telefono)
-    return res.status(400).json({ error: "Faltan datos" });
-
-  if (!carrito || carrito.length === 0)
-    return res.status(400).json({ error: "Carrito vacío" });
-
-  const total = carrito.reduce(
-    (sum, item) => sum + item.precio * item.quantity,
-    0
-  );
+/* ================= CONTACTO ================= */
+app.post("/api/contacto", (req, res) => {
+  const { nombre, email, mensaje } = req.body;
+  if (!nombre || !email || !mensaje)
+    return res.status(400).json({ error: "Datos incompletos" });
 
   DB.query(
-    `INSERT INTO pedidos 
-     (nombre,email,direccion,ciudad,telefono,total,estado)
+    "INSERT INTO contactos (nombre,email,mensaje) VALUES (?,?,?)",
+    [nombre, email, mensaje],
+    () => res.json({ ok: true })
+  );
+});
+
+/* ================= PEDIDOS ================= */
+app.post("/api/enviar-formulario", (req, res) => {
+  const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
+  if (!carrito?.length) return res.status(400).json({ error: "Carrito vacío" });
+
+  const total = carrito.reduce((s, i) => s + i.precio * (i.quantity || 1), 0);
+
+  DB.query(
+    `INSERT INTO pedidos (nombre,email,direccion,ciudad,telefono,total,estado)
      VALUES (?,?,?,?,?,?,'pendiente')`,
     [nombre, email, direccion, ciudad, telefono, total],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: "Error pedido" });
+    (err, r) => {
+      if (err) return res.status(500).json(err);
 
-      const detalles = carrito.map((item) => [
-        result.insertId,
-        item.id,
-        item.nombre,
-        item.precio,
-        item.quantity,
-        item.precio * item.quantity,
+      const detalles = carrito.map((i) => [
+        r.insertId,
+        i.id,
+        i.nombre,
+        i.precio,
+        i.quantity,
+        i.precio * i.quantity,
       ]);
 
       DB.query(
         `INSERT INTO pedido_detalles
-         (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-         VALUES ?`,
+        (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+        VALUES ?`,
         [detalles],
-        () => res.json({ mensaje: "Pedido registrado ✔" })
+        () => res.json({ ok: true })
       );
     }
   );
 });
 
-// =================================================
-// ✉️ CONTACTO
-// =================================================
-app.post("/api/contacto", (req, res) => {
-  const { nombre, email, mensaje } = req.body;
+/* ================= ADMIN ================= */
 
-  if (!nombre || !email || !mensaje)
-    return res.status(400).json({ error: "Faltan datos" });
+/* LISTADO */
+app.get("/api/pedidos-completo", (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
 
-  DB.query(
-    `INSERT INTO contactos (nombre,email,mensaje)
-     VALUES (?,?,?)`,
-    [nombre, email, mensaje],
-    (err) => {
-      if (err) return res.status(500).json({ error: "Error contacto" });
-      res.json({ mensaje: "Mensaje enviado ✔" });
-    }
-  );
-});
-
-// =================================================
-// 🔐 ADMIN – PEDIDOS
-// =================================================
-app.get("/api/admin/pedidos", (req, res) => {
-  DB.query("SELECT * FROM pedidos ORDER BY id DESC", (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
+  DB.query("SELECT COUNT(*) total FROM pedidos", (_, c) => {
+    DB.query(
+      "SELECT * FROM pedidos ORDER BY id DESC LIMIT ? OFFSET ?",
+      [limit, offset],
+      (_, rows) =>
+        res.json({
+          results: rows,
+          total: c[0].total,
+          totalPages: Math.ceil(c[0].total / limit),
+          page,
+        })
+    );
   });
 });
 
-app.get("/api/admin/pedidos/:id", (req, res) => {
+/* DETALLE */
+app.get("/api/pedidos-detalle/:id", (req, res) => {
   DB.query(
-    "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+    "SELECT nombre producto,precio,cantidad,subtotal FROM pedido_detalles WHERE pedido_id=?",
     [req.params.id],
-    (err, results) => {
-      if (err) return res.status(500).json(err);
-      res.json(results);
-    }
+    (_, rows) => res.json(rows)
   );
 });
 
-// =================================================
-// 🔐 ADMIN – CONTACTOS
-// =================================================
-app.get("/api/admin/contactos", (req, res) => {
-  DB.query("SELECT * FROM contactos ORDER BY id DESC", (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
+/* CAMBIAR ESTADO */
+app.put("/api/pedidos-estado/:id", (req, res) => {
+  DB.query(
+    "UPDATE pedidos SET estado = IF(estado='pendiente','entregado','pendiente') WHERE id=?",
+    [req.params.id],
+    () => res.json({ ok: true })
+  );
+});
+
+/* ELIMINAR */
+app.delete("/api/pedidos/:id", (req, res) => {
+  DB.query("DELETE FROM pedidos WHERE id=?", [req.params.id], () =>
+    res.json({ ok: true })
+  );
+});
+
+/* EXCEL */
+app.get("/api/exportar-pedidos-completo", async (_, res) => {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Pedidos");
+
+  ws.columns = [
+    { header: "ID", key: "id" },
+    { header: "Cliente", key: "nombre" },
+    { header: "Teléfono", key: "telefono" },
+    { header: "Total", key: "total" },
+    { header: "Estado", key: "estado" },
+    { header: "Fecha", key: "fecha" },
+  ];
+
+  DB.query("SELECT * FROM pedidos", (_, rows) => {
+    ws.addRows(rows);
+    res.setHeader("Content-Disposition", "attachment; filename=pedidos.xlsx");
+    wb.xlsx.write(res).then(() => res.end());
   });
 });
 
 /* ================= SERVER ================= */
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-});
+app.listen(PORT, "0.0.0.0", () => console.log("🚀 Backend funcionando"));
 
 ///----------------------------------------------------------------------------------------------------------------------------------------------//
 
