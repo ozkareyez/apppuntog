@@ -16,19 +16,21 @@ export default function Dashboard() {
   const fetchPedidos = async (page = pagina) => {
     try {
       setLoading(true);
+
       const params = new URLSearchParams();
       params.append("page", page);
       if (buscar) params.append("search", buscar);
       if (fechaInicio) params.append("inicio", fechaInicio);
       if (fechaFin) params.append("fin", fechaFin);
 
-      const url = `${API_URL}/api/pedidos-completo`;
+      const url = `${API_URL}/api/pedidos-completo?${params.toString()}`;
+
       const res = await fetch(url);
       const data = await res.json();
+
       setPedidos(data.results || []);
       setTotalPaginas(data.totalPages || 1);
       setTotalResultados(data.total || 0);
-      setPagina(data.page || page);
     } catch (err) {
       console.error("Error cargando pedidos:", err);
       setPedidos([]);
@@ -37,10 +39,10 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchPedidos(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // useEffect(() => {
+  //   fetchPedidos(1);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   useEffect(() => {
     fetchPedidos(pagina);
@@ -49,7 +51,7 @@ export default function Dashboard() {
 
   const aplicarFiltros = () => {
     setPagina(1);
-    fetchPedidos(1);
+    // fetchPedidos(1);
   };
 
   const limpiarFiltros = () => {
@@ -57,7 +59,7 @@ export default function Dashboard() {
     setFechaInicio("");
     setFechaFin("");
     setPagina(1);
-    fetchPedidos(1);
+    // fetchPedidos(1);
   };
 
   const eliminarPedido = async (id) => {
