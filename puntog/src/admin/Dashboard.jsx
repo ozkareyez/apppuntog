@@ -51,7 +51,6 @@ export default function Dashboard() {
 
   const aplicarFiltros = () => {
     setPagina(1);
-    fetchPedidos(1);
   };
 
   const limpiarFiltros = () => {
