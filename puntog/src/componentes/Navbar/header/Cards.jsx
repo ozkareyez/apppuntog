@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { ShoppingCart } from "lucide-react";
-import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import { API_URL } from "../../../config";
 
 const Cards = () => {
-  /* ================= FORMULARIO ================= */
-  const [formData, setFormData] = useState({
+  /* ================= PRODUCTOS ================= */
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  /* ================= CARRITO ================= */
+  const [cart, setCart] = useState([]);
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  /* ================= FORM PEDIDO ================= */
+  const [pedido, setPedido] = useState({
     nombre: "",
     email: "",
     direccion: "",
@@ -14,44 +22,41 @@ const Cards = () => {
     telefono: "",
   });
 
-  /* ================= ESTADOS ================= */
-  const [cart, setCart] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showCart, setShowCart] = useState(false);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  /* ================= FORM CONTACTO ================= */
+  const [contacto, setContacto] = useState({
+    nombre: "",
+    email: "",
+    mensaje: "",
+  });
 
-  /* ================= OBTENER PRODUCTOS ================= */
-  const fetchProductos = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/productos`);
-      if (!response.ok) throw new Error("Error al obtener productos");
-      const data = await response.json();
-      setProductos(data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [mostrarContacto, setMostrarContacto] = useState(false);
 
+  /* ================= FETCH PRODUCTOS ================= */
   useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/productos`);
+        if (!res.ok) throw new Error("Error cargando productos");
+        const data = await res.json();
+        setProductos(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProductos();
   }, []);
 
   /* ================= CARRITO ================= */
   const addToCart = (producto) => {
-    const existing = cart.find((item) => item.id === producto.id);
+    const existe = cart.find((p) => p.id === producto.id);
 
-    if (existing) {
+    if (existe) {
       setCart(
-        cart.map((item) =>
-          item.id === producto.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+        cart.map((p) =>
+          p.id === producto.id ? { ...p, quantity: p.quantity + 1 } : p
         )
       );
     } else {
@@ -59,30 +64,24 @@ const Cards = () => {
     }
   };
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  /* ================= FALLBACK IMAGEN ================= */
+  /* ================= IMAGEN FALLBACK ================= */
   const handleImgError = (e) => {
-    e.target.onerror = null;
     e.target.src = `${API_URL}/images/no-image.png`;
   };
 
-  /* ================= ENVIAR FORMULARIO ================= */
-  const enviarFormulario = async (e) => {
+  /* ================= ENVIAR PEDIDO ================= */
+  const enviarPedido = async (e) => {
     e.preventDefault();
 
-    if (cart.length === 0) {
-      alert("Carrito vacío");
-      return;
-    }
+    if (cart.length === 0) return alert("Carrito vacío");
 
     const payload = {
-      ...formData,
+      ...pedido,
       carrito: cart.map((item) => ({
         id: item.id,
         nombre: item.nombre,
         precio: Number(item.precio),
-        quantity: item.quantity || 1,
+        quantity: item.quantity,
       })),
     };
 
@@ -94,44 +93,49 @@ const Cards = () => {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Error al enviar pedido");
-      }
+      if (!res.ok) throw new Error(data.error);
 
       alert("Pedido enviado correctamente ✔");
-
-      setFormData({
+      setCart([]);
+      setPedido({
         nombre: "",
         email: "",
         direccion: "",
         ciudad: "",
         telefono: "",
       });
-      setCart([]);
-      setMostrarFormulario(false);
-    } catch (error) {
-      console.error(error);
-      alert("No se pudo enviar el pedido");
+    } catch {
+      alert("Error al enviar pedido");
+    }
+  };
+
+  /* ================= ENVIAR CONTACTO ================= */
+  const enviarContacto = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`${API_URL}/api/contacto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contacto),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      alert("Mensaje enviado ✔");
+      setContacto({ nombre: "", email: "", mensaje: "" });
+      setMostrarContacto(false);
+    } catch {
+      alert("No se pudo enviar el mensaje");
     }
   };
 
   /* ================= RENDER ================= */
   return (
     <div className="min-h-screen bg-[#22222280]">
-      <Header
-        totalItems={totalItems}
-        onCartClick={() => setShowCart(!showCart)}
-      />
+      <Header totalItems={totalItems} />
 
-      <FloatingWhatsApp
-        phoneNumber="+573147041149"
-        accountName="Punto G"
-        chatMessage="Hola 👋 ¿En qué te ayudamos?"
-        avatar={`${API_URL}/images/logo.png`}
-      />
-
-      {/* ================= PRODUCTOS ================= */}
       <div className="max-w-7xl mx-auto p-4">
         <h1 className="text-4xl text-center text-pink-400 mb-8">
           Nuestros Productos
@@ -140,13 +144,13 @@ const Cards = () => {
         {loading && <p className="text-white text-center">Cargando...</p>}
         {error && <p className="text-red-500 text-center">{error}</p>}
 
+        {/* ================= GRID ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {productos.map((producto) => (
             <div
               key={producto.id}
               className="bg-black rounded-lg overflow-hidden shadow-lg"
             >
-              {/* ===== IMAGEN RESPONSIVE CORRECTA ===== */}
               <div className="w-full h-56 md:h-72 overflow-hidden">
                 <img
                   src={producto.imagen}
@@ -168,18 +172,7 @@ const Cards = () => {
 
                 <button
                   onClick={() => addToCart(producto)}
-                  className="
-                    mt-4
-                    w-full
-                    bg-white
-                    py-2
-                    rounded
-                    hover:bg-gray-200
-                    flex
-                    justify-center
-                    items-center
-                    gap-2
-                  "
+                  className="mt-4 w-full bg-white py-2 rounded hover:bg-gray-200 flex justify-center gap-2"
                 >
                   <ShoppingCart />
                   Agregar
@@ -188,69 +181,61 @@ const Cards = () => {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* ================= FORMULARIO ================= */}
-      {mostrarFormulario && (
-        <form
-          onSubmit={enviarFormulario}
-          className="max-w-md mx-auto bg-black p-6 rounded-lg mt-10"
-        >
-          <input
-            className="w-full mb-3 p-2 rounded"
-            placeholder="Nombre"
-            value={formData.nombre}
-            onChange={(e) =>
-              setFormData({ ...formData, nombre: e.target.value })
-            }
-            required
-          />
-          <input
-            className="w-full mb-3 p-2 rounded"
-            placeholder="Email"
-            type="email"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-            required
-          />
-          <input
-            className="w-full mb-3 p-2 rounded"
-            placeholder="Dirección"
-            value={formData.direccion}
-            onChange={(e) =>
-              setFormData({ ...formData, direccion: e.target.value })
-            }
-            required
-          />
-          <input
-            className="w-full mb-3 p-2 rounded"
-            placeholder="Ciudad"
-            value={formData.ciudad}
-            onChange={(e) =>
-              setFormData({ ...formData, ciudad: e.target.value })
-            }
-            required
-          />
-          <input
-            className="w-full mb-4 p-2 rounded"
-            placeholder="Teléfono"
-            value={formData.telefono}
-            onChange={(e) =>
-              setFormData({ ...formData, telefono: e.target.value })
-            }
-            required
-          />
-
+        {/* ================= FORM CONTACTO ================= */}
+        <div className="text-center mt-12">
           <button
-            type="submit"
-            className="w-full bg-pink-500 text-white py-2 rounded hover:bg-pink-600"
+            onClick={() => setMostrarContacto(!mostrarContacto)}
+            className="text-pink-400 underline"
           >
-            Enviar Pedido
+            Contáctanos
           </button>
-        </form>
-      )}
+        </div>
+
+        {mostrarContacto && (
+          <form
+            onSubmit={enviarContacto}
+            className="max-w-md mx-auto bg-black p-6 rounded-lg mt-6"
+          >
+            <input
+              className="w-full mb-3 p-2 rounded"
+              placeholder="Nombre"
+              value={contacto.nombre}
+              onChange={(e) =>
+                setContacto({ ...contacto, nombre: e.target.value })
+              }
+              required
+            />
+            <input
+              className="w-full mb-3 p-2 rounded"
+              placeholder="Email"
+              type="email"
+              value={contacto.email}
+              onChange={(e) =>
+                setContacto({ ...contacto, email: e.target.value })
+              }
+              required
+            />
+            <textarea
+              className="w-full mb-4 p-2 rounded"
+              placeholder="Mensaje"
+              rows="4"
+              value={contacto.mensaje}
+              onChange={(e) =>
+                setContacto({ ...contacto, mensaje: e.target.value })
+              }
+              required
+            />
+
+            <button
+              type="submit"
+              className="w-full bg-pink-500 text-white py-2 rounded hover:bg-pink-600"
+            >
+              Enviar Mensaje
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 };

@@ -73,38 +73,63 @@ app.get("/api/productos", (req, res) => {
   });
 });
 
+/* ================= CONTACTO ================= */
+app.post("/api/contacto", (req, res) => {
+  const { nombre, email, mensaje } = req.body;
+
+  if (!nombre || !email || !mensaje) {
+    return res.status(400).json({ error: "Faltan datos" });
+  }
+
+  console.log("📩 CONTACTO:", { nombre, email, mensaje });
+
+  // (Opcional) Guardar en BD más adelante
+  res.json({ mensaje: "Mensaje enviado correctamente ✔" });
+});
+
 /* ================= FORMULARIO ================= */
-const enviarFormulario = async (e) => {
-  e.preventDefault();
+app.post("/api/enviar-formulario", (req, res) => {
+  const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
 
-  if (!formData.nombre || !formData.email || !formData.mensaje) {
-    return alert("Por favor completa todos los campos.");
+  if (!nombre || !email || !direccion || !ciudad || !telefono) {
+    return res.status(400).json({ error: "Faltan datos" });
   }
 
-  try {
-    const res = await fetch(`${API_URL}/api/enviar-formulario`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+  if (!carrito || carrito.length === 0) {
+    return res.status(400).json({ error: "Carrito vacío" });
+  }
 
-    const data = await res.json();
+  const total = carrito.reduce(
+    (sum, it) => sum + it.precio * (it.quantity || 1),
+    0
+  );
 
-    if (!res.ok) {
-      throw new Error(data.error || "Error al enviar el mensaje.");
+  DB.query(
+    `INSERT INTO pedidos (nombre,email,direccion,ciudad,telefono,total,estado)
+     VALUES (?,?,?,?,?,?,'pendiente')`,
+    [nombre, email, direccion, ciudad, telefono, total],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: "Error pedido" });
+
+      const detalles = carrito.map((i) => [
+        result.insertId,
+        i.id,
+        i.nombre,
+        i.precio,
+        i.quantity || 1,
+        i.precio * (i.quantity || 1),
+      ]);
+
+      DB.query(
+        `INSERT INTO pedido_detalles
+         (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+         VALUES ?`,
+        [detalles],
+        () => res.json({ mensaje: "Pedido registrado ✔" })
+      );
     }
-
-    alert("Mensaje enviado correctamente.");
-    setFormData({
-      nombre: "",
-      email: "",
-      mensaje: "",
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    alert("No se pudo enviar el mensaje. Inténtalo nuevamente.");
-  }
-};
+  );
+});
 
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
