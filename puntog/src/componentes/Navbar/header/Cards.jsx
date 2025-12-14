@@ -459,8 +459,8 @@ Gracias por su compra!
               className="sm:flex border border-[#ffffff40] bg-black rounded-md overflow-hidden hover:border hover:border-gray-300 transition-colors"
             >
               <div className="grid grid-cols-1 md:grid-cols-3 bg-[#22222280] border border-[#ffffff40] rounded-lg overflow-hidden">
-                {/* IMAGEN */}
-                <div className="w-full h-64 md:h-auto md:col-span-1">
+                {/* IMAGEN (Móvil arriba, Escritorio izquierda) */}
+                <div className="w-full h-64 md:h-auto md:col-span-1 order-1 md:order-none">
                   <img
                     className="w-full h-full object-cover"
                     src={producto.imagen}
@@ -470,8 +470,8 @@ Gracias por su compra!
                   />
                 </div>
 
-                {/* INFO */}
-                <div className="p-6 flex flex-col justify-center text-center md:col-span-2">
+                {/* INFO (Móvil abajo, Escritorio derecha) */}
+                <div className="p-6 flex flex-col justify-center text-center md:col-span-2 order-2 md:order-none">
                   <h3 className="text-sm font-semibold text-[#ffffff90] mb-2">
                     {producto.nombre}
                   </h3>
