@@ -200,6 +200,11 @@ Gracias por su compra!
 
   /****** */
 
+  const handleImgError = (e) => {
+    e.target.onerror = null; // 🔒 evita loop infinito
+    e.target.src = "/imagenes/no-image.png";
+  };
+
   return (
     <div className="min-h-screen bg-[#22222280]">
       {/* Header con ícono del carrito */}
@@ -267,9 +272,7 @@ Gracias por su compra!
                           src={item.imagen}
                           alt={item.nombre}
                           className="w-16 h-16 object-cover rounded"
-                          onError={(e) => {
-                            e.target.src = "/imagenes/no-image.png";
-                          }}
+                          onError={handleImgError}
                         />
 
                         <div className="flex-1">
@@ -462,9 +465,7 @@ Gracias por su compra!
                     src={producto.imagen}
                     alt={producto.nombre}
                     loading="lazy"
-                    onError={(e) => {
-                      e.target.src = "/no-image.png";
-                    }}
+                    onError={handleImgError}
                   />
                 </div>
 
