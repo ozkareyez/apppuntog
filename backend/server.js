@@ -2,6 +2,8 @@ import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
 import ExcelJS from "exceljs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -17,6 +19,12 @@ app.use(
 );
 
 app.use(express.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Servir imágenes estáticas
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 // ---------------------------
 // CONEXIÓN MySQL CON POOL (Railway-compatible)
