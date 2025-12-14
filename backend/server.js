@@ -165,7 +165,6 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
 
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => console.log("🚀 Backend funcionando"));
-
 ///----------------------------------------------------------------------------------------------------------------------------------------------//
 
 // import express from "express";
