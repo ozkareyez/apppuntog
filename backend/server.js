@@ -127,13 +127,48 @@ app.get("/api/pedidos-detalle/:id", (req, res) => {
 });
 
 /* CAMBIAR ESTADO */
+
 app.put("/api/pedidos-estado/:id", (req, res) => {
+  const { id } = req.params;
+
   DB.query(
-    "UPDATE pedidos SET estado = IF(estado='pendiente','entregado','pendiente') WHERE id=?",
-    [req.params.id],
-    () => res.json({ ok: true })
+    `
+    UPDATE pedidos 
+    SET estado = IF(estado = 'pendiente', 'entregado', 'pendiente') 
+    WHERE id = ?
+    `,
+    [id],
+    (err, result) => {
+      if (err) {
+        console.error("Error actualizando pedido:", err);
+        return res.status(500).json({
+          ok: false,
+          error: "Error actualizando el estado",
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          ok: false,
+          error: "Pedido no encontrado",
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: "Estado del pedido actualizado",
+      });
+    }
   );
 });
+
+// app.put("/api/pedidos-estado/:id", (req, res) => {
+//   DB.query(
+//     "UPDATE pedidos SET estado = IF(estado='pendiente','entregado','pendiente') WHERE id=?",
+//     [req.params.id],
+//     () => res.json({ ok: true })
+//   );
+// });
 
 /* ELIMINAR */
 app.delete("/api/pedidos/:id", (req, res) => {
