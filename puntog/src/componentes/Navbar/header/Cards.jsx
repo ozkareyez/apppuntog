@@ -461,7 +461,7 @@ Gracias por su compra!
               <div className=" flex md:grid md:grid-cols-3">
                 <div className="w-full md:w-50 md:h-64 md:object-cover bg-[#22222280] border-r border-[#ffffff40] ">
                   <img
-                    className="w-full h-full md:w-64 md:h-72 object-cover"
+                    className="w-full h-full md:w-64 md:h-72 sm:object-cover "
                     src={producto.imagen}
                     alt={producto.nombre}
                     loading="lazy"
@@ -470,7 +470,7 @@ Gracias por su compra!
                 </div>
 
                 <div className="p-6 flex flex-col justify-center md:px-20 md:text-center md:mx-auto">
-                  <h3 className="text-xl font-semibold text-[#ffffff90] mb-4">
+                  <h3 className="text-[12px] font-semibold text-[#ffffff90] mb-4">
                     {producto.nombre}
                   </h3>
                   <p className="text-[#ffffff90] mb-2">
@@ -479,7 +479,7 @@ Gracias por su compra!
                   <p className="text-[#ffffff90] mb-2">
                     Color: {producto.color}
                   </p>
-                  <p className="text-2xl font-bold text-white mb-4">
+                  <p className="text-[12px] font-bold text-white mb-4">
                     ${producto.precio}
                   </p>
 
@@ -487,7 +487,7 @@ Gracias por su compra!
                     onClick={() => addToCart(producto)}
                     className="w-full md:w-auto border border-[#ffffff40] py-2 px-8 rounded-md bg-white hover:bg-transparent hover:text-white transition flex items-center justify-center gap-2"
                   >
-                    <ShoppingCart className="text-[12px]" size={22} />
+                    <ShoppingCart className="text-[12px]" size={18} />
                     Agregar
                   </button>
                 </div>
