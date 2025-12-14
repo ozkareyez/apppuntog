@@ -83,7 +83,7 @@ export default function Dashboard() {
 
   const cambiarEstado = async (id) => {
     try {
-      const res = await fetch(`http://${API_URL}/api/pedidos-estado/${id}`, {
+      const res = await fetch(`${API_URL}/api/pedidos-estado/${id}`, {
         method: "PUT",
       });
       if (res.ok) {
@@ -99,7 +99,7 @@ export default function Dashboard() {
 
   const verDetalle = async (id) => {
     try {
-      const res = await fetch(`http://${API_URL}/api/pedidos-detalle/${id}`);
+      const res = await fetch(`${API_URL}/api/pedidos-detalle/${id}`);
       const data = await res.json();
       setDetalle({ pedidoId: id, items: data });
     } catch (err) {
@@ -109,7 +109,7 @@ export default function Dashboard() {
   };
 
   const descargarExcel = () => {
-    window.open("http://${API_URL}/api/exportar-pedidos-completo", "_blank");
+    window.open("${API_URL}/api/exportar-pedidos-completo", "_blank");
   };
 
   const logout = () => {
