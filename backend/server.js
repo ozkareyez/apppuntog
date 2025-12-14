@@ -77,48 +77,32 @@ app.get("/api/productos", (req, res) => {
 const enviarFormulario = async (e) => {
   e.preventDefault();
 
-  if (cart.length === 0) {
-    alert("Carrito vacío");
-    return;
+  if (!formData.nombre || !formData.email || !formData.mensaje) {
+    return alert("Por favor completa todos los campos.");
   }
-
-  const payload = {
-    ...formData,
-    carrito: cart.map((item) => ({
-      id: item.id,
-      nombre: item.nombre,
-      precio: Number(item.precio),
-      quantity: item.quantity || 1,
-    })),
-  };
 
   try {
     const res = await fetch(`${API_URL}/api/enviar-formulario`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(formData),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Error al enviar pedido");
+      throw new Error(data.error || "Error al enviar el mensaje.");
     }
 
-    alert("Pedido enviado correctamente ✔");
-
+    alert("Mensaje enviado correctamente.");
     setFormData({
       nombre: "",
       email: "",
-      direccion: "",
-      ciudad: "",
-      telefono: "",
+      mensaje: "",
     });
-    setCart([]);
-    setMostrarFormulario(false);
   } catch (error) {
-    console.error(error);
-    alert("No se pudo enviar el pedido");
+    console.error("Error:", error);
+    alert("No se pudo enviar el mensaje. Inténtalo nuevamente.");
   }
 };
 
