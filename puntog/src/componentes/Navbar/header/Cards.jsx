@@ -458,7 +458,7 @@ Gracias por su compra!
               key={producto.id}
               className="sm:flex border border-[#ffffff40] bg-black rounded-md overflow-hidden hover:border hover:border-gray-300 transition-colors"
             >
-              <div className=" flex md:grid md:grid-cols-3">
+              <div className=" flex md:grid md:grid-cols-3 sm:grid sm:grid-cols-1">
                 <div className="w-full md:w-50 md:h-64 md:object-cover bg-[#22222280] border-r border-[#ffffff40] ">
                   <img
                     className="w-full h-full md:w-64 md:h-72 sm:object-cover "
