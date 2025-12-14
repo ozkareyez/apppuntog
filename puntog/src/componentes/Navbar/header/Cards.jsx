@@ -1,5 +1,5 @@
-// import { useState, useEffect } from "react";
-import { ShoppingCart, Plus, Minus, Trash2, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart } from "lucide-react";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import { API_URL } from "../../../config";
@@ -58,39 +58,12 @@ const Cards = () => {
     }
   };
 
-  const increaseQuantity = (id) =>
-    setCart(
-      cart.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
-
-  const decreaseQuantity = (id) => {
-    const item = cart.find((item) => item.id === id);
-    if (item.quantity === 1) {
-      setCart(cart.filter((item) => item.id !== id));
-    } else {
-      setCart(
-        cart.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity - 1 } : item
-        )
-      );
-    }
-  };
-
-  const removeFromCart = (id) => setCart(cart.filter((item) => item.id !== id));
-
-  const total = cart.reduce(
-    (sum, item) => sum + item.precio * item.quantity,
-    0
-  );
-
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   /* ================= FALLBACK IMAGEN ================= */
   const handleImgError = (e) => {
     e.target.onerror = null;
-    e.target.src = `${API_URL}/imagenes/no-image.png`;
+    e.target.src = `${API_URL}/images/no-image.png`;
   };
 
   /* ================= FORMULARIO ================= */
@@ -127,7 +100,7 @@ const Cards = () => {
         phoneNumber="+573147041149"
         accountName="Punto G"
         chatMessage="Hola 👋 ¿En qué te ayudamos?"
-        avatar={`${API_URL}/imagenes/logo.png`}
+        avatar={`${API_URL}/images/logo.png`}
       />
 
       {/* ================= PRODUCTOS ================= */}
@@ -145,8 +118,9 @@ const Cards = () => {
               key={producto.id}
               className="border bg-black rounded-md overflow-hidden"
             >
+              {/* IMAGEN CORRECTA */}
               <img
-                src={`${API_URL}/imagenes/${producto.imagen}`}
+                src={producto.imagen}
                 alt={producto.nombre}
                 className="w-full h-72 object-cover"
                 onError={handleImgError}
