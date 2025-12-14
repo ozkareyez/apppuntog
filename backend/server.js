@@ -98,24 +98,65 @@ app.post("/api/enviar-formulario", (req, res) => {
 
 /* LISTADO */
 app.get("/api/pedidos-completo", (req, res) => {
-  const page = Number(req.query.page) || 1;
+  const page = Math.max(Number(req.query.page) || 1, 1);
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  DB.query("SELECT COUNT(*) total FROM pedidos", (_, c) => {
+  DB.query("SELECT COUNT(*) AS total FROM pedidos", (errCount, countRows) => {
+    if (errCount) {
+      console.error("Error contando pedidos:", errCount);
+      return res.status(500).json({
+        ok: false,
+        error: "Error obteniendo pedidos",
+      });
+    }
+
+    const total = countRows[0].total;
+
     DB.query(
       "SELECT * FROM pedidos ORDER BY id DESC LIMIT ? OFFSET ?",
       [limit, offset],
-      (_, rows) =>
+      (errRows, rows) => {
+        if (errRows) {
+          console.error("Error listando pedidos:", errRows);
+          return res.status(500).json({
+            ok: false,
+            error: "Error obteniendo pedidos",
+          });
+        }
+
         res.json({
+          ok: true,
           results: rows,
-          total: c[0].total,
-          totalPages: Math.ceil(c[0].total / limit),
+          total,
+          limit,
           page,
-        })
+          totalPages: Math.ceil(total / limit),
+        });
+      }
     );
   });
 });
+
+// app.get("/api/pedidos-completo", (req, res) => {
+//   const page = Number(req.query.page) || 1;
+//   const limit = 10;
+//   const offset = (page - 1) * limit;
+
+//   DB.query("SELECT COUNT(*) total FROM pedidos", (_, c) => {
+//     DB.query(
+//       "SELECT * FROM pedidos ORDER BY id DESC LIMIT ? OFFSET ?",
+//       [limit, offset],
+//       (_, rows) =>
+//         res.json({
+//           results: rows,
+//           total: c[0].total,
+//           totalPages: Math.ceil(c[0].total / limit),
+//           page,
+//         })
+//     );
+//   });
+// });
 
 /* DETALLE */
 app.get("/api/pedidos-detalle/:id", (req, res) => {
