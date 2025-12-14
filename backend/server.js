@@ -85,6 +85,13 @@ app.get("/api/productos", (req, res) => {
         detalle: err.message,
       });
     }
+    const productos = results.map((p) => ({
+      ...p,
+      imagen: p.imagen?.startsWith("http")
+        ? p.imagen
+        : `https://${req.get("host")}/images/${p.imagen}`,
+    }));
+
     res.json(results);
   });
 });
@@ -107,9 +114,9 @@ app.post("/api/enviar-formulario", (req, res) => {
   );
 
   const INSERT_PEDIDO = `
-    INSERT INTO pedidos (nombre, email, direccion, ciudad, telefono, total, estado)
-    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
-  `;
+      INSERT INTO pedidos (nombre, email, direccion, ciudad, telefono, total, estado)
+      VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
+    `;
 
   DB.query(
     INSERT_PEDIDO,
@@ -119,9 +126,9 @@ app.post("/api/enviar-formulario", (req, res) => {
 
       const pedidoId = result.insertId;
       const INSERT_DETALLE = `
-        INSERT INTO pedido_detalles (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
-        VALUES ?
-      `;
+          INSERT INTO pedido_detalles (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
+          VALUES ?
+        `;
 
       const detalles = carrito.map((item) => [
         pedidoId,
@@ -172,12 +179,12 @@ app.get("/api/pedidos-completo", (req, res) => {
 
   const sqlCount = `SELECT COUNT(*) AS total FROM pedidos ${where}`;
   const sqlData = `
-    SELECT id, nombre, email, direccion, ciudad, telefono, total, fecha, estado
-    FROM pedidos
-    ${where}
-    ORDER BY fecha DESC
-    LIMIT ? OFFSET ?
-  `;
+      SELECT id, nombre, email, direccion, ciudad, telefono, total, fecha, estado
+      FROM pedidos
+      ${where}
+      ORDER BY fecha DESC
+      LIMIT ? OFFSET ?
+    `;
 
   DB.query(sqlCount, params, (err, countRows) => {
     if (err) return res.status(500).json({ error: "Error contando pedidos" });
@@ -260,23 +267,23 @@ app.put("/api/pedidos-estado/:id", (req, res) => {
 // ---------------------------
 app.get("/api/exportar-pedidos-completo", (req, res) => {
   const SQL = `
-    SELECT 
-      p.id AS pedido_id,
-      p.fecha,
-      p.nombre AS cliente_nombre,
-      p.email,
-      p.direccion,
-      p.ciudad,
-      p.telefono,
-      d.producto_id,
-      d.nombre AS producto_nombre,
-      d.precio,
-      d.cantidad,
-      d.subtotal
-    FROM pedidos p
-    INNER JOIN pedido_detalles d ON p.id = d.pedido_id
-    ORDER BY p.id ASC
-  `;
+      SELECT 
+        p.id AS pedido_id,
+        p.fecha,
+        p.nombre AS cliente_nombre,
+        p.email,
+        p.direccion,
+        p.ciudad,
+        p.telefono,
+        d.producto_id,
+        d.nombre AS producto_nombre,
+        d.precio,
+        d.cantidad,
+        d.subtotal
+      FROM pedidos p
+      INNER JOIN pedido_detalles d ON p.id = d.pedido_id
+      ORDER BY p.id ASC
+    `;
 
   DB.query(SQL, async (err, rows) => {
     if (err) return res.status(500).json({ error: "Error generando excel" });

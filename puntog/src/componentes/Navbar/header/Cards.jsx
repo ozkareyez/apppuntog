@@ -11,7 +11,6 @@ import {
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import MainCTA from "../../MainCTA";
-import { h1 } from "framer-motion/client";
 
 const Cards = () => {
   /************************************ */
@@ -32,19 +31,23 @@ const Cards = () => {
   const [showCart, setShowCart] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
+  const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
+
   const fetchProductos = async () => {
     try {
       setLoading(true);
-      const response = await fetch("`${API_URL}/api/productos`");
+
+      const response = await fetch(`${API_URL}/api/productos`);
 
       if (!response.ok) {
-        throw new Error("error al obtener datos del servidor");
+        throw new Error("Error al obtener datos del servidor");
       }
+
       const data = await response.json();
       setProductos(data);
       setError(null);
     } catch (error) {
-      console.error("error al obtener los productos", error);
+      console.error("Error al obtener los productos:", error);
       setError(error.message);
     } finally {
       setLoading(false);
