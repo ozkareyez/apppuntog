@@ -2,7 +2,7 @@
 import { ShoppingCart, Plus, Minus, Trash2, X } from "lucide-react";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
-import { API_URL } from "../config";
+import { API_URL } from "../../config";
 
 const Cards = () => {
   /* ================= FORMULARIO ================= */
