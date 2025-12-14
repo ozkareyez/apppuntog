@@ -458,10 +458,11 @@ Gracias por su compra!
               key={producto.id}
               className="sm:flex border border-[#ffffff40] bg-black rounded-md overflow-hidden hover:border hover:border-gray-300 transition-colors"
             >
-              <div className=" flex md:grid md:grid-cols-3 sm:grid sm:grid-cols-1">
-                <div className="w-full md:w-50 md:h-64 md:object-cover bg-[#22222280] border-r border-[#ffffff40] ">
+              <div className="grid grid-cols-1 md:grid-cols-3 bg-[#22222280] border border-[#ffffff40] rounded-lg overflow-hidden">
+                {/* IMAGEN */}
+                <div className="w-full h-64 md:h-auto md:col-span-1">
                   <img
-                    className="w-full h-full md:w-64 md:h-72 sm:object-cover "
+                    className="w-full h-full object-cover"
                     src={producto.imagen}
                     alt={producto.nombre}
                     loading="lazy"
@@ -469,25 +470,29 @@ Gracias por su compra!
                   />
                 </div>
 
-                <div className="p-6 flex flex-col justify-center md:px-20 md:text-center md:mx-auto">
-                  <h3 className="text-[12px] font-semibold text-[#ffffff90] mb-4">
+                {/* INFO */}
+                <div className="p-6 flex flex-col justify-center text-center md:col-span-2">
+                  <h3 className="text-sm font-semibold text-[#ffffff90] mb-2">
                     {producto.nombre}
                   </h3>
-                  <p className="text-[#ffffff90] mb-2">
+
+                  <p className="text-[#ffffff90] text-sm">
                     Talla: {producto.talla}
                   </p>
-                  <p className="text-[#ffffff90] mb-2">
+
+                  <p className="text-[#ffffff90] text-sm">
                     Color: {producto.color}
                   </p>
-                  <p className="text-[12px] font-bold text-white mb-4">
+
+                  <p className="text-sm font-bold text-white mt-2 mb-4">
                     ${producto.precio}
                   </p>
 
                   <button
                     onClick={() => addToCart(producto)}
-                    className="w-full md:w-auto border border-[#ffffff40] py-2 px-8 rounded-md bg-white hover:bg-transparent hover:text-white transition flex items-center justify-center gap-2"
+                    className="mx-auto flex items-center gap-2 border border-[#ffffff40] py-2 px-8 rounded-md bg-white text-black hover:bg-transparent hover:text-white transition"
                   >
-                    <ShoppingCart className="text-[12px]" size={18} />
+                    <ShoppingCart size={16} />
                     Agregar
                   </button>
                 </div>
