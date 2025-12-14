@@ -1,7 +1,6 @@
 import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
-import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -33,34 +32,21 @@ const DB = mysql.createPool({
   port: process.env.MYSQLPORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-});
-
-DB.getConnection((err, conn) => {
-  if (err) {
-    console.error("❌ ERROR MYSQL:", err);
-  } else {
-    console.log("✅ MySQL conectado correctamente");
-    conn.release();
-  }
 });
 
 /* ================= ROOT ================= */
 app.get("/", (req, res) => {
-  res.json({
-    mensaje: "API funcionando correctamente ✔",
-    ts: new Date().toISOString(),
-  });
+  res.json({ mensaje: "API funcionando correctamente ✔" });
 });
 
-/* ================= PRODUCTOS ================= */
+// =================================================
+// 🛒 PRODUCTOS
+// =================================================
 app.get("/api/productos", (req, res) => {
   const baseUrl = `${req.protocol}://${req.headers.host}`;
 
   DB.query("SELECT * FROM productos", (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    if (err) return res.status(500).json(err);
 
     const productos = results.map((p) => ({
       ...p,
@@ -73,51 +59,38 @@ app.get("/api/productos", (req, res) => {
   });
 });
 
-/* ================= CONTACTO ================= */
-app.post("/api/contacto", (req, res) => {
-  const { nombre, email, mensaje } = req.body;
-
-  if (!nombre || !email || !mensaje) {
-    return res.status(400).json({ error: "Faltan datos" });
-  }
-
-  console.log("📩 CONTACTO:", { nombre, email, mensaje });
-
-  // (Opcional) Guardar en BD más adelante
-  res.json({ mensaje: "Mensaje enviado correctamente ✔" });
-});
-
-/* ================= FORMULARIO ================= */
+// =================================================
+// 🛒 PEDIDOS (CARRITO)
+// =================================================
 app.post("/api/enviar-formulario", (req, res) => {
   const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
 
-  if (!nombre || !email || !direccion || !ciudad || !telefono) {
+  if (!nombre || !email || !direccion || !ciudad || !telefono)
     return res.status(400).json({ error: "Faltan datos" });
-  }
 
-  if (!carrito || carrito.length === 0) {
+  if (!carrito || carrito.length === 0)
     return res.status(400).json({ error: "Carrito vacío" });
-  }
 
   const total = carrito.reduce(
-    (sum, it) => sum + it.precio * (it.quantity || 1),
+    (sum, item) => sum + item.precio * item.quantity,
     0
   );
 
   DB.query(
-    `INSERT INTO pedidos (nombre,email,direccion,ciudad,telefono,total,estado)
+    `INSERT INTO pedidos 
+     (nombre,email,direccion,ciudad,telefono,total,estado)
      VALUES (?,?,?,?,?,?,'pendiente')`,
     [nombre, email, direccion, ciudad, telefono, total],
     (err, result) => {
       if (err) return res.status(500).json({ error: "Error pedido" });
 
-      const detalles = carrito.map((i) => [
+      const detalles = carrito.map((item) => [
         result.insertId,
-        i.id,
-        i.nombre,
-        i.precio,
-        i.quantity || 1,
-        i.precio * (i.quantity || 1),
+        item.id,
+        item.nombre,
+        item.precio,
+        item.quantity,
+        item.precio * item.quantity,
       ]);
 
       DB.query(
@@ -129,6 +102,57 @@ app.post("/api/enviar-formulario", (req, res) => {
       );
     }
   );
+});
+
+// =================================================
+// ✉️ CONTACTO
+// =================================================
+app.post("/api/contacto", (req, res) => {
+  const { nombre, email, mensaje } = req.body;
+
+  if (!nombre || !email || !mensaje)
+    return res.status(400).json({ error: "Faltan datos" });
+
+  DB.query(
+    `INSERT INTO contactos (nombre,email,mensaje)
+     VALUES (?,?,?)`,
+    [nombre, email, mensaje],
+    (err) => {
+      if (err) return res.status(500).json({ error: "Error contacto" });
+      res.json({ mensaje: "Mensaje enviado ✔" });
+    }
+  );
+});
+
+// =================================================
+// 🔐 ADMIN – PEDIDOS
+// =================================================
+app.get("/api/admin/pedidos", (req, res) => {
+  DB.query("SELECT * FROM pedidos ORDER BY id DESC", (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
+
+app.get("/api/admin/pedidos/:id", (req, res) => {
+  DB.query(
+    "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+    [req.params.id],
+    (err, results) => {
+      if (err) return res.status(500).json(err);
+      res.json(results);
+    }
+  );
+});
+
+// =================================================
+// 🔐 ADMIN – CONTACTOS
+// =================================================
+app.get("/api/admin/contactos", (req, res) => {
+  DB.query("SELECT * FROM contactos ORDER BY id DESC", (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
 });
 
 /* ================= SERVER ================= */
