@@ -219,7 +219,7 @@ Gracias por su compra!
           accountName="Punto G"
           statusMessage="tienda on line"
           chatMessage="Buen dia somos PuntoG en que te puedo ayudar!!"
-          avatar="logo.png"
+          avatar="/imagenes/logo.png"
         />
       </div>
       {/* </div> */}
@@ -268,7 +268,7 @@ Gracias por su compra!
                           alt={item.nombre}
                           className="w-16 h-16 object-cover rounded"
                           onError={(e) => {
-                            e.target.src = "/no-image.png";
+                            e.target.src = "/imagenes/no-image.png";
                           }}
                         />
 
