@@ -92,7 +92,7 @@ app.get("/api/productos", (req, res) => {
         : `https://${req.get("host")}/images/${p.imagen}`,
     }));
 
-    res.json(results);
+    res.json(productos);
   });
 });
 
