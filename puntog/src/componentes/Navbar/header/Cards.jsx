@@ -35,9 +35,7 @@ const Cards = () => {
   const fetchProductos = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "https://gleaming-motivation-production-4018.up.railway.app/api/productos"
-      );
+      const response = await fetch("`${API_URL}/api/productos`");
 
       if (!response.ok) {
         throw new Error("error al obtener datos del servidor");
@@ -218,7 +216,7 @@ Gracias por su compra!
           accountName="Punto G"
           statusMessage="tienda on line"
           chatMessage="Buen dia somos PuntoG en que te puedo ayudar!!"
-          avatar="/public/imagenes/logo (3).png"
+          avatar="logo.png"
         />
       </div>
       {/* </div> */}
@@ -266,6 +264,9 @@ Gracias por su compra!
                           src={item.imagen}
                           alt={item.nombre}
                           className="w-16 h-16 object-cover rounded"
+                          onError={(e) => {
+                            e.target.src = "/no-image.png";
+                          }}
                         />
 
                         <div className="flex-1">
@@ -454,9 +455,13 @@ Gracias por su compra!
               <div className=" flex md:grid md:grid-cols-3">
                 <div className="w-full md:w-50 md:h-64 md:object-cover bg-[#22222280] border-r border-[#ffffff40] ">
                   <img
-                    className="w-full h-full  md:w-64 md:h-72 md:object-cover object-cover "
+                    className="w-full h-full md:w-64 md:h-72 object-cover"
                     src={producto.imagen}
                     alt={producto.nombre}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.src = "/no-image.png";
+                    }}
                   />
                 </div>
 
