@@ -452,13 +452,13 @@ Gracias por su compra!
           Nuestros Productos
         </h1>
 
-        <div className="space-y-4 grid md:grid-cols-3 gap-7">
+        <div className="space-y-4 grid md:grid-cols-3 gap-7 sm:">
           {productos.map((producto) => (
             <div
               key={producto.id}
               className="border border-[#ffffff40] bg-black rounded-md overflow-hidden hover:border hover:border-gray-300 transition-colors"
             >
-              <div className=" flex md:grid md:grid-cols-3">
+              <div className="md:grid md:grid-cols-3">
                 <div className="w-full md:w-50 md:h-64 md:object-cover bg-[#22222280] border-r border-[#ffffff40] ">
                   <img
                     className="w-full h-full md:w-64 md:h-72 object-cover"
