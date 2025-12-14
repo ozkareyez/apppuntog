@@ -74,46 +74,53 @@ app.get("/api/productos", (req, res) => {
 });
 
 /* ================= FORMULARIO ================= */
-app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
+const enviarFormulario = async (e) => {
+  e.preventDefault();
 
-  if (!nombre || !email || !direccion || !ciudad || !telefono)
-    return res.status(400).json({ error: "Faltan datos" });
+  if (cart.length === 0) {
+    alert("Carrito vacío");
+    return;
+  }
 
-  if (!carrito || carrito.length === 0)
-    return res.status(400).json({ error: "Carrito vacío" });
+  const payload = {
+    ...formData,
+    carrito: cart.map((item) => ({
+      id: item.id,
+      nombre: item.nombre,
+      precio: Number(item.precio),
+      quantity: item.quantity || 1,
+    })),
+  };
 
-  const total = carrito.reduce(
-    (sum, it) => sum + it.precio * (it.quantity || 1),
-    0
-  );
+  try {
+    const res = await fetch(`${API_URL}/api/enviar-formulario`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  DB.query(
-    `INSERT INTO pedidos (nombre,email,direccion,ciudad,telefono,total,estado)
-     VALUES (?,?,?,?,?,?,'pendiente')`,
-    [nombre, email, direccion, ciudad, telefono, total],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: "Error pedido" });
+    const data = await res.json();
 
-      const detalles = carrito.map((i) => [
-        result.insertId,
-        i.id,
-        i.nombre,
-        i.precio,
-        i.quantity || 1,
-        i.precio * (i.quantity || 1),
-      ]);
-
-      DB.query(
-        `INSERT INTO pedido_detalles 
-         (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-         VALUES ?`,
-        [detalles],
-        () => res.json({ mensaje: "Pedido registrado ✔" })
-      );
+    if (!res.ok) {
+      throw new Error(data.error || "Error al enviar pedido");
     }
-  );
-});
+
+    alert("Pedido enviado correctamente ✔");
+
+    setFormData({
+      nombre: "",
+      email: "",
+      direccion: "",
+      ciudad: "",
+      telefono: "",
+    });
+    setCart([]);
+    setMostrarFormulario(false);
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo enviar el pedido");
+  }
+};
 
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
