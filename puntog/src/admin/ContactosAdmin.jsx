@@ -48,6 +48,12 @@ export default function ContactosAdmin() {
                   <td className="p-2 border bg-white text-black">
                     {c.mensaje}
                   </td>
+                  <button
+                    onClick={() => eliminar(c.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Eliminar
+                  </button>
                 </tr>
               ))}
             </tbody>
