@@ -12,6 +12,8 @@ import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import MainCTA from "../../MainCTA";
 
+const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
+
 const Cards = () => {
   /************************************ */
   const [formData, setFormData] = useState({
@@ -19,6 +21,7 @@ const Cards = () => {
     email: "",
     direccion: "",
     ciudad: "",
+    departamento: "",
     telefono: "",
   });
 
@@ -51,8 +54,6 @@ const Cards = () => {
       .then((data) => setCiudades(data))
       .catch((err) => console.error(err));
   }, [departamentoId]);
-
-  const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
   const fetchProductos = async () => {
     try {
@@ -186,6 +187,7 @@ const Cards = () => {
 - Nombre: ${formData.nombre}
 - Email: ${formData.email}
 - Dirección: ${formData.direccion}
+-Departamento: ${formData.departamento}
 - Ciudad: ${formData.ciudad}
 - Teléfono: ${formData.telefono}
 `;
@@ -404,8 +406,19 @@ Gracias por su compra!
                           <select
                             value={departamentoId}
                             onChange={(e) => {
-                              setDepartamentoId(e.target.value);
+                              const id = e.target.value;
+                              const depto = departamentos.find(
+                                (d) => d.id == id
+                              );
+
+                              setDepartamentoId(id);
                               setCiudadId("");
+                              setCiudades([]);
+                              setFormData({
+                                ...formData,
+                                departamento: depto?.nombre || "",
+                                ciudad: "",
+                              });
                             }}
                             className="border p-2 w-full mb-3"
                             required
@@ -421,7 +434,18 @@ Gracias por su compra!
                           {/* CIUDAD */}
                           <select
                             value={ciudadId}
-                            onChange={(e) => setCiudadId(e.target.value)}
+                            onChange={(e) => {
+                              const id = e.target.value;
+                              const ciudadSeleccionada = ciudades.find(
+                                (c) => c.id == id
+                              );
+
+                              setCiudadId(id);
+                              setFormData({
+                                ...formData,
+                                ciudad: ciudadSeleccionada?.nombre || "",
+                              });
+                            }}
                             className="border p-2 w-full mb-3"
                             disabled={!ciudades.length}
                             required
