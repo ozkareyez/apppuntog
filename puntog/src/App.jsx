@@ -16,18 +16,25 @@ const App = () => {
         <Route path="/catalogo" element={<Cards />} />
 
         {/* Admin */}
+        <Route path="/admin" element={<Login />} />
 
         <Route
-          path="/admin/login"
+          path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <AdminLayout />
+              <Dashboard />
             </ProtectedRoute>
           }
-        >
-          <Route path="pedidos" element={<Dashboard />} />
-          <Route path="contactos" element={<ContactosAdmin />} />
-        </Route>
+        />
+
+        <Route
+          path="/admin/contactos"
+          element={
+            <ProtectedRoute>
+              <ContactosAdmin />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
 
       <Foter />
