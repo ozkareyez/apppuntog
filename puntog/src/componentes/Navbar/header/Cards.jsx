@@ -30,6 +30,27 @@ const Cards = () => {
   const [error, setError] = useState(null);
   const [showCart, setShowCart] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [ciudades, setCiudades] = useState([]);
+
+  const [departamentoId, setDepartamentoId] = useState("");
+  const [ciudadId, setCiudadId] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/departamentos`)
+      .then((res) => res.json())
+      .then((data) => setDepartamentos(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    if (!departamentoId) return;
+
+    fetch(`${API_URL}/api/ciudades/${departamentoId}`)
+      .then((res) => res.json())
+      .then((data) => setCiudades(data))
+      .catch((err) => console.error(err));
+  }, [departamentoId]);
 
   const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
@@ -117,19 +138,19 @@ const Cards = () => {
     }
 
     try {
-      const response = await fetch(
-        "https://gleaming-motivation-production-4018.up.railway.app/api/enviar-formulario",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...formData,
-            carrito: cart,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/enviar-formulario`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre,
+          email,
+          telefono,
+          direccion,
+          departamento_id: departamentoId,
+          ciudad_id: ciudadId,
+          carrito,
+        }),
+      });
 
       const data = await response.json();
       console.log("Respuesta del servidor:", data);
@@ -379,6 +400,39 @@ Gracias por su compra!
                               })
                             }
                           />
+                          {/* DEPARTAMENTO */}
+                          <select
+                            value={departamentoId}
+                            onChange={(e) => {
+                              setDepartamentoId(e.target.value);
+                              setCiudadId("");
+                            }}
+                            className="border p-2 w-full mb-3"
+                            required
+                          >
+                            <option value="">Seleccione departamento</option>
+                            {departamentos.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.nombre}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* CIUDAD */}
+                          <select
+                            value={ciudadId}
+                            onChange={(e) => setCiudadId(e.target.value)}
+                            className="border p-2 w-full mb-3"
+                            disabled={!ciudades.length}
+                            required
+                          >
+                            <option value="">Seleccione ciudad</option>
+                            {ciudades.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.nombre}
+                              </option>
+                            ))}
+                          </select>
 
                           <input
                             className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
@@ -393,7 +447,7 @@ Gracias por su compra!
                             }
                           />
 
-                          <input
+                          {/* <input
                             className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
                             type="text"
                             placeholder="Ciudad"
@@ -404,7 +458,7 @@ Gracias por su compra!
                                 ciudad: e.target.value,
                               })
                             }
-                          />
+                          /> */}
 
                           <input
                             className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
