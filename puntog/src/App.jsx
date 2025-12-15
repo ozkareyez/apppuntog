@@ -24,6 +24,14 @@ const App = () => {
               <Login onLogin={() => (window.location.href = "/Dashboard")} />
             }
           />
+          <Route
+            path="/admin/contactos"
+            element={
+              <ProtectedRoute>
+                <ContactosAdmin />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Dashboard protegido */}
           <Route
