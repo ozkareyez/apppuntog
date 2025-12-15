@@ -42,10 +42,12 @@ export default function ContactosAdmin() {
             <tbody>
               {contactos.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="p-2 border">{c.id}</td>
-                  <td className="p-2 border">{c.nombre}</td>
-                  <td className="p-2 border">{c.email}</td>
-                  <td className="p-2 border">{c.mensaje}</td>
+                  <td className="p-2 border bg-white text-black">{c.id}</td>
+                  <td className="p-2 border bg-white text-black">{c.nombre}</td>
+                  <td className="p-2 border bg-white text-black">{c.email}</td>
+                  <td className="p-2 border bg-white text-black">
+                    {c.mensaje}
+                  </td>
                 </tr>
               ))}
             </tbody>
