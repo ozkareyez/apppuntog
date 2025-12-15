@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Config } from "../config.js";
+import API_URL from "../config";
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({
