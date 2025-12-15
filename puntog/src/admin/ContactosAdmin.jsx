@@ -42,7 +42,9 @@ export default function ContactosAdmin() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">📩 Mensajes de contacto</h1>
+      <h1 className="text-2xl font-bold mb-4 text-white">
+        📩 Mensajes de contacto
+      </h1>
 
       {contactos.length === 0 ? (
         <p>No hay mensajes</p>
