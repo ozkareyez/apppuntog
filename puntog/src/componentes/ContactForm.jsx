@@ -12,7 +12,7 @@ const ContactForm = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("API_URL/api/contacto", {
+      const res = await fetch(`${API_URL}/api/contacto`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,7 +39,7 @@ const ContactForm = () => {
     <div className="bg-[#22222280] mt-10 py-10">
       <form
         onSubmit={handleSubmit}
-        className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md "
+        className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md"
       >
         <h2 className="text-2xl font-bold mb-4 text-center text-pink-600">
           Contáctanos
