@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Config } from "../config.js";
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,7 @@ const ContactForm = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:3002/api/contacto", {
+      const res = await fetch("API_URL/api/contacto", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
