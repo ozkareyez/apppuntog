@@ -143,13 +143,13 @@ const Cards = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nombre,
-          email,
-          telefono,
-          direccion,
+          nombre: formData.nombre,
+          email: formData.email,
+          telefono: formData.telefono,
+          direccion: formData.direccion,
           departamento_id: departamentoId,
           ciudad_id: ciudadId,
-          carrito,
+          carrito: cart,
         }),
       });
 
