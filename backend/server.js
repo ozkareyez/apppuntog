@@ -81,6 +81,11 @@ app.get("/api/admin/contacto", async (req, res) => {
   }
 });
 
+app.delete("/api/admin/contacto/:id", async (req, res) => {
+  await DB.promise().query("DELETE FROM contacto WHERE id=?", [req.params.id]);
+  res.json({ ok: true });
+});
+
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
   const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
