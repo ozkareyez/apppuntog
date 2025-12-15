@@ -558,50 +558,69 @@ Gracias por su compra!
           Nuestros Productos
         </h1>
 
-        <div className="space-y-4 grid md:grid-cols-3 gap-7 sm:">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {productos.map((producto) => (
             <div
               key={producto.id}
-              className="sm:flex border border-[#ffffff40] bg-black rounded-md overflow-hidden hover:border hover:border-gray-300 transition-colors"
+              className="
+        group bg-[#1f1f1f]
+        border border-white/10
+        rounded-2xl
+        overflow-hidden
+        transition
+        hover:border-pink-400
+        hover:shadow-lg hover:shadow-pink-500/20
+      "
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 bg-[#22222280] border border-[#ffffff40] rounded-lg overflow-hidden">
-                {/* IMAGEN (Móvil arriba, Escritorio izquierda) */}
-                <div className="w-full h-64 md:h-auto md:col-span-1 order-1 md:order-none">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={producto.imagen}
-                    alt={producto.nombre}
-                    loading="lazy"
-                    onError={handleImgError}
-                  />
+              {/* IMAGEN */}
+              <div className="relative w-full h-72 sm:h-64 overflow-hidden">
+                <img
+                  src={producto.imagen}
+                  alt={producto.nombre}
+                  loading="lazy"
+                  onError={handleImgError}
+                  className="
+            w-full h-full object-cover
+            transition-transform duration-300
+            group-hover:scale-105
+          "
+                />
+
+                {/* BADGE OPCIONAL */}
+                <span className="absolute top-3 left-3 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  Nuevo
+                </span>
+              </div>
+
+              {/* INFO */}
+              <div className="p-5 flex flex-col gap-2 text-center">
+                <h3 className="text-white font-semibold text-base line-clamp-2">
+                  {producto.nombre}
+                </h3>
+
+                <div className="flex justify-center gap-4 text-sm text-gray-400">
+                  <span>Talla: {producto.talla}</span>
+                  <span>Color: {producto.color}</span>
                 </div>
 
-                {/* INFO (Móvil abajo, Escritorio derecha) */}
-                <div className="p-6 flex flex-col justify-center text-center md:col-span-2 order-2 md:order-none">
-                  <h3 className="text-sm font-semibold text-[#ffffff90] mb-2">
-                    {producto.nombre}
-                  </h3>
+                <p className="text-xl font-bold text-pink-400 mt-2">
+                  ${producto.precio}
+                </p>
 
-                  <p className="text-[#ffffff90] text-sm">
-                    Talla: {producto.talla}
-                  </p>
-
-                  <p className="text-[#ffffff90] text-sm">
-                    Color: {producto.color}
-                  </p>
-
-                  <p className="text-sm font-bold text-white mt-2 mb-4">
-                    ${producto.precio}
-                  </p>
-
-                  <button
-                    onClick={() => addToCart(producto)}
-                    className="mx-auto flex items-center gap-2 border border-[#ffffff40] py-2 px-8 rounded-md bg-white text-black hover:bg-transparent hover:text-white transition"
-                  >
-                    <ShoppingCart size={16} />
-                    Agregar
-                  </button>
-                </div>
+                {/* BOTÓN */}
+                <button
+                  onClick={() => addToCart(producto)}
+                  className="
+            mt-3 w-full flex items-center justify-center gap-2
+            py-2 rounded-xl
+            bg-white text-black font-semibold
+            transition
+            hover:bg-pink-500 hover:text-white
+          "
+                >
+                  <ShoppingCart size={18} />
+                  Agregar al carrito
+                </button>
               </div>
             </div>
           ))}
