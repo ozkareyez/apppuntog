@@ -48,16 +48,37 @@ app.get("/api/productos", (req, res) => {
 });
 
 /* ================= CONTACTO ================= */
-app.post("/api/contacto", (req, res) => {
+app.post("/api/contacto", async (req, res) => {
   const { nombre, email, mensaje } = req.body;
-  if (!nombre || !email || !mensaje)
-    return res.status(400).json({ error: "Datos incompletos" });
 
-  DB.query(
-    "INSERT INTO contactos (nombre,email,mensaje) VALUES (?,?,?)",
-    [nombre, email, mensaje],
-    () => res.json({ ok: true })
-  );
+  if (!nombre || !email || !mensaje) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
+
+  try {
+    const [result] = await DB.promise().query(
+      "INSERT INTO contacto (nombre, email, mensaje) VALUES (?, ?, ?)",
+      [nombre, email, mensaje]
+    );
+
+    res.json({ ok: true, id: result.insertId });
+  } catch (error) {
+    console.error("Error guardando contacto:", error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+});
+
+/* ================= ADMIN CONTACTOS ================= */
+app.get("/api/admin/contacto", async (req, res) => {
+  try {
+    const [rows] = await DB.promise().query(
+      "SELECT * FROM contacto ORDER BY creado_en DESC"
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error obteniendo contactos:", error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
 });
 
 /* ================= PEDIDOS ================= */
