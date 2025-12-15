@@ -166,6 +166,7 @@ const Cards = () => {
         email: "",
         direccion: "",
         ciudad: "",
+        departamento: "",
         telefono: "",
       });
 
@@ -363,145 +364,172 @@ Gracias por su compra!
                         Confirmar Entrega
                       </button>
                     ) : (
-                      <div className="bg-[#d3c5c520] w-88 h-120  m-auto items-center border border-gray-200 rounded-md">
+                      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-auto relative">
+                        {/* Cerrar */}
                         <button
-                          className="ml-80 mt-2 cursor-pointer"
                           onClick={() => setMostrarFormulario(false)}
+                          className="absolute top-3 right-3 text-gray-500 hover:text-red-500"
                         >
                           <X />
                         </button>
-                        <h2 className="text-center text-[20px] font-semibold p-4">
-                          Datos de Enterga
+
+                        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
+                          🚚 Datos de Envío
                         </h2>
-                        <form
-                          className="items-center m-2"
-                          onSubmit={enviarFormulario}
-                        >
-                          <input
-                            className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
-                            type="text"
-                            placeholder="Nombre"
-                            value={formData.nombre}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                nombre: e.target.value,
-                              })
-                            }
-                          />
 
-                          <input
-                            className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
-                            type="email"
-                            placeholder="Email"
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                email: e.target.value,
-                              })
-                            }
-                          />
-                          {/* DEPARTAMENTO */}
-                          <select
-                            value={departamentoId}
-                            onChange={(e) => {
-                              const id = e.target.value;
-                              const depto = departamentos.find(
-                                (d) => d.id == id
-                              );
+                        <form onSubmit={enviarFormulario} className="space-y-4">
+                          {/* Nombre */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Nombre completo
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={formData.nombre}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  nombre: e.target.value,
+                                })
+                              }
+                              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                              placeholder="Ej: Juan Pérez"
+                            />
+                          </div>
 
-                              setDepartamentoId(id);
-                              setCiudadId("");
-                              setCiudades([]);
-                              setFormData({
-                                ...formData,
-                                departamento: depto?.nombre || "",
-                                ciudad: "",
-                              });
-                            }}
-                            className="border p-2 w-full mb-3"
-                            required
-                          >
-                            <option value="">Seleccione departamento</option>
-                            {departamentos.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.nombre}
-                              </option>
-                            ))}
-                          </select>
+                          {/* Email */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Correo electrónico
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={formData.email}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  email: e.target.value,
+                                })
+                              }
+                              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                              placeholder="correo@email.com"
+                            />
+                          </div>
 
-                          {/* CIUDAD */}
-                          <select
-                            value={ciudadId}
-                            onChange={(e) => {
-                              const id = e.target.value;
-                              const ciudadSeleccionada = ciudades.find(
-                                (c) => c.id == id
-                              );
+                          {/* Departamento */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Departamento
+                            </label>
+                            <select
+                              value={departamentoId}
+                              required
+                              onChange={(e) => {
+                                const id = e.target.value;
+                                const depto = departamentos.find(
+                                  (d) => d.id == id
+                                );
 
-                              setCiudadId(id);
-                              setFormData({
-                                ...formData,
-                                ciudad: ciudadSeleccionada?.nombre || "",
-                              });
-                            }}
-                            className="border p-2 w-full mb-3"
-                            disabled={!ciudades.length}
-                            required
-                          >
-                            <option value="">Seleccione ciudad</option>
-                            {ciudades.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.nombre}
-                              </option>
-                            ))}
-                          </select>
+                                setDepartamentoId(id);
+                                setCiudadId("");
+                                setCiudades([]);
+                                setFormData({
+                                  ...formData,
+                                  departamento: depto?.nombre || "",
+                                  ciudad: "",
+                                });
+                              }}
+                              className="w-full border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                            >
+                              <option value="">Seleccione departamento</option>
+                              {departamentos.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                          <input
-                            className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
-                            type="text"
-                            placeholder="Dirección"
-                            value={formData.direccion}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                direccion: e.target.value,
-                              })
-                            }
-                          />
+                          {/* Ciudad */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Ciudad
+                            </label>
+                            <select
+                              value={ciudadId}
+                              required
+                              disabled={!ciudades.length}
+                              onChange={(e) => {
+                                const id = e.target.value;
+                                const ciudadSeleccionada = ciudades.find(
+                                  (c) => c.id == id
+                                );
 
-                          {/* <input
-                            className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
-                            type="text"
-                            placeholder="Ciudad"
-                            value={formData.ciudad}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                ciudad: e.target.value,
-                              })
-                            }
-                          /> */}
+                                setCiudadId(id);
+                                setFormData({
+                                  ...formData,
+                                  ciudad: ciudadSeleccionada?.nombre || "",
+                                });
+                              }}
+                              className="w-full border rounded-lg px-3 py-2 bg-white disabled:bg-gray-100 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                            >
+                              <option value="">Seleccione ciudad</option>
+                              {ciudades.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                          <input
-                            className="border border-[#00000050] hover:bg-gray-50 m-2 w-80 h-10 rounded-sm p-2"
-                            type="text"
-                            placeholder="Teléfono"
-                            value={formData.telefono}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                telefono: e.target.value,
-                              })
-                            }
-                          />
+                          {/* Dirección */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Dirección de entrega
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={formData.direccion}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  direccion: e.target.value,
+                                })
+                              }
+                              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                              placeholder="Calle 10 #20-30"
+                            />
+                          </div>
 
+                          {/* Teléfono */}
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                              Teléfono
+                            </label>
+                            <input
+                              type="tel"
+                              required
+                              value={formData.telefono}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  telefono: e.target.value,
+                                })
+                              }
+                              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                              placeholder="3001234567"
+                            />
+                          </div>
+
+                          {/* Botón */}
                           <button
-                            className="border px-6 py-2 w-80 ml-2 mt-6 rounded-sm bg-green-600 text-white font-bold"
                             type="submit"
+                            className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition"
                           >
-                            Enviar
+                            Confirmar Pedido ✅
                           </button>
                         </form>
                       </div>
