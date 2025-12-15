@@ -266,5 +266,38 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
   });
 });
 
+/* ================= UBICACIONES ================= */
+
+// DEPARTAMENTOS
+app.get("/api/departamentos", (req, res) => {
+  DB.query(
+    "SELECT id, nombre FROM departamentos ORDER BY nombre",
+    (err, rows) => {
+      if (err) {
+        console.error("Error departamentos:", err);
+        return res.status(500).json({ error: "Error cargando departamentos" });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+// CIUDADES POR DEPARTAMENTO
+app.get("/api/ciudades/:departamentoId", (req, res) => {
+  const { departamentoId } = req.params;
+
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
+    [departamentoId],
+    (err, rows) => {
+      if (err) {
+        console.error("Error ciudades:", err);
+        return res.status(500).json({ error: "Error cargando ciudades" });
+      }
+      res.json(rows);
+    }
+  );
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => console.log("🚀 Backend funcionando"));
