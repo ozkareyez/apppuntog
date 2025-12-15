@@ -81,9 +81,16 @@ app.get("/api/admin/contacto", async (req, res) => {
   }
 });
 
+/* ================= ELIMINAR CONTACTO ================= */
 app.delete("/api/admin/contacto/:id", async (req, res) => {
-  await DB.promise().query("DELETE FROM contacto WHERE id=?", [req.params.id]);
-  res.json({ ok: true });
+  try {
+    const { id } = req.params;
+    await DB.promise().query("DELETE FROM contacto WHERE id = ?", [id]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error eliminando contacto:", error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
 });
 
 /* ================= PEDIDOS ================= */
