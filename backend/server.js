@@ -72,7 +72,7 @@ app.post("/api/contacto", async (req, res) => {
 app.get("/api/admin/contacto", async (req, res) => {
   try {
     const [rows] = await DB.promise().query(
-      "SELECT * FROM contacto ORDER BY creado_en DESC"
+      "SELECT * FROM contacto ORDER BY id DESC"
     );
     res.json(rows);
   } catch (error) {
