@@ -1,8 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import Home from "./componentes/Home";
 import Cards from "./componentes/Navbar/header/Cards";
 import Login from "./admin/Login";
 import Dashboard from "./admin/Dashboard";
+import ContactosAdmin from "./admin/ContactosAdmin"; // ✅ IMPORTANTE
 import ProtectedRoute from "./admin/ProtectedRoute";
 import Foter from "./componentes/Foter";
 
@@ -11,19 +13,24 @@ const App = () => {
     <BrowserRouter>
       <>
         <Routes>
-          {/* Página principal (CTA + Cards) */}
+          {/* Página pública */}
           <Route path="/" element={<Home />} />
-
-          {/* Catálogo independiente */}
           <Route path="/catalogo" element={<Cards />} />
 
-          {/* Login Admin */}
+          {/* Login */}
+          <Route path="/admin" element={<Login />} />
+
+          {/* Dashboard */}
           <Route
-            path="/admin"
+            path="/admin/dashboard"
             element={
-              <Login onLogin={() => (window.location.href = "/Dashboard")} />
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
             }
           />
+
+          {/* Contactos */}
           <Route
             path="/admin/contactos"
             element={
@@ -33,15 +40,8 @@ const App = () => {
             }
           />
 
-          {/* Dashboard protegido */}
-          <Route
-            path="/Dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+          {/* Redirección por defecto */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
 
         <Foter />

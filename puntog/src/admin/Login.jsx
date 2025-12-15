@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const enviar = (e) => {
     e.preventDefault();
 
     if (usuario === "oscar" && password === "811012") {
       localStorage.setItem("admin_auth", "yes");
-      onLogin(true);
+      navigate("/admin/dashboard"); // ✅ redirección correcta
     } else {
       alert("Usuario o contraseña incorrectos");
     }
