@@ -41,16 +41,14 @@ export default function ContactosAdmin() {
             </thead>
             <tbody>
               {contactos.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="p-2 border bg-white text-black">{c.id}</td>
-                  <td className="p-2 border bg-white text-black">{c.nombre}</td>
-                  <td className="p-2 border bg-white text-black">{c.email}</td>
-                  <td className="p-2 border bg-white text-black">
-                    {c.mensaje}
-                  </td>
+                <tr key={c.id} className="odd:bg-gray-800 even:bg-gray-700">
+                  <td className="p-2 border ">{c.id}</td>
+                  <td className="p-2 border ">{c.nombre}</td>
+                  <td className="p-2 border ">{c.email}</td>
+                  <td className="p-2 border ">{c.mensaje}</td>
                   <button
                     onClick={() => eliminar(c.id)}
-                    className="text-red-600 hover:underline"
+                    className="bg-red-600 px-3 py-1 rounded "
                   >
                     Eliminar
                   </button>
