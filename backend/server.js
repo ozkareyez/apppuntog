@@ -256,6 +256,7 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Pedidos");
 
+<<<<<<< HEAD
   ws.columns = [
     { header: "Pedido ID", key: "pedido_id", width: 10 },
     { header: "Fecha", key: "fecha", width: 15 },
@@ -290,6 +291,33 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
   JOIN productos pr ON pr.id = d.producto_id
   ORDER BY p.id DESC
 `;
+=======
+    const sql = `
+      SELECT 
+        p.id AS pedido_id,
+        p.fecha,
+        p.nombre AS cliente,
+        p.email,
+        p.direccion,
+        p.ciudad,
+        p.telefono,
+        d.producto_id,
+        pr.nombre AS producto,
+        d.precio,
+        d.cantidad,
+        (d.precio * d.cantidad) AS subtotal
+      FROM pedidos p
+      JOIN pedidos_detalle d ON d.pedido_id = p.id
+      JOIN productos pr ON pr.id = d.producto_id
+      ORDER BY p.id DESC
+    `;
+
+    DB.query(sql, (err, rows) => {
+      if (err) {
+        console.error("Error Excel:", err);
+        return res.status(500).json({ error: "Error generando Excel" });
+      }
+>>>>>>> parent of 2b5e156 (exel de nuevo)
 
   DB.query(sql, async (err, rows) => {
     if (err) {
@@ -299,6 +327,7 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
 
     console.log("Filas exportadas:", rows.length); // 👈 CLAVE
 
+<<<<<<< HEAD
     ws.addRows(rows);
 
     res.setHeader(
@@ -313,6 +342,14 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
     await wb.xlsx.write(res);
     res.end();
   });
+=======
+      wb.xlsx.write(res).then(() => res.end());
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno" });
+  }
+>>>>>>> parent of 2b5e156 (exel de nuevo)
 });
 
 /* ================= UBICACIONES ================= */
