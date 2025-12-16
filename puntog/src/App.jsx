@@ -1,43 +1,33 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Home from "./componentes/Home";
 import Cards from "./componentes/Navbar/header/Cards";
 import Login from "./admin/Login";
-import Dashboard from "./admin/Dashboard";
+import Dashboard from "./admin/dashboard/Dashboard";
+
 import ContactosAdmin from "./admin/ContactosAdmin";
-import ProtectedRoute from "./admin/ProtectedRoute";
-import Foter from "./componentes/Foter";
+
+import PublicLayout from "./layouts/PublicLayout";
+import AdminLayout from "./layouts/AdminLayout";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Público */}
-        <Route path="/" element={<Home />} />
-        <Route path="/catalogo" element={<Cards />} />
+        {/* 🌐 Público */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/catalogo" element={<Cards />} />
+        </Route>
 
-        {/* Admin */}
+        {/* 🔐 Admin */}
         <Route path="/admin" element={<Login />} />
 
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/contactos"
-          element={
-            <ProtectedRoute>
-              <ContactosAdmin />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/contactos" element={<ContactosAdmin />} />
+        </Route>
       </Routes>
-
-      <Foter />
     </BrowserRouter>
   );
 };

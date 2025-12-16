@@ -1,6 +1,7 @@
 // Dashboard.jsx
 import { useEffect, useState } from "react";
 import AdminLayout from "./AdminLayout";
+import KpiCard from "./KpiCard";
 
 import { API_URL } from "../config";
 
@@ -14,6 +15,24 @@ export default function Dashboard() {
   const [totalResultados, setTotalResultados] = useState(0);
   const [detalle, setDetalle] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // === KPIs ===
+  const hoy = new Date().toISOString().split("T")[0];
+
+  const pedidosHoy = pedidos.filter((p) => p.fecha?.startsWith(hoy));
+
+  const totalVentasHoy = pedidosHoy.reduce(
+    (sum, p) => sum + Number(p.total || 0),
+    0
+  );
+
+  const totalVentasMes = pedidos.reduce(
+    (sum, p) => sum + Number(p.total || 0),
+    0
+  );
+
+  const ticketPromedio =
+    pedidos.length > 0 ? Math.round(totalVentasMes / pedidos.length) : 0;
 
   const fetchPedidos = async (page = pagina) => {
     try {
@@ -144,6 +163,33 @@ export default function Dashboard() {
               Cerrar sesión
             </button>
           </div>
+        </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <KpiCard
+            title="Ventas hoy"
+            value={`$${totalVentasHoy.toLocaleString()}`}
+            color="text-emerald-400"
+          />
+
+          <KpiCard
+            title="Pedidos hoy"
+            value={pedidosHoy.length}
+            color="text-blue-400"
+          />
+
+          <KpiCard
+            title="Ventas del mes"
+            value={`$${totalVentasMes.toLocaleString()}`}
+            color="text-purple-400"
+          />
+
+          <KpiCard
+            title="Ticket promedio"
+            value={`$${ticketPromedio.toLocaleString()}`}
+            color="text-orange-400"
+          />
         </div>
 
         {/* FILTROS */}
