@@ -250,24 +250,66 @@ app.delete("/api/pedidos/:id", (req, res) => {
 });
 
 /* EXCEL */
+/* EXCEL COMPLETO */
 app.get("/api/exportar-pedidos-completo", async (_, res) => {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Pedidos");
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("PedidosCompletos");
 
-  ws.columns = [
-    { header: "ID", key: "id" },
-    { header: "Cliente", key: "nombre" },
-    { header: "Teléfono", key: "telefono" },
-    { header: "Total", key: "total" },
-    { header: "Estado", key: "estado" },
-    { header: "Fecha", key: "fecha" },
-  ];
+    ws.columns = [
+      { header: "Pedido ID", key: "pedido_id", width: 10 },
+      { header: "Fecha", key: "fecha", width: 15 },
+      { header: "Cliente", key: "cliente", width: 25 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Dirección", key: "direccion", width: 30 },
+      { header: "Ciudad", key: "ciudad", width: 15 },
+      { header: "Teléfono", key: "telefono", width: 15 },
+      { header: "Producto ID", key: "producto_id", width: 12 },
+      { header: "Producto", key: "producto", width: 20 },
+      { header: "Precio", key: "precio", width: 10 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Subtotal", key: "subtotal", width: 12 },
+    ];
 
-  DB.query("SELECT * FROM pedidos", (_, rows) => {
-    ws.addRows(rows);
-    res.setHeader("Content-Disposition", "attachment; filename=pedidos.xlsx");
-    wb.xlsx.write(res).then(() => res.end());
-  });
+    DB.query(
+      `
+      SELECT
+        p.id AS pedido_id,
+        p.fecha,
+        p.nombre AS cliente,
+        p.email,
+        p.direccion,
+        p.ciudad,
+        p.telefono,
+        d.producto_id,
+        pr.nombre AS producto,
+        d.precio,
+        d.cantidad,
+        (d.precio * d.cantidad) AS subtotal
+      FROM pedidos p
+      JOIN detalle_pedidos d ON p.id = d.pedido_id
+      JOIN productos pr ON pr.id = d.producto_id
+      ORDER BY p.id DESC
+      `,
+      (_, rows) => {
+        ws.addRows(rows);
+
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=pedidos_completos.xlsx"
+        );
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        wb.xlsx.write(res).then(() => res.end());
+      }
+    );
+  } catch (err) {
+    console.error("Error exportando Excel:", err);
+    res.status(500).json({ error: "Error exportando Excel" });
+  }
 });
 
 /* ================= UBICACIONES ================= */
