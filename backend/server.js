@@ -251,6 +251,7 @@ app.delete("/api/pedidos/:id", (req, res) => {
 
 /* EXCEL */
 /* EXCEL COMPLETO */
+
 app.get("/api/exportar-pedidos-completo", (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Pedidos");
@@ -280,12 +281,13 @@ app.get("/api/exportar-pedidos-completo", (req, res) => {
     p.ciudad,
     p.telefono,
     d.producto_id,
-    d.nombre AS producto,
+    pr.nombre AS producto,
     d.precio,
     d.cantidad,
     d.subtotal
   FROM pedidos p
-  INNER JOIN pedido_detalles d ON d.pedido_id = p.id
+  JOIN pedido_detalles d ON d.pedido_id = p.id
+  JOIN productos pr ON pr.id = d.producto_id
   ORDER BY p.id DESC
 `;
 
