@@ -7,8 +7,7 @@ import Dashboard from "./admin/dashboard/Dashboard";
 
 import ContactosAdmin from "./admin/ContactosAdmin";
 
-import PublicLayout from "./layouts/PublicLayout";
-import AdminLayout from "./layouts/AdminLayout";
+import AdminLayout from "./admin/AdminLayout";
 
 const App = () => {
   return (
