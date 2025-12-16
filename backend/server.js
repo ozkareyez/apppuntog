@@ -251,7 +251,7 @@ app.delete("/api/pedidos/:id", (req, res) => {
 
 /* EXCEL */
 /* EXCEL COMPLETO */
-app.get("/api/exportar-pedidos-completo", async (_, res) => {
+app.get("/api/exportar-pedidos-completo", async (req, res) => {
   try {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("PedidosCompletos");
@@ -260,20 +260,19 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
       { header: "Pedido ID", key: "pedido_id", width: 10 },
       { header: "Fecha", key: "fecha", width: 15 },
       { header: "Cliente", key: "cliente", width: 25 },
-      { header: "Email", key: "email", width: 25 },
+      { header: "Email", key: "email", width: 30 },
       { header: "Dirección", key: "direccion", width: 30 },
       { header: "Ciudad", key: "ciudad", width: 15 },
       { header: "Teléfono", key: "telefono", width: 15 },
       { header: "Producto ID", key: "producto_id", width: 12 },
       { header: "Producto", key: "producto", width: 20 },
-      { header: "Precio", key: "precio", width: 10 },
+      { header: "Precio", key: "precio", width: 12 },
       { header: "Cantidad", key: "cantidad", width: 10 },
       { header: "Subtotal", key: "subtotal", width: 12 },
     ];
 
-    DB.query(
-      `
-      SELECT
+    const sql = `
+      SELECT 
         p.id AS pedido_id,
         p.fecha,
         p.nombre AS cliente,
@@ -287,28 +286,33 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
         d.cantidad,
         (d.precio * d.cantidad) AS subtotal
       FROM pedidos p
-      JOIN detalle_pedidos d ON p.id = d.pedido_id
+      JOIN pedidos_detalle d ON d.pedido_id = p.id
       JOIN productos pr ON pr.id = d.producto_id
       ORDER BY p.id DESC
-      `,
-      (_, rows) => {
-        ws.addRows(rows);
+    `;
 
-        res.setHeader(
-          "Content-Disposition",
-          "attachment; filename=pedidos_completos.xlsx"
-        );
-        res.setHeader(
-          "Content-Type",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        );
-
-        wb.xlsx.write(res).then(() => res.end());
+    DB.query(sql, (err, rows) => {
+      if (err) {
+        console.error("Error Excel:", err);
+        return res.status(500).json({ error: "Error generando Excel" });
       }
-    );
-  } catch (err) {
-    console.error("Error exportando Excel:", err);
-    res.status(500).json({ error: "Error exportando Excel" });
+
+      ws.addRows(rows);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=pedidos_completos.xlsx"
+      );
+
+      wb.xlsx.write(res).then(() => res.end());
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno" });
   }
 });
 
