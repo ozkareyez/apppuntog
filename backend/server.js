@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+/* ================= APP ================= */
 const app = express();
 const PORT = process.env.PORT || 3002;
 
@@ -69,7 +70,7 @@ app.post("/api/contacto", async (req, res) => {
 });
 
 /* ================= ADMIN CONTACTOS ================= */
-app.get("/api/admin/contacto", async (req, res) => {
+app.get("/api/admin/contacto", async (_, res) => {
   try {
     const [rows] = await DB.promise().query(
       "SELECT * FROM contacto ORDER BY id DESC"
@@ -81,11 +82,11 @@ app.get("/api/admin/contacto", async (req, res) => {
   }
 });
 
-/* ================= ELIMINAR CONTACTO ================= */
 app.delete("/api/admin/contacto/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    await DB.promise().query("DELETE FROM contacto WHERE id = ?", [id]);
+    await DB.promise().query("DELETE FROM contacto WHERE id = ?", [
+      req.params.id,
+    ]);
     res.json({ ok: true });
   } catch (error) {
     console.error("Error eliminando contacto:", error);
@@ -96,15 +97,20 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
   const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
-  if (!carrito?.length) return res.status(400).json({ error: "Carrito vacío" });
+
+  if (!carrito?.length) {
+    return res.status(400).json({ error: "Carrito vacío" });
+  }
 
   const total = carrito.reduce((s, i) => s + i.precio * (i.quantity || 1), 0);
 
   DB.query(
-    `INSERT INTO pedidos
-  (nombre,email,direccion,telefono,departamento_id,ciudad_id,total,estado)
-  VALUES (?,?,?,?,?,?,?,'pendiente')`,
-    [nombre, email, direccion, telefono, departamento_id, ciudad_id, total],
+    `
+    INSERT INTO pedidos 
+    (nombre,email,direccion,telefono,ciudad,total,estado)
+    VALUES (?,?,?,?,?,?,'pendiente')
+    `,
+    [nombre, email, direccion, telefono, ciudad, total],
     (err, r) => {
       if (err) {
         console.error("Error creando pedido:", err);
@@ -121,9 +127,11 @@ app.post("/api/enviar-formulario", (req, res) => {
       ]);
 
       DB.query(
-        `INSERT INTO pedido_detalles
-      (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-      VALUES ?`,
+        `
+        INSERT INTO pedido_detalles
+        (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+        VALUES ?
+        `,
         [detalles],
         () => res.json({ ok: true })
       );
@@ -131,9 +139,7 @@ app.post("/api/enviar-formulario", (req, res) => {
   );
 });
 
-/* ================= ADMIN ================= */
-
-/* LISTADO */
+/* ================= ADMIN PEDIDOS ================= */
 app.get("/api/pedidos-completo", (req, res) => {
   const page = Math.max(Number(req.query.page) || 1, 1);
   const limit = 10;
@@ -163,10 +169,7 @@ app.get("/api/pedidos-completo", (req, res) => {
     `SELECT COUNT(*) AS total FROM pedidos ${where}`,
     params,
     (errCount, countRows) => {
-      if (errCount) {
-        console.error(errCount);
-        return res.status(500).json({ ok: false });
-      }
+      if (errCount) return res.status(500).json({ ok: false });
 
       const total = countRows[0].total;
 
@@ -179,10 +182,7 @@ app.get("/api/pedidos-completo", (req, res) => {
         `,
         [...params, limit, offset],
         (errRows, rows) => {
-          if (errRows) {
-            console.error(errRows);
-            return res.status(500).json({ ok: false });
-          }
+          if (errRows) return res.status(500).json({ ok: false });
 
           res.json({
             ok: true,
@@ -197,193 +197,103 @@ app.get("/api/pedidos-completo", (req, res) => {
   );
 });
 
-/* DETALLE */
 app.get("/api/pedidos-detalle/:id", (req, res) => {
   DB.query(
-    "SELECT nombre producto,precio,cantidad,subtotal FROM pedido_detalles WHERE pedido_id=?",
+    `
+    SELECT nombre AS producto, precio, cantidad, subtotal
+    FROM pedido_detalles
+    WHERE pedido_id = ?
+    `,
     [req.params.id],
     (_, rows) => res.json(rows)
   );
 });
 
-/* CAMBIAR ESTADO */
-
 app.put("/api/pedidos-estado/:id", (req, res) => {
-  const { id } = req.params;
-
   DB.query(
     `
     UPDATE pedidos 
-    SET estado = IF(estado = 'pendiente', 'entregado', 'pendiente') 
+    SET estado = IF(estado='pendiente','entregado','pendiente')
     WHERE id = ?
     `,
-    [id],
+    [req.params.id],
     (err, result) => {
-      if (err) {
-        console.error("Error actualizando pedido:", err);
-        return res.status(500).json({
-          ok: false,
-          error: "Error actualizando el estado",
-        });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          ok: false,
-          error: "Pedido no encontrado",
-        });
-      }
-
-      res.json({
-        ok: true,
-        message: "Estado del pedido actualizado",
-      });
+      if (err) return res.status(500).json({ ok: false });
+      if (!result.affectedRows) return res.status(404).json({ ok: false });
+      res.json({ ok: true });
     }
   );
 });
 
-/* ELIMINAR */
 app.delete("/api/pedidos/:id", (req, res) => {
-  DB.query("DELETE FROM pedidos WHERE id=?", [req.params.id], () =>
+  DB.query("DELETE FROM pedidos WHERE id = ?", [req.params.id], () =>
     res.json({ ok: true })
   );
 });
 
-/* EXCEL */
-/* EXCEL COMPLETO */
+/* ================= EXCEL ================= */
+app.get("/api/exportar-pedidos-completo", async (_, res) => {
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Pedidos");
 
-app.get("/api/exportar-pedidos-completo", (req, res) => {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Pedidos");
+    ws.columns = [
+      { header: "Pedido ID", key: "pedido_id", width: 10 },
+      { header: "Fecha", key: "fecha", width: 15 },
+      { header: "Cliente", key: "cliente", width: 25 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Dirección", key: "direccion", width: 30 },
+      { header: "Ciudad", key: "ciudad", width: 15 },
+      { header: "Teléfono", key: "telefono", width: 15 },
+      { header: "Producto", key: "producto", width: 25 },
+      { header: "Precio", key: "precio", width: 12 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Subtotal", key: "subtotal", width: 12 },
+    ];
 
-<<<<<<< HEAD
-  ws.columns = [
-    { header: "Pedido ID", key: "pedido_id", width: 10 },
-    { header: "Fecha", key: "fecha", width: 15 },
-    { header: "Cliente", key: "cliente", width: 25 },
-    { header: "Email", key: "email", width: 30 },
-    { header: "Dirección", key: "direccion", width: 30 },
-    { header: "Ciudad", key: "ciudad", width: 15 },
-    { header: "Teléfono", key: "telefono", width: 15 },
-    { header: "Producto ID", key: "producto_id", width: 12 },
-    { header: "Producto", key: "producto", width: 25 },
-    { header: "Precio", key: "precio", width: 12 },
-    { header: "Cantidad", key: "cantidad", width: 10 },
-    { header: "Subtotal", key: "subtotal", width: 12 },
-  ];
-
-  const sql = `
-  SELECT 
-    p.id AS pedido_id,
-    DATE(p.fecha) AS fecha,
-    p.nombre AS cliente,
-    p.email,
-    p.direccion,
-    p.ciudad,
-    p.telefono,
-    d.producto_id,
-    pr.nombre AS producto,
-    d.precio,
-    d.cantidad,
-    d.subtotal
-  FROM pedidos p
-  JOIN pedido_detalles d ON d.pedido_id = p.id
-  JOIN productos pr ON pr.id = d.producto_id
-  ORDER BY p.id DESC
-`;
-=======
     const sql = `
       SELECT 
         p.id AS pedido_id,
-        p.fecha,
+        DATE(p.fecha) AS fecha,
         p.nombre AS cliente,
         p.email,
         p.direccion,
         p.ciudad,
         p.telefono,
-        d.producto_id,
         pr.nombre AS producto,
         d.precio,
         d.cantidad,
-        (d.precio * d.cantidad) AS subtotal
+        d.subtotal
       FROM pedidos p
-      JOIN pedidos_detalle d ON d.pedido_id = p.id
+      JOIN pedido_detalles d ON d.pedido_id = p.id
       JOIN productos pr ON pr.id = d.producto_id
       ORDER BY p.id DESC
     `;
 
-    DB.query(sql, (err, rows) => {
-      if (err) {
-        console.error("Error Excel:", err);
-        return res.status(500).json({ error: "Error generando Excel" });
-      }
->>>>>>> parent of 2b5e156 (exel de nuevo)
+    DB.query(sql, async (err, rows) => {
+      if (err) return res.status(500).json({ error: "Error Excel" });
 
-  DB.query(sql, async (err, rows) => {
-    if (err) {
-      console.error("Error Excel:", err);
-      return res.status(500).json({ error: "Error generando Excel" });
-    }
+      ws.addRows(rows);
 
-    console.log("Filas exportadas:", rows.length); // 👈 CLAVE
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=pedidos_completos.xlsx"
+      );
 
-<<<<<<< HEAD
-    ws.addRows(rows);
-
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=pedidos_completos.xlsx"
-    );
-
-    await wb.xlsx.write(res);
-    res.end();
-  });
-=======
-      wb.xlsx.write(res).then(() => res.end());
+      await wb.xlsx.write(res);
+      res.end();
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error interno" });
   }
->>>>>>> parent of 2b5e156 (exel de nuevo)
-});
-
-/* ================= UBICACIONES ================= */
-
-// DEPARTAMENTOS
-app.get("/api/departamentos", (req, res) => {
-  DB.query(
-    "SELECT id, nombre FROM departamentos ORDER BY nombre",
-    (err, rows) => {
-      if (err) {
-        console.error("Error departamentos:", err);
-        return res.status(500).json({ error: "Error cargando departamentos" });
-      }
-      res.json(rows);
-    }
-  );
-});
-
-// CIUDADES POR DEPARTAMENTO
-app.get("/api/ciudades/:departamentoId", (req, res) => {
-  const { departamentoId } = req.params;
-
-  DB.query(
-    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
-    [departamentoId],
-    (err, rows) => {
-      if (err) {
-        console.error("Error ciudades:", err);
-        return res.status(500).json({ error: "Error cargando ciudades" });
-      }
-      res.json(rows);
-    }
-  );
 });
 
 /* ================= SERVER ================= */
-app.listen(PORT, "0.0.0.0", () => console.log("🚀 Backend funcionando"));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log("🚀 Backend funcionando en Railway")
+);
