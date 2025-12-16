@@ -1,9 +1,9 @@
 // Dashboard.jsx
 import { useEffect, useState } from "react";
-import AdminLayout from "./AdminLayout";
+import AdminLayout from "../AdminLayout";
 import KpiCard from "./KpiCard";
 
-import { API_URL } from "../config";
+import { API_URL } from "../../config";
 
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState([]);
@@ -131,7 +131,7 @@ export default function Dashboard() {
   };
 
   const descargarExcel = () => {
-    window.open("${API_URL}/api/exportar-pedidos-completo", "_blank");
+    window.open(`{API_URL}/api/exportar-pedidos-completo", "_blank`);
   };
 
   const logout = () => {
