@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../AdminLayout";
 import KpiCard from "./KpiCard";
+import VentasPorDia from "./VentasPorDia";
 
 import { API_URL } from "../../config";
 
@@ -131,13 +132,27 @@ export default function Dashboard() {
   };
 
   const descargarExcel = () => {
-    window.open(`{API_URL}/api/exportar-pedidos-completo", "_blank`);
+    window.open(`${API_URL}/api/exportar-pedidos-completo`, "_blank");
   };
 
   const logout = () => {
     localStorage.removeItem("admin_auth");
     window.location.href = "/admin";
   };
+
+  const ventasPorDia = Object.values(
+    pedidos.reduce((acc, p) => {
+      const fecha = p.fecha?.split(" ")[0];
+      if (!fecha) return acc;
+
+      if (!acc[fecha]) {
+        acc[fecha] = { fecha, total: 0 };
+      }
+
+      acc[fecha].total += Number(p.total || 0);
+      return acc;
+    }, {})
+  );
 
   return (
     <AdminLayout>
@@ -191,6 +206,7 @@ export default function Dashboard() {
             color="text-orange-400"
           />
         </div>
+        <VentasPorDia data={ventasPorDia} />
 
         {/* FILTROS */}
         <div className="bg-[#12121A] border border-white/10 rounded-xl p-5 mb-8 shadow-lg">

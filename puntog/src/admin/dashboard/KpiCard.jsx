@@ -1,8 +1,11 @@
-const KpiCard = ({ title, value, color }) => {
+const KpiCard = ({ titulo, valor, icono }) => {
   return (
-    <div className="bg-[#12121A] border border-white/10 rounded-xl p-5 shadow-lg">
-      <p className="text-sm text-gray-400">{title}</p>
-      <p className={`text-2xl font-bold mt-2 ${color}`}>{value}</p>
+    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+      <div className="text-3xl">{icono}</div>
+      <div>
+        <p className="text-gray-500 text-sm">{titulo}</p>
+        <h3 className="text-2xl font-bold">{valor}</h3>
+      </div>
     </div>
   );
 };
