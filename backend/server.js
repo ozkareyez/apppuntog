@@ -274,7 +274,7 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
     const sql = `
       SELECT 
         p.id AS pedido_id,
-        p.fecha,
+        DATE(p.fecha) AS fecha,
         p.nombre AS cliente,
         p.email,
         p.direccion,
@@ -291,7 +291,7 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
       ORDER BY p.id DESC
     `;
 
-    DB.query(sql, (err, rows) => {
+    DB.query(sql, async (err, rows) => {
       if (err) {
         console.error("Error Excel:", err);
         return res.status(500).json({ error: "Error generando Excel" });
@@ -308,10 +308,11 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
         "attachment; filename=pedidos_completos.xlsx"
       );
 
-      wb.xlsx.write(res).then(() => res.end());
+      await wb.xlsx.write(res);
+      res.end();
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error interno:", error);
     res.status(500).json({ error: "Error interno" });
   }
 });
