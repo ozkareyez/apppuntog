@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "./Navbar/header/Header";
-import Footer from "./Footer";
+import Header from "../componentes/Navbar/header/Header";
+import Footer from "../componentes/Footer";
+
 import { API_URL } from "@/config";
 
 export default function ProductosPorCategoria() {
