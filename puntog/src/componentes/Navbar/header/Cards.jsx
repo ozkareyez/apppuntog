@@ -12,6 +12,7 @@ import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import MainCTA from "../../MainCTA";
 import { API_URL } from "@/config";
+import Footer from "../../Foter";
 
 // const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
@@ -629,6 +630,7 @@ Gracias por su compra!
       </div>
     </div>
   );
+  <Footer />;
 };
 
 export default Cards;
