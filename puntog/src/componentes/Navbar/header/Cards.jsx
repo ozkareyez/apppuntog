@@ -1119,32 +1119,46 @@ ${cart
         <h1 className="text-4xl text-center text-pink-400 mb-6">
           Nuestros Productos
         </h1>
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {productos.map((p) => (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {productos.map((producto) => (
             <div
-              key={p.id}
-              className="bg-[#1f1f1f] rounded-2xl border border-white/10 overflow-hidden hover:border-pink-400 transition"
+              key={producto.id}
+              className="group bg-[#1f1f1f] border border-white/10 rounded-2xl overflow-hidden
+                 transition hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/20"
             >
-              <img
-                src={p.imagen}
-                onError={handleImgError}
-                className="w-full h-64 object-cover"
-              />
+              {/* IMAGEN */}
+              <div className="relative w-full h-48 sm:h-64 lg:h-72 overflow-hidden">
+                <img
+                  src={producto.imagen}
+                  alt={producto.nombre}
+                  onError={handleImgError}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
 
-              <div className="p-4 text-center">
-                <h3 className="text-white">{p.nombre}</h3>
-                <p className="text-pink-400 text-xl font-bold">${p.precio}</p>
+              {/* INFO */}
+              <div className="p-3 sm:p-5 text-center">
+                <h3 className="text-white text-sm sm:text-base font-semibold line-clamp-2">
+                  {producto.nombre}
+                </h3>
+
+                <p className="text-pink-400 text-lg sm:text-xl font-bold mt-1 sm:mt-2">
+                  ${producto.precio}
+                </p>
+
                 <button
-                  onClick={() => addToCart(p)}
-                  className="mt-3 w-full bg-white text-black py-2 rounded-xl hover:bg-pink-500 hover:text-white transition"
+                  onClick={() => addToCart(producto)}
+                  className="mt-3 w-full py-2 rounded-xl bg-white text-black font-semibold
+                     hover:bg-pink-500 hover:text-white transition flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
-                  <ShoppingCart size={16} /> Agregar
+                  <ShoppingCart size={16} />
+                  Agregar
                 </button>
               </div>
             </div>
           ))}
         </div>
+        >
       </div>
     </div>
   );
