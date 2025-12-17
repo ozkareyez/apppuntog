@@ -833,7 +833,6 @@ ${productosTexto}
       </main>
 
       {/* ✅ FOOTER */}
-      <Footer />
     </div>
   );
 };

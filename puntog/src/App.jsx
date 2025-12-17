@@ -35,6 +35,7 @@ export default function App() {
         {/* ❌ CUALQUIER OTRA RUTA */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }
