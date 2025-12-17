@@ -1,12 +1,11 @@
 import React from "react";
+import logo from "../../assets/logo.png";
 
 const Navbar = () => {
   return (
-    <>
-      <nav className="h-30 border-b border-[#ffffff40] mb- shadow-neutral-400">
-        <img className="size-30 mx-8" src="public/imagenes/logo.png " alt="" />
-      </nav>
-    </>
+    <nav className="w-full h-20 flex items-center border-b border-white/20 px-6 bg-black">
+      <img src={logo} alt="Punto G" className="h-12 object-contain" />
+    </nav>
   );
 };
 
