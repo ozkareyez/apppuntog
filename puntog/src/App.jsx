@@ -8,7 +8,7 @@ import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import ProtectedRoute from "./admin/ProtectedRoute";
-import Footer from "./componentes/Foter";
+import Foter from "./componentes/Foter";
 
 function App() {
   return (
