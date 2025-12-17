@@ -25,8 +25,8 @@ export default function App() {
         {/* 🔁 /admin → login */}
         <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
 
-        {/* 🔐 Login */}
-        <Route path="/admin/login" element={<Login />} />
+        {/* 🔐 Login
+        <Route path="/admin/login" element={<Login />} /> */}
 
         {/* 🔒 Admin protegido */}
         <Route element={<ProtectedRoute />}>
