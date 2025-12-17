@@ -14,19 +14,22 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Público */}
+        {/* 🌐 Público */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Cards />} />
         </Route>
 
-        {/* Admin */}
+        {/* 🔐 Login */}
         <Route path="/admin/login" element={<Login />} />
+
+        {/* 🔁 /admin → dashboard */}
         <Route
           path="/admin"
           element={<Navigate to="/admin/dashboard" replace />}
         />
 
+        {/* 🔒 Admin protegido */}
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
