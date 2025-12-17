@@ -1,59 +1,69 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "@/config";
 
-export default function AdminLogin() {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
-    // 🔐 VALIDACIÓN (puedes cambiarla luego por backend)
-    if (email === "admin@puntog.com" && password === "123456") {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Credenciales incorrectas");
+      }
+
+      // 🔑 GUARDAR AUTH
       localStorage.setItem("admin_auth", "yes");
 
-      // ✅ REDIRECCIÓN CLAVE
+      // ✅ REDIRECCIÓN FORZADA
       navigate("/admin/dashboard", { replace: true });
-    } else {
-      setError("Credenciales incorrectas");
+    } catch (err) {
+      setError(err.message);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0B0B0F]">
+    <div className="min-h-screen flex items-center justify-center bg-black">
       <form
         onSubmit={handleLogin}
-        className="bg-black p-8 rounded-xl w-full max-w-md border border-white/10"
+        className="bg-[#1f1f1f] p-8 rounded-xl w-96 border border-white/10"
       >
-        <h2 className="text-2xl font-bold text-pink-500 mb-6 text-center">
-          Login Admin
-        </h2>
+        <h2 className="text-white text-2xl text-center mb-6">Admin Login</h2>
 
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
-        )}
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
         <input
           type="email"
-          placeholder="Email"
-          className="w-full mb-4 p-3 rounded bg-[#111] text-white border border-white/10"
+          placeholder="Correo"
+          className="w-full mb-4 p-2 rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
 
         <input
           type="password"
           placeholder="Contraseña"
-          className="w-full mb-4 p-3 rounded bg-[#111] text-white border border-white/10"
+          className="w-full mb-6 p-2 rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
 
         <button
           type="submit"
-          className="w-full bg-pink-600 hover:bg-pink-700 transition py-3 rounded-lg font-bold"
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded"
         >
           Entrar
         </button>
