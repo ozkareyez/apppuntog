@@ -1,29 +1,39 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicLayout from "./componentes/PublicLayout";
-import Home from "./componentes/Home";
+
+// 👇 NUEVOS COMPONENTES
+import HomeCategorias from "./componentes/HomeCategorias";
+import ProductosPorCategoria from "./componentes/ProductosPorCategoria";
+
+// ADMIN
 import Login from "./admin/Login";
 import AdminLayout from "./admin/dashboard/AdminLayout";
 import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import ProtectedRoute from "./admin/ProtectedRoute";
+
+// FOOTER
 import Foter from "./componentes/Foter";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* RUTAS PÚBLICAS */}
+        {/* ================= PUBLICO ================= */}
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          {/* otras rutas públicas */}
+          {/* HOME = CATEGORIAS */}
+          <Route path="/" element={<HomeCategorias />} />
+
+          {/* PRODUCTOS POR CATEGORIA */}
+          <Route path="/categoria/:id" element={<ProductosPorCategoria />} />
         </Route>
 
-        {/* LOGIN ADMIN */}
+        {/* ================= LOGIN ADMIN ================= */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* RUTAS ADMIN PROTEGIDAS */}
+        {/* ================= ADMIN PROTEGIDO ================= */}
         <Route
           path="/admin"
           element={
@@ -38,6 +48,8 @@ function App() {
           <Route path="contacto" element={<ContactosAdmin />} />
         </Route>
       </Routes>
+
+      {/* FOOTER GLOBAL */}
       <Foter />
     </BrowserRouter>
   );
