@@ -35,8 +35,6 @@ export default function ProductosPorCategoria() {
           ))}
         </div>
       </main>
-
-      <Foter />
     </div>
   );
 }
