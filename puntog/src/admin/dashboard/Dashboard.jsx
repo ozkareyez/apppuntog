@@ -79,13 +79,17 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <KpiCard title="Ventas hoy" value={`$${totalVentasHoy}`} />
+        {/* <KpiCard title="Ventas hoy" value={`$${totalVentasHoy}`} />
         <KpiCard title="Pedidos hoy" value={pedidosHoy.length} />
         <KpiCard title="Ventas mes" value={`$${totalVentasMes}`} />
-        <KpiCard title="Ticket promedio" value={`$${ticketPromedio}`} />
+        <KpiCard title="Ticket promedio" value={`$${ticketPromedio}`} /> */}
+
+        <div className="text-white">
+          <h1>Dashboard OK</h1>
+        </div>
       </div>
 
-      <VentasPorDia data={ventasPorDia} />
+      {/* <VentasPorDia data={ventasPorDia} /> */}
 
       {/* TABLA */}
       <div className="bg-[#12121A] mt-8 rounded-xl overflow-x-auto">
