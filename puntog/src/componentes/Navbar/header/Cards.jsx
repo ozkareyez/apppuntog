@@ -822,7 +822,8 @@ ${productosTexto}
                 <p className="text-pink-400 text-xl font-bold">${p.precio}</p>
                 <button
                   onClick={() => addToCart(p)}
-                  className="mt-3 bg-white text-black w-full py-2 rounded-lg"
+                  className="mt-3 bg-white text-black w-full py-2 rounded-lg transition
+//             hover:bg-pink-500 hover:text-white"
                 >
                   <ShoppingCart size={18} className="inline" /> Agregar
                 </button>
