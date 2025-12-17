@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import Home from "./componentes/Home";
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import ContactosAdmin from "./admin/ContactosAdmin";
@@ -11,10 +12,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* 🏠 HOME */}
+        <Route path="/" element={<Home />} />
+
         {/* 🔓 LOGIN */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* 🔒 ADMIN PROTEGIDO */}
+        {/* 🔒 ADMIN */}
         <Route
           path="/admin"
           element={
@@ -23,14 +27,12 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          {/* 👉 entrar a /admin redirige a dashboard */}
           <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="contacto" element={<ContactosAdmin />} />
         </Route>
 
-        {/* fallback */}
+        {/* ❌ CUALQUIER OTRA RUTA */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
