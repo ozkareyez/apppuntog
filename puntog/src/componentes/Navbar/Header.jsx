@@ -60,7 +60,7 @@ const Header = ({ totalItems, onCartClick }) => {
         </div>
 
         {/* Línea premium inferior */}
-        <div className="h-[1px] bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
+        <div className="h-[px] bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
       </header>
 
       {/* MENU MOBILE */}
