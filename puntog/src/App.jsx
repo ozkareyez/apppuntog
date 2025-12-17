@@ -1,39 +1,35 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+// LAYOUTS
 import PublicLayout from "./componentes/PublicLayout";
+import AdminLayout from "./admin/dashboard/AdminLayout";
 
-// 👇 NUEVOS COMPONENTES
+// COMPONENTES PÚBLICOS
 import HomeCategorias from "./componentes/HomeCategorias";
 import ProductosPorCategoria from "./componentes/ProductosPorCategoria";
+import Foter from "./componentes/Foter";
 
-// ADMIN
+// COMPONENTES ADMIN
 import Login from "./admin/Login";
-import AdminLayout from "./admin/dashboard/AdminLayout";
 import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import ProtectedRoute from "./admin/ProtectedRoute";
 
-// FOOTER
-import Foter from "./componentes/Foter";
-
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ================= PUBLICO ================= */}
+        {/* ================== RUTAS PÚBLICAS ================== */}
         <Route element={<PublicLayout />}>
-          {/* HOME = CATEGORIAS */}
           <Route path="/" element={<HomeCategorias />} />
-
-          {/* PRODUCTOS POR CATEGORIA */}
           <Route path="/categoria/:id" element={<ProductosPorCategoria />} />
         </Route>
 
-        {/* ================= LOGIN ADMIN ================= */}
+        {/* ================== LOGIN ADMIN ================== */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* ================= ADMIN PROTEGIDO ================= */}
+        {/* ================== RUTAS ADMIN PROTEGIDAS ================== */}
         <Route
           path="/admin"
           element={
@@ -42,14 +38,15 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="pedidos" element={<PedidosAdmin />} />
-          <Route path="contacto" element={<ContactosAdmin />} />
+          <Route index element={<Dashboard />} /> {/* /admin */}
+          <Route path="pedidos" element={<PedidosAdmin />} />{" "}
+          {/* /admin/pedidos */}
+          <Route path="contacto" element={<ContactosAdmin />} />{" "}
+          {/* /admin/contacto */}
         </Route>
       </Routes>
 
-      {/* FOOTER GLOBAL */}
+      {/* FOOTER SOLO PARA PÚBLICO */}
       <Foter />
     </BrowserRouter>
   );
