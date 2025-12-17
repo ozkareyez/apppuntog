@@ -21,14 +21,14 @@ export default function App() {
         </Route>
 
         {/* 🔐 Login */}
-        <Route path="admin" element={<Login />}>
-          {/* <Route path="/admin/Login" element={<Login />} /> */}
-        </Route>
+        <Route path="/admin/login" element={<Login />} />
 
-        <Route path="dashboard" element={<AdminLayout />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="pedidos" element={<PedidosAdmin />} />
-        <Route path="contactos" element={<ContactosAdmin />}></Route>
+        {/* 🔒 Admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
+          <Route path="contactos" element={<ContactosAdmin />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
