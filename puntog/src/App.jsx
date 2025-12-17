@@ -21,13 +21,10 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Cards />} />
         </Route>
-
         {/* 🔁 /admin → login */}
         <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-
-        {/* 🔐 Login
-        <Route path="/admin/login" element={<Login />} /> */}
-
+        🔐 Login
+        <Route path="/admin/login" element={<Login />} />
         {/* 🔒 Admin protegido */}
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
