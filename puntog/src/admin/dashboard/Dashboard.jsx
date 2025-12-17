@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import KpiCard from "./KpiCard";
 import VentasPorDia from "./VentasPorDia";
-import { API_URL } from "../config";
+import { API_URL } from "../../config";
 
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState([]);

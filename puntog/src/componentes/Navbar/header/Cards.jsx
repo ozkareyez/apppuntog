@@ -11,8 +11,9 @@ import {
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../Header";
 import MainCTA from "../../MainCTA";
+import { API_URL } from "../../config";
 
-const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
+// const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
 const Cards = () => {
   /************************************ */
