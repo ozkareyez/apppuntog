@@ -4,7 +4,6 @@ import Home from "./componentes/Home";
 import Cards from "./componentes/Navbar/header/Cards";
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
-
 import ContactosAdmin from "./admin/ContactosAdmin";
 
 import AdminLayout from "./admin/AdminLayout";
@@ -19,12 +18,13 @@ const App = () => {
           <Route path="/catalogo" element={<Cards />} />
         </Route>
 
-        {/* 🔐 Admin */}
+        {/* 🔐 Login Admin */}
         <Route path="/admin" element={<Login />} />
 
-        <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/contactos" element={<ContactosAdmin />} />
+        {/* 🛠️ Panel Admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="contactos" element={<ContactosAdmin />} />
         </Route>
       </Routes>
     </BrowserRouter>
