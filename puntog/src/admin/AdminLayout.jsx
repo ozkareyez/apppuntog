@@ -29,6 +29,17 @@ export default function AdminLayout() {
           >
             📦 Pedidos
           </NavLink>
+
+          <NavLink
+            to="/admin/contacto"
+            className={({ isActive }) =>
+              `block px-3 py-2 rounded-lg transition ${
+                isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
+              }`
+            }
+          >
+            📋 Conctactos
+          </NavLink>
         </nav>
       </aside>
 
