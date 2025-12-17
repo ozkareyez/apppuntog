@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Header from "../componentes/Navbar/header/Header";
+import Header from "@/componentes/Navbar/header/Header";
 import Foter from "../componentes/Foter";
 
 import { API_URL } from "@/config";
@@ -38,7 +38,7 @@ export default function ProductosPorCategoria() {
         </div>
       </main>
 
-      <Footer />
+      <Foter />
     </div>
   );
 }
