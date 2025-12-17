@@ -21,7 +21,7 @@ export default function App() {
         </Route>
 
         {/* 🔐 Login */}
-        <Route path="/admin/login" element={<AdminLayout />}>
+        <Route path="admin" element={<Login />}>
           {/* <Route path="/admin/Login" element={<Login />} /> */}
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
