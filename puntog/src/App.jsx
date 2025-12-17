@@ -4,7 +4,7 @@ import Home from "./componentes/Home";
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import ContactosAdmin from "./admin/ContactosAdmin";
-
+import Foter from "./componentes/Foter";
 import AdminLayout from "./admin/dashboard/AdminLayout";
 import ProtectedRoute from "./admin/ProtectedRoute";
 
@@ -35,7 +35,7 @@ export default function App() {
         {/* ❌ CUALQUIER OTRA RUTA */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      <Footer />
+      <Foter />
     </BrowserRouter>
   );
 }
