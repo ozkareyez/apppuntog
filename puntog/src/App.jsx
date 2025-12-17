@@ -23,7 +23,7 @@ export default function App() {
         {/* 🔐 Login */}
         <Route path="admin" element={<Login />}>
           {/* <Route path="/admin/Login" element={<Login />} /> */}
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="dashboard" element={<AdminLayout />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contactos" element={<ContactosAdmin />} />
         </Route>
