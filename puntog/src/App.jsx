@@ -5,10 +5,12 @@ import Cards from "./componentes/Navbar/header/Cards";
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import ContactosAdmin from "./admin/ContactosAdmin";
+import PedidosAdmin from "./admin/PedidosAdmin";
 
 import AdminLayout from "./admin/AdminLayout";
+import PublicLayout from "./componentes/PublicLayout";
 
-const App = () => {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
@@ -18,17 +20,13 @@ const App = () => {
           <Route path="/catalogo" element={<Cards />} />
         </Route>
 
-        {/* 🔐 Login Admin */}
-        <Route path="/admin" element={<Login />} />
-
-        {/* 🛠️ Panel Admin */}
+        {/* 🔐 Login */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contactos" element={<ContactosAdmin />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
-};
-
-export default App;
+}
