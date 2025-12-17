@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import API_URL from "../config";
+import { API_URL } from "../config";
+
 import AdminLayout from "./dashboard/AdminLayout";
 
 export default function ContactosAdmin() {
