@@ -9,7 +9,7 @@ export default function AdminLayout() {
 
         <nav className="space-y-3">
           <NavLink
-            to="/admin/dashboard"
+            to="dashboard"
             className={({ isActive }) =>
               `block px-3 py-2 rounded-lg transition ${
                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
@@ -20,7 +20,7 @@ export default function AdminLayout() {
           </NavLink>
 
           <NavLink
-            to="/admin/pedidos"
+            to="pedidos"
             className={({ isActive }) =>
               `block px-3 py-2 rounded-lg transition ${
                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
@@ -31,7 +31,7 @@ export default function AdminLayout() {
           </NavLink>
 
           <NavLink
-            to="/admin/contacto"
+            to="contacto"
             className={({ isActive }) =>
               `block px-3 py-2 rounded-lg transition ${
                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
