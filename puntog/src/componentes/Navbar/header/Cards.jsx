@@ -809,23 +809,37 @@ ${productosTexto}
           Nuestros Productos
         </h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {productos.map((p) => (
-            <div key={p.id} className="bg-[#1f1f1f] rounded-xl overflow-hidden">
+            <div
+              key={p.id}
+              className="bg-[#1f1f1f] rounded-xl overflow-hidden border border-white/10 hover:border-pink-500 transition"
+            >
+              {/* IMAGEN */}
               <img
                 src={p.imagen}
                 onError={handleImgError}
-                className="h-64 w-full object-cover"
+                className="w-full h-40 sm:h-52 lg:h-64 object-cover"
+                alt={p.nombre}
               />
-              <div className="p-4 text-center">
-                <h3 className="text-white">{p.nombre}</h3>
-                <p className="text-pink-400 text-xl font-bold">${p.precio}</p>
+
+              {/* INFO */}
+              <div className="p-3 text-center">
+                <h3 className="text-white text-sm sm:text-base font-medium line-clamp-2">
+                  {p.nombre}
+                </h3>
+
+                <p className="text-pink-400 text-lg font-bold mt-1">
+                  ${p.precio}
+                </p>
+
                 <button
                   onClick={() => addToCart(p)}
-                  className="mt-3 bg-white text-black w-full py-2 rounded-lg transition
-//             hover:bg-pink-500 hover:text-white"
+                  className="mt-3 w-full py-2 rounded-lg bg-white text-black font-semibold text-sm
+                     hover:bg-pink-500 hover:text-white transition flex items-center justify-center gap-2"
                 >
-                  <ShoppingCart size={18} className="inline" /> Agregar
+                  <ShoppingCart size={16} />
+                  Agregar
                 </button>
               </div>
             </div>
