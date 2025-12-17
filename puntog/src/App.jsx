@@ -8,7 +8,7 @@ import Dashboard from "./admin/dashboard/Dashboard";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import PedidosAdmin from "./admin/PedidosAdmin";
 
-import AdminLayout from "./admin/AdminLayout";
+import AdminLayout from "./admin/dashboard/AdminLayout";
 import PublicLayout from "./componentes/PublicLayout";
 import ProtectedRoute from "./admin/ProtectedRoute";
 
