@@ -93,7 +93,7 @@ const Header = ({ totalItems, onCartClick }) => {
               </button>
 
               {/* Nav */}
-              <nav className="space-y-6 text-lg font-medium">
+              <nav className="space-y-6 text-lg font-medium text-shadow-fuchsia-500">
                 {[
                   { name: "Inicio", path: "/" },
                   { name: "Catálogo", path: "/catalogo" },
