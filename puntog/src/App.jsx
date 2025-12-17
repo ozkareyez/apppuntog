@@ -1,24 +1,29 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import PublicLayout from "./componentes/PublicLayout";
 import Home from "./componentes/Home";
 import Login from "./admin/Login";
-import Dashboard from "./admin/dashboard/Dashboard";
-import ContactosAdmin from "./admin/ContactosAdmin";
-import Foter from "./componentes/Foter";
 import AdminLayout from "./admin/dashboard/AdminLayout";
+import Dashboard from "./admin/dashboard/Dashboard";
+import PedidosAdmin from "./admin/PedidosAdmin";
+import ContactosAdmin from "./admin/ContactosAdmin";
 import ProtectedRoute from "./admin/ProtectedRoute";
+import Footer from "./componentes/Foter";
 
-export default function App() {
+function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 🏠 HOME */}
-        <Route path="/" element={<Home />} />
+        {/* RUTAS PÚBLICAS */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          {/* otras rutas públicas */}
+        </Route>
 
-        {/* 🔓 LOGIN */}
+        {/* LOGIN ADMIN */}
         <Route path="/admin/login" element={<Login />} />
 
-        {/* 🔒 ADMIN */}
+        {/* RUTAS ADMIN PROTEGIDAS */}
         <Route
           path="/admin"
           element={
@@ -27,15 +32,15 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
         </Route>
-
-        {/* ❌ CUALQUIER OTRA RUTA */}
-        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <Foter />
     </BrowserRouter>
   );
 }
+
+export default App;

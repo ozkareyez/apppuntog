@@ -57,7 +57,7 @@ export default function AdminLayout() {
   const token = localStorage.getItem("admin_token");
 
   if (!token) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/admin/Login" replace />;
   }
 
   return (
@@ -72,6 +72,15 @@ export default function AdminLayout() {
           <NavLink to="contacto">📋 Contactos</NavLink>
         </nav>
       </aside>
+      <button
+        onClick={() => {
+          localStorage.removeItem("admin_token");
+          window.location.href = "/admin/login";
+        }}
+        className="mt-6 text-red-400 hover:text-red-500"
+      >
+        🚪 Cerrar sesión
+      </button>
 
       <main className="flex-1 p-6">
         <Outlet />

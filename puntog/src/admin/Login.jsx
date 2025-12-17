@@ -12,7 +12,7 @@ export default function Login() {
 
     if (usuario === "oscar" && password === "811012") {
       localStorage.setItem("admin_auth", "yes");
-      navigate("/admin/Login");
+      navigate("/admin/dashboard");
     } else {
       alert("Usuario o contraseña incorrectos");
     }
