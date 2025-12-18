@@ -3,7 +3,7 @@ import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
-import { div } from "framer-motion/client";
+import Categorias from "./Categorias";
 
 const Home = () => {
   return (
