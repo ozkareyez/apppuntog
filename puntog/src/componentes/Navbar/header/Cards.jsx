@@ -883,6 +883,7 @@ const Cards = () => {
   const [ciudadId, setCiudadId] = useState("");
 
   /* ===================== FETCH ===================== */
+
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
       .then((res) => res.json())

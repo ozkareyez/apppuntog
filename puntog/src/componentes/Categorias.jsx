@@ -1,22 +1,31 @@
+import { useEffect } from "react";
+
+i;
 const Categorias = () => {
-  const clases = [
-    {
-      title: "Lenceria",
-      text: "Ver mas..",
-    },
-    {
-      title: "Juguetes",
-      text: "Ver mas..",
-    },
-    {
-      title: "Lubricantes",
-      text: "Ver mas..",
-    },
-    {
-      title: "Accesorios",
-      text: "Ver mas..",
-    },
-  ];
+  //   const clases = [
+  //     {
+  //       title: "Lenceria",
+  //       text: "Ver mas..",
+  //     },
+  //     {
+  //       title: "Juguetes",
+  //       text: "Ver mas..",
+  //     },
+  //     {
+  //       title: "Lubricantes",
+  //       text: "Ver mas..",
+  //     },
+  //     {
+  //       title: "Accesorios",
+  //       text: "Ver mas..",
+  //     },
+  //   ];
+  useEffect(() => {
+    fetch(`${API_URL}/api/categorias`)
+      .then((res) => res.json())
+      .then(setDepartamentos)
+      .catch(console.error);
+  }, []);
 
   return (
     <section className="w-full py-14 px-6 bg-gradient-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
@@ -28,7 +37,7 @@ const Categorias = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {clases.map((clase, c) => (
+          {categorias.map((categoria, c) => (
             <div
               key={c}
               className="
@@ -49,7 +58,7 @@ const Categorias = () => {
             >
               {/* TEXTO */}
               <h3 className="text-lg font-semibold text-white mb-2">
-                {clase.title}
+                {categoria.title}
               </h3>
 
               <button
@@ -58,7 +67,7 @@ const Categorias = () => {
             text-white shadow-lg shadow-pink-500/30
             hover:scale-110 hover:shadow-pink-500/50 transition-all duration-300"
               >
-                {clase.text}
+                {categoria.text}
               </button>
 
               {/* EFECTO BORDE */}
