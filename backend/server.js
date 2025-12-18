@@ -10,8 +10,17 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({ origin: true }));
+// app.use(cors({ origin: true }));
+// app.use(express.json());
+
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,7 +149,7 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, email, telefono, direccion, departaento, ciudad, carrito } =
+  const { nombre, email, telefono, direccion, departamento, ciudad, carrito } =
     req.body;
 
   if (!carrito?.length) {
@@ -155,7 +164,7 @@ app.post("/api/enviar-formulario", (req, res) => {
     (nombre,email,telefono,direccion,departamento,ciudad,total,estado)
     VALUES (?,?,?,?,?,?,'pendiente')
     `,
-    [nombre, email, telefono, direccion, departaento, ciudad, total],
+    [nombre, email, telefono, direccion, departamento, ciudad, total],
     (err, r) => {
       if (err) {
         console.error("Error creando pedido:", err);
