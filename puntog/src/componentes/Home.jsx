@@ -1,4 +1,4 @@
-import MainCTA from "./MainCTA";
+// import MainCTA from "./MainCTA";
 import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
@@ -9,7 +9,8 @@ const Home = () => {
   return (
     <div className="w-full">
       {/* CTA principal */}
-      <MainCTA />
+      {/* <MainCTA /> */}
+
       <Categorias />
 
       {/* Separador suave */}
