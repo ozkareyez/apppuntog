@@ -1,35 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_URL } from "@/config";
+
+const ADMIN_USER = "oscar"; // 👈 TU USUARIO
+const ADMIN_PASS = "811012"; // 👈 TU PASSWORD
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setError("");
 
-    try {
-      const res = await fetch(`${API_URL}/api/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Credenciales incorrectas");
-      }
-
-      // 🔑 GUARDAR AUTH
+    // ✅ VALIDACIÓN SIMPLE
+    if (user === ADMIN_USER && password === ADMIN_PASS) {
       localStorage.setItem("admin_auth", "yes");
 
-      // ✅ REDIRECCIÓN FORZADA
+      // redirigir al dashboard
       navigate("/admin/dashboard", { replace: true });
-    } catch (err) {
-      setError(err.message);
+    } else {
+      setError("Usuario o contraseña incorrectos");
     }
   };
 
@@ -39,19 +31,23 @@ export default function Login() {
         onSubmit={handleLogin}
         className="bg-[#1f1f1f] p-8 rounded-xl w-96 border border-white/10"
       >
-        <h2 className="text-white text-2xl text-center mb-6">Admin Login</h2>
+        <h2 className="text-white text-2xl text-center mb-6">
+          Acceso Administrador
+        </h2>
 
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
+        {/* USUARIO */}
         <input
-          type="email"
-          placeholder="Correo"
+          type="text"
+          placeholder="Usuario"
           className="w-full mb-4 p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={user}
+          onChange={(e) => setUser(e.target.value)}
           required
         />
 
+        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Contraseña"
@@ -63,7 +59,7 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded"
+          className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded transition"
         >
           Entrar
         </button>
