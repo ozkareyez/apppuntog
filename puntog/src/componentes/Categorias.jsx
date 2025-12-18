@@ -2,19 +2,19 @@ const Categorias = () => {
   const clases = [
     {
       title: "Lenceria",
-      text: "Envíos a todo Colombia por compras superiores a $200.000",
+      text: "Ver mas..",
     },
     {
       title: "Juguetes",
-      text: "Ver mas",
+      text: "Ver mas..",
     },
     {
       title: "Lubricantes",
-      text: "Ver mas",
+      text: "Ver mas..",
     },
     {
       title: "Accesorios",
-      text: "Ver mas",
+      text: "Ver mas..",
     },
   ];
 
