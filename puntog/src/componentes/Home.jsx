@@ -1,4 +1,4 @@
-// import MainCTA from "./MainCTA";
+import MainCTA from "./MainCTA";
 import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
