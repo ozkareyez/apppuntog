@@ -11,7 +11,7 @@ const Home = () => {
       {/* CTA principal */}
       <MainCTA />
 
-      <div>
+      <div className="bg-white">
         <h1>prueba para colocar las categorias</h1>
       </div>
 
