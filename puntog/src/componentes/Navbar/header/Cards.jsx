@@ -254,13 +254,15 @@ ${cart
                     key={c}
                     name={c}
                     required
-                    placeholder={c}
+                    type={c === "email" ? "email" : "text"}
+                    placeholder={c.charAt(0).toUpperCase() + c.slice(1)}
                     value={formData[c]}
                     onChange={handleChange}
                     className="w-full border px-3 py-2 rounded-lg"
                   />
                 ))}
 
+                {/* ===== DEPARTAMENTO ===== */}
                 <select
                   name="departamento"
                   required
@@ -276,6 +278,7 @@ ${cart
                   ))}
                 </select>
 
+                {/* ===== CIUDAD ===== */}
                 <select
                   name="ciudad"
                   required
