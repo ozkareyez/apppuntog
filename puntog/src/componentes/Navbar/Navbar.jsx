@@ -1,5 +1,5 @@
 // src/componentes/Navbar/Navbar.jsx
-import React from "react";
+
 // import logo from "../../assets/logo.png"; // Asegúrate que el archivo esté en src/assets/logo.png
 
 const Navbar = () => {

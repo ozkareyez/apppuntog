@@ -1,3 +1,5 @@
+import Navbar from "./Navbar/Navbar";
+
 export default function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
