@@ -7,7 +7,7 @@ import AdminLayout from "./admin/dashboard/AdminLayout";
 // COMPONENTES PÚBLICOS
 import HomeCategorias from "./componentes/HomeCategorias";
 import ProductosPorCategoria from "./componentes/ProductosPorCategoria";
-import Foter from "./componentes/Foter";
+// import Foter from "./componentes/Foter";
 
 // COMPONENTES ADMIN
 import Login from "./admin/Login";
@@ -47,7 +47,7 @@ function App() {
       </Routes>
 
       {/* FOOTER SOLO PARA PÚBLICO */}
-      <Foter />
+      {/* <Foter /> */}
     </BrowserRouter>
   );
 }
