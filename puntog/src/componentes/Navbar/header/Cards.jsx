@@ -863,10 +863,10 @@ const Cards = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
-    direccion: "",
-    ciudad: "",
-    departamento: "",
     telefono: "",
+    direccion: "",
+    departamento: "",
+    ciudad: "",
   });
 
   /* ===================== STATE ===================== */
@@ -879,11 +879,9 @@ const Cards = () => {
 
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
-  // const [departamentoId, setDepartamentoId] = useState("");
-  // const [ciudadId, setCiudadId] = useState("");
+  const [departamentoId, setDepartamentoId] = useState("");
 
   /* ===================== FETCH ===================== */
-
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
       .then((res) => res.json())
@@ -892,17 +890,16 @@ const Cards = () => {
   }, []);
 
   useEffect(() => {
-    if (!formData.departamento) {
+    if (!departamentoId) {
       setCiudades([]);
-      setFormData((prev) => ({ ...prev, ciudad: "" }));
       return;
     }
 
-    fetch(`${API_URL}/api/ciudades?departamento_id=${formData.departamento}`)
+    fetch(`${API_URL}/api/ciudades?departamento_id=${departamentoId}`)
       .then((res) => res.json())
       .then(setCiudades)
       .catch(console.error);
-  }, [formData.departamento]);
+  }, [departamentoId]);
 
   useEffect(() => {
     fetch(`${API_URL}/api/productos`)
@@ -941,13 +938,11 @@ const Cards = () => {
   const removeFromCart = (id) => setCart(cart.filter((p) => p.id !== id));
 
   const total = cart.reduce((sum, p) => sum + p.precio * p.quantity, 0);
-
   const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
 
   /* ===================== FORM ===================== */
   const enviarFormulario = async (e) => {
     e.preventDefault();
-
     if (!cart.length) return alert("El carrito está vacío");
 
     await fetch(`${API_URL}/api/enviar-formulario`, {
@@ -955,8 +950,6 @@ const Cards = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...formData,
-        departamento_id: departamentoId,
-        ciudad_id: ciudadId,
         carrito: cart,
       }),
     });
@@ -1095,7 +1088,6 @@ ${cart
               </h2>
 
               <form onSubmit={enviarFormulario} className="space-y-4 px-6 pb-6">
-                {/* CAMPOS NORMALES */}
                 {["nombre", "email", "telefono", "direccion"].map((campo) => (
                   <input
                     key={campo}
@@ -1112,11 +1104,17 @@ ${cart
                 {/* DEPARTAMENTO */}
                 <select
                   required
-                  value={formData.departamento}
-                  onChange={(e) =>
-                    setFormData({ ...formData, departamento: e.target.value })
-                  }
                   className="w-full border px-3 py-2 rounded-lg"
+                  onChange={(e) => {
+                    const depId = e.target.value;
+                    const dep = departamentos.find((d) => d.id == depId);
+                    setDepartamentoId(depId);
+                    setFormData({
+                      ...formData,
+                      departamento: dep?.nombre || "",
+                      ciudad: "",
+                    });
+                  }}
                 >
                   <option value="">Seleccione un departamento</option>
                   {departamentos.map((dep) => (
@@ -1129,15 +1127,15 @@ ${cart
                 {/* CIUDAD */}
                 <select
                   required
-                  disabled={!formData.departamento}
-                  value={formData.ciudad}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ciudad: e.target.value })
-                  }
+                  disabled={!ciudades.length}
                   className="w-full border px-3 py-2 rounded-lg"
+                  onChange={(e) => {
+                    const ciu = ciudades.find((c) => c.id == e.target.value);
+                    setFormData({ ...formData, ciudad: ciu?.nombre || "" });
+                  }}
                 >
                   <option value="">
-                    {formData.departamento
+                    {ciudades.length
                       ? "Seleccione una ciudad"
                       : "Seleccione un departamento primero"}
                   </option>
@@ -1165,14 +1163,14 @@ ${cart
         <h1 className="text-4xl text-center text-pink-400 mb-6">
           Nuestros Productos
         </h1>
+
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {productos.map((producto) => (
             <div
               key={producto.id}
               className="group bg-[#1f1f1f] border border-white/10 rounded-2xl overflow-hidden
-                 transition hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/20"
+              transition hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/20"
             >
-              {/* IMAGEN */}
               <div className="relative w-full h-48 sm:h-64 lg:h-72 overflow-hidden">
                 <img
                   src={producto.imagen}
@@ -1182,7 +1180,6 @@ ${cart
                 />
               </div>
 
-              {/* INFO */}
               <div className="p-3 sm:p-5 text-center">
                 <h3 className="text-white text-sm sm:text-base font-semibold line-clamp-2">
                   {producto.nombre}
@@ -1195,7 +1192,7 @@ ${cart
                 <button
                   onClick={() => addToCart(producto)}
                   className="mt-3 w-full py-2 rounded-xl bg-white text-black font-semibold
-                     hover:bg-pink-500 hover:text-white transition flex items-center justify-center gap-2 text-sm sm:text-base"
+                  hover:bg-pink-500 hover:text-white transition flex items-center justify-center gap-2"
                 >
                   <ShoppingCart size={16} />
                   Agregar
