@@ -30,6 +30,21 @@ const DB = mysql.createPool({
 /* ================= ROOT ================= */
 app.get("/", (_, res) => res.json({ ok: true }));
 
+/* ================= CATEGORIAS ================= */
+app.get("/api/categorias", async (req, res) => {
+  const { id, nombre } = req.body;
+
+  DB.query("SELECT * FROM categorias", (err, rows) => {
+    if (err) return res.status(500).json(err);
+
+    res.json(
+      rows.map((c) => ({
+        ...c,
+      }))
+    );
+  });
+});
+
 /* ================= PRODUCTOS ================= */
 app.get("/api/productos", (req, res) => {
   const baseUrl = `${req.protocol}://${req.headers.host}`;
