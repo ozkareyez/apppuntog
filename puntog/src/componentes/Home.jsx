@@ -3,12 +3,17 @@ import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
+import { div } from "framer-motion/client";
 
 const Home = () => {
   return (
     <div className="w-full">
       {/* CTA principal */}
       <MainCTA />
+
+      <div>
+        <h1>prueba para colocar las categorias</h1>
+      </div>
 
       {/* Separador suave */}
       <motion.div
