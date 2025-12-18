@@ -27,6 +27,10 @@ const __dirname = path.dirname(__filename);
 
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
+DB.query("SELECT DATABASE() AS db", (err, rows) => {
+  console.log("🧠 BASE DE DATOS EN USO:", rows);
+});
+
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
   host: process.env.MYSQLHOST,
