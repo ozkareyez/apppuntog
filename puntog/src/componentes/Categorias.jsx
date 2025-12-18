@@ -37,9 +37,9 @@ const Categorias = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categorias.map((categoria, c) => (
+          {categorias.map((categoria, id) => (
             <div
-              key={c}
+              key={id}
               className="
                 group
                 relative
@@ -58,7 +58,7 @@ const Categorias = () => {
             >
               {/* TEXTO */}
               <h3 className="text-lg font-semibold text-white mb-2">
-                {categoria.title}
+                {categoria.nombre}
               </h3>
 
               <button
@@ -67,7 +67,7 @@ const Categorias = () => {
             text-white shadow-lg shadow-pink-500/30
             hover:scale-110 hover:shadow-pink-500/50 transition-all duration-300"
               >
-                {categoria.text}
+                Ver mas..
               </button>
 
               {/* EFECTO BORDE */}
