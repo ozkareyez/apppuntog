@@ -14,7 +14,7 @@ export default function HomeCategorias() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#22222280] p-6">
+    <div className="min-h-screen bg-[#1a1a1a] p-6">
       <h1 className="text-4xl text-center text-pink-400 mb-10 font-semibold">
         Explora nuestras categorías
       </h1>
@@ -25,16 +25,16 @@ export default function HomeCategorias() {
             key={cat.id}
             onClick={() => navigate(`/categoria/${cat.id}`)}
             className="
-              cursor-pointer
-              bg-[#1f1f1f]
-              border border-white/10
-              rounded-2xl
-              p-8
-              text-center
-              transition
-              hover:border-pink-500
-              hover:shadow-lg hover:shadow-pink-500/20
-            "
+            cursor-pointer
+            bg-[#222]
+            border border-white/10
+            rounded-2xl
+            p-8
+            text-center
+            transition
+            hover:border-pink-500
+            hover:shadow-lg hover:shadow-pink-500/20
+          "
           >
             <h2 className="text-white text-xl font-semibold">{cat.nombre}</h2>
           </div>
