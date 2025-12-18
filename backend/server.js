@@ -31,17 +31,14 @@ const DB = mysql.createPool({
 app.get("/", (_, res) => res.json({ ok: true }));
 
 /* ================= CATEGORIAS ================= */
-app.get("/api/categorias", async (req, res) => {
-  const { id, nombre } = req.body;
-
+app.get("/api/categorias", (req, res) => {
   DB.query("SELECT * FROM categorias", (err, rows) => {
-    if (err) return res.status(500).json(err);
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al obtener categorías" });
+    }
 
-    res.json(
-      rows.map((c) => ({
-        ...c,
-      }))
-    );
+    res.json(rows);
   });
 });
 
@@ -60,6 +57,18 @@ app.get("/api/productos", (req, res) => {
           : `${baseUrl}/images/${p.imagen}`,
       }))
     );
+  });
+});
+
+/* ================= DEPARTAMENTOS ================= */
+app.get("/api/departamentos", (req, res) => {
+  DB.query("SELECT * FROM departamentos", (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al obtener categorías" });
+    }
+
+    res.json(rows);
   });
 });
 
@@ -111,7 +120,8 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, email, direccion, ciudad, telefono, carrito } = req.body;
+  const { nombre, email, telefono, direccion, departaento, ciudad, carrito } =
+    req.body;
 
   if (!carrito?.length) {
     return res.status(400).json({ error: "Carrito vacío" });
@@ -122,10 +132,10 @@ app.post("/api/enviar-formulario", (req, res) => {
   DB.query(
     `
     INSERT INTO pedidos 
-    (nombre,email,direccion,telefono,ciudad,total,estado)
+    (nombre,email,telefono,direccion,departamento,ciudad,total,estado)
     VALUES (?,?,?,?,?,?,'pendiente')
     `,
-    [nombre, email, direccion, telefono, ciudad, total],
+    [nombre, email, telefono, direccion, departaento, ciudad, total],
     (err, r) => {
       if (err) {
         console.error("Error creando pedido:", err);
