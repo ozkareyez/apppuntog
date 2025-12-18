@@ -879,8 +879,8 @@ const Cards = () => {
 
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
-  const [departamentoId, setDepartamentoId] = useState("");
-  const [ciudadId, setCiudadId] = useState("");
+  // const [departamentoId, setDepartamentoId] = useState("");
+  // const [ciudadId, setCiudadId] = useState("");
 
   /* ===================== FETCH ===================== */
 
