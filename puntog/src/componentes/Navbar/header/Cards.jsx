@@ -1090,7 +1090,14 @@ ${cart
               </h2>
 
               <form onSubmit={enviarFormulario} className="space-y-4 px-6 pb-6">
-                {["nombre", "email", "direccion", "telefono"].map((campo) => (
+                {[
+                  "nombre",
+                  "email",
+                  "telefono",
+                  "direccion",
+                  "departamento",
+                  "ciudad",
+                ].map((campo) => (
                   <input
                     key={campo}
                     required
