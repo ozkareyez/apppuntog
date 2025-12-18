@@ -5,6 +5,8 @@ import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
 
 const Home = () => {
+  console.log("VERSION ESTABLE CARGADA");
+
   return (
     <div className="w-full">
       {/* CTA principal */}

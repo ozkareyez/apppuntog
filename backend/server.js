@@ -297,6 +297,8 @@
 // app.listen(PORT, "0.0.0.0", () =>
 //   console.log("🚀 Backend funcionando en Railway")
 // );
+import dotenv from "dotenv";
+dotenv.config();
 
 import express from "express";
 import mysql from "mysql2";
