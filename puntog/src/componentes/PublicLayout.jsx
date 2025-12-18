@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 
 // IMPORTS COMPONENTES
 import Navbar from "./Navbar/Navbar"; // Asegúrate que la ruta sea correcta
-import Foter from "./Foter"; // Si Foter está en la misma carpeta "componentes"
+// import Foter from "./Foter"; // Si Foter está en la misma carpeta "componentes"
 
 export default function PublicLayout() {
   return (
@@ -14,7 +14,7 @@ export default function PublicLayout() {
         <Outlet />
       </main>
 
-      <Foter />
+      {/* <Foter /> */}
     </div>
   );
 }

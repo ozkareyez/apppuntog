@@ -1,13 +1,13 @@
 // src/componentes/Navbar/Navbar.jsx
 import React from "react";
-import logo from "../../assets/logo.png"; // Asegúrate que el archivo esté en src/assets/logo.png
+// import logo from "../../assets/logo.png"; // Asegúrate que el archivo esté en src/assets/logo.png
 
 const Navbar = () => {
   return (
     <nav className="w-full bg-white shadow-md flex items-center justify-between px-6 py-4">
       {/* Logo */}
       <div className="flex items-center">
-        <img src={logo} alt="Logo" className="h-10 w-auto mr-3" />
+        {/* <img src={logo} alt="Logo" className="h-10 w-auto mr-3" /> */}
         <span className="text-xl font-bold text-gray-800">PuntoG</span>
       </div>
 
