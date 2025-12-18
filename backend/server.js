@@ -73,14 +73,14 @@ app.get("/api/productos", (req, res) => {
 app.get("/api/departamentos", (req, res) => {
   DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Error al obtener departamentos" });
+      console.error("ERROR departamentos:", err);
+      return res.status(500).json(err);
     }
     res.json(rows);
   });
 });
 
-/*================== CIUDADES ================= */
+/* ================= CIUDADES ================= */
 app.get("/api/ciudades", (req, res) => {
   const { departamento_id } = req.query;
 
@@ -93,8 +93,8 @@ app.get("/api/ciudades", (req, res) => {
     [departamento_id],
     (err, rows) => {
       if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Error al obtener ciudades" });
+        console.error("ERROR ciudades:", err);
+        return res.status(500).json(err);
       }
       res.json(rows);
     }
