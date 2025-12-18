@@ -6,15 +6,15 @@ const Categorias = () => {
     },
     {
       title: "Juguetes",
-      text: "Pagos contraentrega y transferencias",
+      text: "Ver mas",
     },
     {
       title: "Lubricantes",
-      text: "Seguimiento y garantía en cada pedido",
+      text: "Ver mas",
     },
     {
       title: "Accesorios",
-      text: "Empaques seguros y confidenciales",
+      text: "Ver mas",
     },
   ];
 
@@ -52,9 +52,14 @@ const Categorias = () => {
                 {clase.title}
               </h3>
 
-              <p className="text-sm text-gray-400 leading-relaxed">
+              <button
+                className="px-10 py-4 rounded-full text-lg font-semibold 
+            bg-gradient-to-r from-pink-500 to-purple-600 
+            text-white shadow-lg shadow-pink-500/30
+            hover:scale-110 hover:shadow-pink-500/50 transition-all duration-300"
+              >
                 {clase.text}
-              </p>
+              </button>
 
               {/* EFECTO BORDE */}
               <span
