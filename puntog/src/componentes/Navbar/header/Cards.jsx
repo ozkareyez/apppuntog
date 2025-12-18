@@ -1089,33 +1089,47 @@ ${cart
                 🚚 Datos de Envío
               </h2>
 
-              <form onSubmit={enviarFormulario} className="space-y-4 px-6 pb-6">
-                {[
-                  "nombre",
-                  "email",
-                  "telefono",
-                  "direccion",
-                  "departamento",
-                  "ciudad",
-                ].map((campo) => (
-                  <input
-                    key={campo}
+              <form className="space-y-6">
+                {/* DEPARTAMENTO */}
+                <div>
+                  <label className="block text-white mb-1">Departamento</label>
+                  <select
+                    className="w-full p-2 rounded bg-black text-white border border-white/20"
+                    value={departamentoId}
+                    onChange={(e) => setDepartamentoId(e.target.value)}
                     required
-                    placeholder={campo}
-                    value={formData[campo]}
-                    onChange={(e) =>
-                      setFormData({ ...formData, [campo]: e.target.value })
-                    }
-                    className="w-full border px-3 py-2 rounded-lg"
-                  />
-                ))}
+                  >
+                    <option value="">Seleccione un departamento</option>
+                    {departamentos.map((dep) => (
+                      <option key={dep.id} value={dep.id}>
+                        {dep.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg"
-                >
-                  Confirmar Pedido ✅
-                </button>
+                {/* CIUDAD */}
+                <div>
+                  <label className="block text-white mb-1">Ciudad</label>
+                  <select
+                    className="w-full p-2 rounded bg-black text-white border border-white/20"
+                    value={ciudadId}
+                    onChange={(e) => setCiudadId(e.target.value)}
+                    required
+                    disabled={!departamentoId}
+                  >
+                    <option value="">
+                      {departamentoId
+                        ? "Seleccione una ciudad"
+                        : "Seleccione un departamento primero"}
+                    </option>
+                    {ciudades.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.id}>
+                        {ciudad.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </form>
             </div>
           </div>

@@ -62,14 +62,34 @@ app.get("/api/productos", (req, res) => {
 
 /* ================= DEPARTAMENTOS ================= */
 app.get("/api/departamentos", (req, res) => {
-  DB.query("SELECT * FROM departamentos", (err, rows) => {
+  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: "Error al obtener categorías" });
+      return res.status(500).json({ error: "Error al obtener departamentos" });
     }
-
     res.json(rows);
   });
+});
+
+/*================== CIUDADES ================= */
+app.get("/api/ciudades", (req, res) => {
+  const { departamento_id } = req.query;
+
+  if (!departamento_id) {
+    return res.status(400).json({ error: "departamento_id requerido" });
+  }
+
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ?",
+    [departamento_id],
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error al obtener ciudades" });
+      }
+      res.json(rows);
+    }
+  );
 });
 
 /* ================= CONTACTO ================= */
