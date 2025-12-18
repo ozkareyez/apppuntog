@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 
-i;
 const Categorias = () => {
   //   const clases = [
   //     {
