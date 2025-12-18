@@ -12,7 +12,6 @@ export default function HomeCategorias() {
       .then(setCategorias)
       .catch(console.error);
   }, []);
-  console.log("API_URL =", API_URL);
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] p-6">
