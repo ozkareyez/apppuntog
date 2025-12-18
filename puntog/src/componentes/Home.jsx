@@ -10,10 +10,7 @@ const Home = () => {
     <div className="w-full">
       {/* CTA principal */}
       <MainCTA />
-
-      <div className="bg-white">
-        <h1>prueba para colocar las categorias</h1>
-      </div>
+      <Categorias />
 
       {/* Separador suave */}
       <motion.div
