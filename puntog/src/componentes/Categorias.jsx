@@ -28,9 +28,9 @@ const Categorias = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {clases.map((clase, i) => (
+          {clases.map((clase, c) => (
             <div
-              key={i}
+              key={c}
               className="
                 group
                 relative
@@ -49,11 +49,11 @@ const Categorias = () => {
             >
               {/* TEXTO */}
               <h3 className="text-lg font-semibold text-white mb-2">
-                {item.title}
+                {clase.title}
               </h3>
 
               <p className="text-sm text-gray-400 leading-relaxed">
-                {item.text}
+                {clase.text}
               </p>
 
               {/* EFECTO BORDE */}
