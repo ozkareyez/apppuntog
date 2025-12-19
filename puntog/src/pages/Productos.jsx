@@ -172,7 +172,7 @@ const Productos = () => {
 
               <div className="relative w-full h-48 sm:h-64 lg:h-72 overflow-hidden">
                 <img
-                  src={producto.imagen}
+                  src={`/imagen/${producto.imagen}`}
                   alt={producto.nombre}
                   onError={handleImgError}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
