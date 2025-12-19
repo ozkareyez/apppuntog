@@ -2,12 +2,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicLayout from "./componentes/PublicLayout";
 import Home from "./pages/Home";
-import Login from "./admin/Login";
-import AdminLayout from "./admin/dashboard/AdminLayout";
-import Dashboard from "./admin/dashboard/Dashboard";
-import PedidosAdmin from "./admin/PedidosAdmin";
-import ContactosAdmin from "./admin/ContactosAdmin";
-import ProtectedRoute from "./admin/ProtectedRoute";
+// import Login from "./admin/Login";
+// import AdminLayout from "./admin/dashboard/AdminLayout";
+// import Dashboard from "./admin/dashboard/Dashboard";
+// import PedidosAdmin from "./admin/PedidosAdmin";
+// import ContactosAdmin from "./admin/ContactosAdmin";
+// import ProtectedRoute from "./admin/ProtectedRoute";
 import Foter from "./componentes/Foter";
 
 function App() {
@@ -21,10 +21,10 @@ function App() {
         </Route>
 
         {/* LOGIN ADMIN */}
-        <Route path="/admin/login" element={<Login />} />
+        {/* <Route path="/admin/login" element={<Login />} />
 
         {/* RUTAS ADMIN PROTEGIDAS */}
-        <Route
+        {/* <Route
           path="/admin"
           element={
             <ProtectedRoute>
@@ -36,7 +36,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
-        </Route>
+        </Route> */}
       </Routes>
       <Foter />
     </BrowserRouter>
