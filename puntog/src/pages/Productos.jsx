@@ -14,11 +14,6 @@ const Productos = () => {
   const categoriaActual = searchParams.get("categoria") || "todas";
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
-  // ✅ FUNCIÓN CORRECTA PARA IMÁGENES (DESDE /public)
-  const getImageSrc = (imagen) => {
-    return imagen ? `/imagenes/${imagen}` : "/imagenes/no-image.png";
-  };
-
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
@@ -39,10 +34,7 @@ const Productos = () => {
         setProductos(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [categoriaActual, filtroOferta]);
 
   const cambiarCategoria = (slug) => {
@@ -57,6 +49,11 @@ const Productos = () => {
     const params = new URLSearchParams(searchParams);
     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
     setSearchParams(params);
+  };
+
+  // ✅ PLACEHOLDER CORRECTO
+  const handleImgError = (e) => {
+    e.target.src = "/imagenes/no-image.png";
   };
 
   if (loading) {
@@ -118,14 +115,11 @@ const Productos = () => {
           ))}
         </div>
 
-        {/* Grid */}
+        {/* GRID */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
             const precio = Number(producto?.precio ?? 0);
-            const precioAntes = Number(
-              producto?.precio_antes ?? producto?.precio ?? 0
-            );
-            const ahorro = Math.max(precioAntes - precio, 0);
+            const precioAntes = Number(producto?.precio_antes ?? 0);
 
             return (
               <div
@@ -138,10 +132,11 @@ const Productos = () => {
                   </div>
                 )}
 
+                {/* ✅ RUTA CORRECTA */}
                 <img
-                  src={getImageSrc(producto.imagen)}
+                  src={`/imagenes/${producto.imagen}`}
                   alt={producto.nombre}
-                  loading="lazy"
+                  onError={handleImgError}
                   className="w-full h-56 object-cover"
                 />
 
@@ -157,9 +152,6 @@ const Productos = () => {
                       </p>
                       <p className="text-pink-400 text-xl font-bold">
                         ${precio.toFixed(2)}
-                      </p>
-                      <p className="text-green-400 text-sm">
-                        Ahorras ${ahorro.toFixed(2)}
                       </p>
                     </>
                   ) : (
