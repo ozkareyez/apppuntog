@@ -1,4 +1,4 @@
-import Ofertas from "../componentes/Ofertas";
+//import Ofertas from "../componentes/Ofertas";
 //import Cards from "../componentes/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "../componentes/ContactForm";
@@ -25,7 +25,7 @@ const Home = () => {
 
       {/* Ofertas / Cards */}
       <section className="max-w-7xl mx-auto px-4 pb-10">
-        <Ofertas />
+        {/* <Ofertas /> */}
         <MainEnterga />
         <ContactForm />
 
