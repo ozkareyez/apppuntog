@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "@/config";
 
+// Importar todas las imágenes
+const imagenes = {
+  "juguetes.webp": new URL("../assets/imagen/juguetes.webp", import.meta.url)
+    .href,
+  "lenceria.jpg": new URL("../assets/imagen/lenceria.jpg", import.meta.url)
+    .href,
+  "lubricantes.png": new URL(
+    "../assets/imagen/lubricantes.png",
+    import.meta.url
+  ).href,
+  "asesorios.webp": new URL("../assets/imagen/asesorios.webp", import.meta.url)
+    .href,
+};
+
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
 
@@ -40,12 +54,8 @@ const Categorias = () => {
 
               <img
                 className="w-full h-48 object-cover rounded-xl"
-                src={categoria.imagen}
+                src={imagenes[categoria.imagen]}
                 alt={categoria.nombre}
-                onError={(e) => {
-                  e.target.src = "/imagen/placeholder.png"; // imagen de respaldo
-                  console.error(`Error cargando: ${categoria.imagen}`);
-                }}
               />
             </div>
           ))}
