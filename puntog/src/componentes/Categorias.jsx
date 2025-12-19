@@ -17,14 +17,12 @@ const Categorias = () => {
   }, []);
 
   return (
-    <section className="w-full py-14 px-6 bg-linear-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
+    <section className="w-full py-14 px-6 bg-gradient-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
       <div className="max-w-7xl mx-auto">
-        {/* TÍTULO */}
         <h2 className="text-center text-3xl md:text-4xl font-bold text-white mb-10">
           Categorías <span className="text-pink-500">PuntoG</span>
         </h2>
 
-        {/* GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {categorias.map((categoria) => (
             <div
@@ -41,9 +39,13 @@ const Categorias = () => {
               </h3>
 
               <img
-                className="w-full h-35 object-cover rounded-xl"
-                src={categoria.imagen}
+                className="w-full h-48 object-cover rounded-xl"
+                src={`/imagen/${categoria.imagen}`}
                 alt={categoria.nombre}
+                onError={(e) => {
+                  e.target.src = "/imagen/placeholder.png"; // imagen de respaldo
+                  console.error(`Error cargando: ${categoria.imagen}`);
+                }}
               />
             </div>
           ))}
