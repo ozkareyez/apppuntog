@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import Categorias from "./Categorias";
 
 const MainCTA = () => {
   return (
@@ -64,7 +63,6 @@ const MainCTA = () => {
           </Link>
         </motion.div>
       </div>
-      <Categorias />
     </section>
   );
 };
