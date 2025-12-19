@@ -17,7 +17,7 @@ const Categorias = () => {
   }, []);
 
   return (
-    <section className="w-full py-14 px-6 bg-gradient-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
+    <section className="w-full py-14 px-6 bg-linear-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
       <div className="max-w-7xl mx-auto">
         {/* TÍTULO */}
         <h2 className="text-center text-3xl md:text-4xl font-bold text-white mb-10">
@@ -43,7 +43,7 @@ const Categorias = () => {
               <button
                 className="
                   px-10 py-3 rounded-full text-sm font-semibold
-                  bg-gradient-to-r from-pink-500 to-purple-600
+                  bg-linear-to-r from-pink-500 to-purple-600
                   text-white shadow-lg shadow-pink-500/30
                   hover:scale-110 hover:shadow-pink-500/50
                   transition-all duration-300
