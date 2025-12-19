@@ -41,9 +41,9 @@ const Categorias = () => {
               </h3>
 
               <img
-                className="w-full "
-                src={categorias.imagen}
-                alt={categorias.nombre}
+                className="w-full h-40 object-cover rounded-xl"
+                src={categoria.imagen}
+                alt={categoria.nombre}
               />
             </div>
           ))}
