@@ -1,6 +1,9 @@
 import { API_URL } from "@/config";
+import { useEffect, useState } from "react";
 
 const Productos = () => {
+  const [productos, setProductos] = useState([]);
+
   /* ===================== FETCH PRODUCTOS ===================== */
   useEffect(() => {
     fetch(`${API_URL}/api/productos`)
