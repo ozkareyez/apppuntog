@@ -1,3 +1,4 @@
+// src/pages/Productos.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShoppingCart, Tag, Filter } from "lucide-react";
@@ -14,6 +15,25 @@ const Productos = () => {
   const categoriaActual = searchParams.get("categoria") || "todas";
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
+  /* =========================
+     FUNCIÓN DEFINITIVA IMÁGENES
+     ========================= */
+  const getImageSrc = (imagen) => {
+    if (!imagen) return "/imagenes/no-image.png";
+
+    // URL completa
+    if (imagen.startsWith("http")) return imagen;
+
+    // Ya incluye carpeta
+    if (imagen.startsWith("imagenes/")) return `/${imagen}`;
+
+    // Nombre simple
+    return `/imagenes/${imagen}`;
+  };
+
+  /* =========================
+     CARGAR CATEGORÍAS
+     ========================= */
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
@@ -21,6 +41,9 @@ const Productos = () => {
       .catch(console.error);
   }, []);
 
+  /* =========================
+     CARGAR PRODUCTOS
+     ========================= */
   useEffect(() => {
     setLoading(true);
 
@@ -37,6 +60,9 @@ const Productos = () => {
       .catch(() => setLoading(false));
   }, [categoriaActual, filtroOferta]);
 
+  /* =========================
+     FILTROS
+     ========================= */
   const cambiarCategoria = (slug) => {
     const params = new URLSearchParams(searchParams);
     slug === "todas"
@@ -51,11 +77,9 @@ const Productos = () => {
     setSearchParams(params);
   };
 
-  // ✅ PLACEHOLDER CORRECTO
-  const handleImgError = (e) => {
-    e.target.src = "/imagenes/no-image.png";
-  };
-
+  /* =========================
+     LOADING
+     ========================= */
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -64,6 +88,9 @@ const Productos = () => {
     );
   }
 
+  /* =========================
+     RENDER
+     ========================= */
   return (
     <section className="min-h-screen bg-black py-10">
       <div className="max-w-7xl mx-auto p-4">
@@ -74,7 +101,7 @@ const Productos = () => {
             : "Nuestros Productos"}
         </h1>
 
-        {/* Filtro ofertas */}
+        {/* Filtro Ofertas */}
         <div className="flex justify-center mb-6">
           <button
             onClick={toggleOferta}
@@ -132,11 +159,9 @@ const Productos = () => {
                   </div>
                 )}
 
-                {/* ✅ RUTA CORRECTA */}
                 <img
-                  src={`/imagenes/${producto.imagen}`}
+                  src={getImageSrc(producto.imagen)}
                   alt={producto.nombre}
-                  onError={handleImgError}
                   className="w-full h-56 object-cover"
                 />
 
