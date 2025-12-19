@@ -14,7 +14,7 @@ const MainCTA = () => {
       <div className="relative max-w-5xl mx-auto text-center backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-10 md:p-16 shadow-2xl">
         {/* Título */}
         <motion.h1
-          className="text-4xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-pink-400 via-pink-500 to-purple-500 bg-clip-text text-transparent drop-shadow"
+          className="text-4xl md:text-6xl font-extrabold mb-6 bg-linear-to-r from-pink-400 via-pink-500 to-purple-500 bg-clip-text text-transparent drop-shadow"
           initial={{ opacity: 0, y: -40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
