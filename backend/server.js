@@ -52,7 +52,7 @@ app.get("/api/categorias", (req, res) => {
 });
 
 /* ================= PRODUCTOS ================= */
-// backend - en tu archivo de rutas (probablemente server.js o routes.js)
+// backend/server.js o donde tengas tus rutas
 app.get("/api/productos", (req, res) => {
   const { categoria, es_oferta, limit } = req.query;
 
@@ -60,37 +60,37 @@ app.get("/api/productos", (req, res) => {
   const params = [];
   const conditions = [];
 
-  // Filtrar por slug de categoría
+  // ⭐ FILTRO POR CATEGORÍA (usando slug)
   if (categoria && categoria !== "todas") {
     query += " INNER JOIN categorias c ON p.categoria_id = c.id";
     conditions.push("c.slug = ?");
     params.push(categoria);
   }
 
-  // Filtrar por ofertas
+  // ⭐ FILTRO POR OFERTAS
   if (es_oferta === "true") {
-    conditions.push("p.es_oferta = 1");
+    conditions.push("p.es_oferta = 1"); // o = true dependiendo de tu BD
   }
 
-  // Agregar WHERE si hay condiciones
+  // Construir WHERE
   if (conditions.length > 0) {
     query += " WHERE " + conditions.join(" AND ");
   }
 
   query += " ORDER BY p.id DESC";
 
-  // Limitar resultados
+  // Límite opcional
   if (limit) {
     query += " LIMIT ?";
     params.push(parseInt(limit));
   }
 
-  console.log("🔍 Query productos:", query);
+  console.log("🔍 Query:", query);
   console.log("📊 Params:", params);
 
   db.query(query, params, (err, results) => {
     if (err) {
-      console.error("❌ Error en query productos:", err);
+      console.error("❌ Error en productos:", err);
       return res.status(500).json({ error: err.message });
     }
 
