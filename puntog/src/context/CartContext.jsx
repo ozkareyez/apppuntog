@@ -1,8 +1,13 @@
-// src/context/CartContext.jsx
 import { createContext, useContext, useState } from "react";
 
-const CartContext = createContext(null); // ⭐ Cambia undefined a null
+/* =========================
+   CONTEXT
+   ========================= */
+const CartContext = createContext();
 
+/* =========================
+   HOOK
+   ========================= */
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -11,48 +16,54 @@ export const useCart = () => {
   return context;
 };
 
+/* =========================
+   PROVIDER
+   ========================= */
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
+  /* ===== ADD ===== */
   const addToCart = (producto) => {
-    const existe = cart.find((p) => p.id === producto.id);
-    if (existe) {
-      setCart(
-        cart.map((p) =>
+    setCart((prev) => {
+      const existe = prev.find((p) => p.id === producto.id);
+
+      if (existe) {
+        return prev.map((p) =>
           p.id === producto.id ? { ...p, quantity: p.quantity + 1 } : p
-        )
-      );
-    } else {
-      setCart([...cart, { ...producto, quantity: 1 }]);
-    }
+        );
+      }
+
+      return [...prev, { ...producto, quantity: 1 }];
+    });
   };
 
   const increaseQuantity = (id) =>
-    setCart(
-      cart.map((p) => (p.id === id ? { ...p, quantity: p.quantity + 1 } : p))
+    setCart((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, quantity: p.quantity + 1 } : p))
     );
 
   const decreaseQuantity = (id) =>
-    setCart(
-      cart.map((p) =>
+    setCart((prev) =>
+      prev.map((p) =>
         p.id === id && p.quantity > 1 ? { ...p, quantity: p.quantity - 1 } : p
       )
     );
 
-  const removeFromCart = (id) => setCart(cart.filter((p) => p.id !== id));
-
-  const total = cart.reduce((sum, p) => sum + p.precio * p.quantity, 0);
-  const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
+  const removeFromCart = (id) =>
+    setCart((prev) => prev.filter((p) => p.id !== id));
 
   const clearCart = () => setCart([]);
+
+  const total = cart.reduce((sum, p) => sum + Number(p.precio) * p.quantity, 0);
+
+  const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
 
   return (
     <CartContext.Provider
       value={{
         cart,
-        setCart,
         addToCart,
         increaseQuantity,
         decreaseQuantity,
