@@ -1,4 +1,5 @@
 import MainCTA from "./MainCTA";
+import Ofertas from "./Ofertas";
 //import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
@@ -28,6 +29,7 @@ const Home = () => {
         ></motion.h2>
 
         {/* <Cards /> */}
+        <Ofertas />
 
         <MainEnterga />
 
