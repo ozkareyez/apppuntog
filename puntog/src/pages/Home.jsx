@@ -8,7 +8,9 @@ import { FloatingWhatsApp } from "react-floating-whatsapp";
 import { useCart } from "@/context/CartContext";
 
 const Home = () => {
-  const { totalItems, setShowCart } = useCart();
+  const { setShowCart, totalItems } = useCart();
+
+  <button onClick={() => setShowCart(true)}>🛒 {totalItems}</button>;
 
   return (
     <div className="w-full">
