@@ -1,4 +1,3 @@
-// src/componentes/FormularioEnvio.jsx
 import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { API_URL } from "@/config";
@@ -10,6 +9,9 @@ const FormularioEnvio = ({
   setCart,
   total,
 }) => {
+  /* =====================
+     STATE
+     ===================== */
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -21,36 +23,36 @@ const FormularioEnvio = ({
 
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
+  const [enviando, setEnviando] = useState(false);
 
+  /* =====================
+     CARGAR DEPARTAMENTOS
+     ===================== */
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => setDepartamentos(data))
+      .then((res) => res.json())
+      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
       .catch((err) => console.error("❌ Error cargando departamentos:", err));
   }, []);
 
+  /* =====================
+     CARGAR CIUDADES
+     ===================== */
   useEffect(() => {
     if (!formData.departamento) {
       setCiudades([]);
-      setFormData((prev) => ({ ...prev, ciudad: "" }));
       return;
     }
 
     fetch(`${API_URL}/api/ciudades?departamento_id=${formData.departamento}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setCiudades(data);
-        setFormData((prev) => ({ ...prev, ciudad: "" }));
-      })
+      .then((res) => res.json())
+      .then((data) => setCiudades(Array.isArray(data) ? data : []))
       .catch((err) => console.error("❌ Error cargando ciudades:", err));
   }, [formData.departamento]);
 
+  /* =====================
+     HANDLERS
+     ===================== */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -59,9 +61,18 @@ const FormularioEnvio = ({
   const nombreDepartamento =
     departamentos.find((d) => d.id == formData.departamento)?.nombre || "";
 
+  /* =====================
+     ENVIAR FORMULARIO
+     ===================== */
   const enviarFormulario = async (e) => {
     e.preventDefault();
-    if (!cart.length) return alert("El carrito está vacío");
+
+    if (!cart.length) {
+      alert("🛒 El carrito está vacío");
+      return;
+    }
+
+    setEnviando(true);
 
     try {
       const res = await fetch(`${API_URL}/api/enviar-formulario`, {
@@ -70,6 +81,7 @@ const FormularioEnvio = ({
         body: JSON.stringify({
           ...formData,
           carrito: cart,
+          total,
         }),
       });
 
@@ -88,14 +100,19 @@ const FormularioEnvio = ({
         ciudad: "",
       });
     } catch (error) {
-      alert("❌ No se pudo enviar el pedido. Intenta nuevamente.");
       console.error(error);
+      alert("❌ No se pudo enviar el pedido. Intenta nuevamente.");
+    } finally {
+      setEnviando(false);
     }
   };
 
+  /* =====================
+     WHATSAPP
+     ===================== */
   const enviarWhatsApp = () => {
     const mensaje = encodeURIComponent(`
-📦 *Nuevo Pedido PuntoG*
+📦 *Nuevo Pedido Punto G*
 
 👤 ${formData.nombre}
 📧 ${formData.email}
@@ -117,19 +134,29 @@ ${cart
     window.open(`https://wa.me/573147041149?text=${mensaje}`, "_blank");
   };
 
+  /* =====================
+     NO MOSTRAR
+     ===================== */
   if (!mostrarFormulario) return null;
 
+  /* =====================
+     RENDER
+     ===================== */
   return (
     <>
+      {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/60 z-60"
+        className="fixed inset-0 bg-black/60 z-[100]"
         onClick={() => setMostrarFormulario(false)}
       />
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-4">
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative">
+          {/* Cerrar */}
           <button
             onClick={() => setMostrarFormulario(false)}
-            className="absolute top-3 right-3 hover:bg-gray-100 p-2 rounded-full"
+            className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100"
           >
             <X />
           </button>
@@ -142,11 +169,10 @@ ${cart
             <input
               name="nombre"
               required
-              type="text"
               placeholder="Nombre completo"
               value={formData.nombre}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg"
             />
 
             <input
@@ -156,27 +182,25 @@ ${cart
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg"
             />
 
             <input
               name="telefono"
               required
-              type="text"
               placeholder="Teléfono"
               value={formData.telefono}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg"
             />
 
             <input
               name="direccion"
               required
-              type="text"
               placeholder="Dirección"
               value={formData.direccion}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg"
             />
 
             <select
@@ -184,7 +208,7 @@ ${cart
               required
               value={formData.departamento}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg"
             >
               <option value="">Seleccione un departamento</option>
               {departamentos.map((d) => (
@@ -200,7 +224,7 @@ ${cart
               disabled={!ciudades.length}
               value={formData.ciudad}
               onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full border px-3 py-2 rounded-lg disabled:bg-gray-100"
             >
               <option value="">Seleccione una ciudad</option>
               {ciudades.map((c) => (
@@ -212,7 +236,7 @@ ${cart
 
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-between mb-4">
-                <span className="font-bold">Total a pagar:</span>
+                <span className="font-bold">Total:</span>
                 <span className="text-pink-500 font-bold text-xl">
                   ${total.toFixed(2)}
                 </span>
@@ -220,9 +244,10 @@ ${cart
 
               <button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition"
+                disabled={enviando}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50"
               >
-                Confirmar Pedido ✅
+                {enviando ? "Enviando..." : "Confirmar Pedido ✅"}
               </button>
             </div>
           </form>

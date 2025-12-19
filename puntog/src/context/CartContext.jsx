@@ -2,12 +2,12 @@ import { createContext, useContext, useState } from "react";
 
 /* =========================
    CONTEXT
-   ========================= */
-const CartContext = createContext();
+========================= */
+const CartContext = createContext(null);
 
 /* =========================
    HOOK
-   ========================= */
+========================= */
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -18,7 +18,7 @@ export const useCart = () => {
 
 /* =========================
    PROVIDER
-   ========================= */
+========================= */
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
@@ -64,6 +64,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cart,
+        setCart, // ✅ AHORA SÍ
         addToCart,
         increaseQuantity,
         decreaseQuantity,
