@@ -1,5 +1,5 @@
 import MainCTA from "./MainCTA";
-import Cards from "./Navbar/header/Cards";
+//import Cards from "./Navbar/header/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
@@ -27,7 +27,7 @@ const Home = () => {
           transition={{ duration: 0.5 }}
         ></motion.h2>
 
-        <Cards />
+        {/* <Cards /> */}
 
         <MainEnterga />
 
