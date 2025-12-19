@@ -6,7 +6,7 @@ const Ofertas = ({ addToCart }) => {
   const [ofertas, setOfertas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fallback imagen
+  // ✅ Imagen fallback
   const handleImgError = (e) => {
     e.target.src = "/imagenes/no-image.png";
   };
@@ -52,11 +52,13 @@ const Ofertas = ({ addToCart }) => {
         {/* Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {ofertas.map((producto) => {
-            // 🔒 Normalización segura
-            const precio = Number(producto?.precio ?? 0);
-            const precioAntes = Number(
-              producto?.precio_antes ?? producto?.precio ?? 0
-            );
+            // 🔒 NORMALIZACIÓN TOTAL (ANTI toFixed ERROR)
+            const precioNum = Number(producto?.precio);
+            const precioAntesNum = Number(producto?.precio_antes);
+
+            const precio = isNaN(precioNum) ? 0 : precioNum;
+            const precioAntes = isNaN(precioAntesNum) ? precio : precioAntesNum;
+
             const ahorro = Math.max(precioAntes - precio, 0);
 
             return (
@@ -91,7 +93,6 @@ const Ofertas = ({ addToCart }) => {
                     onError={handleImgError}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 {/* Info */}
@@ -104,7 +105,7 @@ const Ofertas = ({ addToCart }) => {
                   <div className="space-y-1 mb-4">
                     {precioAntes > precio && (
                       <div className="flex items-center justify-center gap-3">
-                        <span className="text-gray-400 text-base sm:text-lg line-through">
+                        <span className="text-gray-400 line-through">
                           ${precioAntes.toFixed(2)}
                         </span>
                         <span className="bg-green-500/20 text-green-400 text-xs font-bold px-2 py-1 rounded">
@@ -121,7 +122,7 @@ const Ofertas = ({ addToCart }) => {
                   {/* Botón */}
                   <button
                     onClick={() => addToCart?.(producto)}
-                    className="w-full py-2.5 rounded-xl bg-linear-to-r from-pink-500 to-pink-600 
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 
                     text-white font-semibold hover:from-pink-600 hover:to-pink-700 
                     transition shadow-lg hover:shadow-pink-500/50 flex items-center justify-center gap-2"
                   >
