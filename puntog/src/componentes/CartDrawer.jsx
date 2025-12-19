@@ -105,8 +105,14 @@ const CartDrawer = () => {
             <span className="font-bold">${total.toFixed(2)}</span>
           </div>
 
-          <button className="w-full bg-pink-500 hover:bg-pink-600 transition text-white py-3 rounded-xl font-semibold">
-            Confirmar Entrega
+          <button
+            onClick={() => {
+              setMostrarFormulario(true);
+              setShowCart(false);
+            }}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl mt-4"
+          >
+            Confirmar entrega 🚚
           </button>
         </div>
       </aside>
