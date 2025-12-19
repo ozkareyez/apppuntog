@@ -40,7 +40,7 @@ const Categorias = () => {
 
               <img
                 className="w-full h-48 object-cover rounded-xl"
-                src={`/imagen/${categoria.imagen}`}
+                src={categoria.imagen}
                 alt={categoria.nombre}
                 onError={(e) => {
                   e.target.src = "/imagen/placeholder.png"; // imagen de respaldo
