@@ -4,6 +4,7 @@ import Ofertas from "./Ofertas";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
+import Categorias from "./Categorias";
 
 const Home = () => {
   return (
