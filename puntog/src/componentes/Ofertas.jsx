@@ -87,7 +87,7 @@ const Ofertas = ({ addToCart }) => {
 
                 <button
                   onClick={() => addToCart(producto)}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 
+                  className="w-full py-2.5 rounded-xl bg-linear-to-r from-pink-500 to-pink-600 
                   text-white font-semibold hover:from-pink-600 hover:to-pink-700 
                   transition shadow-lg hover:shadow-pink-500/50 flex items-center justify-center gap-2"
                 >
