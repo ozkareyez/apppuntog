@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ShoppingCart, Plus, Minus, Trash2, X } from "lucide-react";
-import { FloatingWhatsApp } from "react-floating-whatsapp";
+//import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "./Header";
 import { API_URL } from "@/config";
 
@@ -187,12 +187,12 @@ ${cart
     <div className="min-h-screen bg-[#22222280]">
       <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
 
-      <FloatingWhatsApp
+      {/* <FloatingWhatsApp
         phoneNumber="+573147041149"
         accountName="Punto G"
         chatMessage="Hola 👋 ¿en qué te ayudamos?"
         avatar="/imagenes/logo.png"
-      />
+      /> */}
 
       {/* ===================== CARRITO ===================== */}
       {showCart && (

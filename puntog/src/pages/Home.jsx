@@ -5,6 +5,7 @@ import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
 import Categorias from "../componentes/Categorias";
 import Productos from "./Productos";
+import { FloatingWhatsApp } from "react-floating-whatsapp";
 
 const Home = () => {
   return (
@@ -27,6 +28,13 @@ const Home = () => {
         <Ofertas />
         <MainEnterga />
         <ContactForm />
+
+        <FloatingWhatsApp
+          phoneNumber="+573147041149"
+          accountName="Punto G"
+          chatMessage="Hola 👋 ¿en qué te ayudamos?"
+          avatar="/imagenes/logo.png"
+        />
       </section>
     </div>
   );
