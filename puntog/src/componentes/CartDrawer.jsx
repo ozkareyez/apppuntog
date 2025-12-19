@@ -10,13 +10,14 @@ const CartDrawer = () => {
     decreaseQuantity,
     removeFromCart,
     total,
+    setMostrarFormulario, // ✅ FALTABA ESTO
   } = useCart();
 
   if (!showCart) return null;
 
   const getImageSrc = (img) => {
     if (!img) return "/imagenes/no-image.png";
-    if (img.startsWith("http")) return img;
+    if (img.startsWith("http")) return img.replace("http://", "https://");
     if (img.startsWith("imagenes/")) return `/${img}`;
     return `/imagenes/${img}`;
   };
@@ -52,7 +53,6 @@ const CartDrawer = () => {
               key={item.id}
               className="flex gap-3 bg-[#1a1a1a] p-3 rounded-xl"
             >
-              {/* IMAGEN ESTABLE */}
               <img
                 src={getImageSrc(item.imagen)}
                 alt={item.nombre}
@@ -67,6 +67,7 @@ const CartDrawer = () => {
                 <h4 className="text-white text-sm font-semibold line-clamp-2">
                   {item.nombre}
                 </h4>
+
                 <p className="text-pink-400 font-bold">
                   ${Number(item.precio).toFixed(2)}
                 </p>
@@ -78,7 +79,9 @@ const CartDrawer = () => {
                   >
                     <Minus size={14} />
                   </button>
+
                   <span className="text-white">{item.quantity}</span>
+
                   <button
                     onClick={() => increaseQuantity(item.id)}
                     className="p-1 bg-white/10 rounded"
@@ -107,7 +110,7 @@ const CartDrawer = () => {
 
           <button
             onClick={() => {
-              setMostrarFormulario(true);
+              setMostrarFormulario(true); // ✅ AHORA SÍ FUNCIONA
               setShowCart(false);
             }}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl mt-4"
