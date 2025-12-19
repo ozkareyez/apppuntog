@@ -31,7 +31,7 @@ const Categorias = () => {
   }, []);
 
   return (
-    <section className="w-full py-14 px-6 bg-gradient-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
+    <section className="w-full py-14 px-6 bg-linear-to-br from-black via-[#0f0f0f] to-[#1a1a1a]">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-center text-3xl md:text-4xl font-bold text-white mb-10">
           Categorías <span className="text-pink-500">PuntoG</span>
