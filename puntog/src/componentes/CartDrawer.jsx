@@ -20,7 +20,7 @@ const CartDrawer = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 z-40"
+        className="fixed inset-0 bg-black/50 z-100"
         onClick={() => setShowCart(false)}
       />
       <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white z-50 shadow-xl">
