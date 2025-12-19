@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
-import Categorias from "../componentes/Categorias";
+//import Categorias from "../componentes/Categorias";
 import Productos from "./Productos";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../componentes/Header";
@@ -19,7 +19,7 @@ const Home = () => {
       <Productos />
 
       {/* Categorías */}
-      <Categorias />
+      {/* <Categorias /> */}
 
       {/* Separador */}
       <motion.div
