@@ -353,7 +353,7 @@ ${cart
       )}
 
       {/* ===================== PRODUCTOS ===================== */}
-      <div className="max-w-7xl mx-auto p-4">
+      {/* <div className="max-w-7xl mx-auto p-4">
         <h1 className="text-4xl text-center text-pink-400 mb-6">
           Nuestros Productos
         </h1>
@@ -395,7 +395,7 @@ ${cart
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
