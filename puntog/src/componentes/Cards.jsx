@@ -204,7 +204,7 @@ ${cart
           <div className="fixed top-0 right-0 h-full w-full md:w-96 bg-white z-50 shadow-xl">
             <div className="flex justify-between p-4 border-b">
               <h2 className="font-bold text-lg flex items-center gap-2">
-                <ShoppingCart /> Carrito
+                <ShoppingCart /> Carrito PuntoG
               </h2>
               <button onClick={() => setShowCart(false)}>
                 <X />
