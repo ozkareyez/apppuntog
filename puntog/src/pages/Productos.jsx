@@ -140,7 +140,12 @@ const Productos = () => {
                 )}
 
                 <img
-                  src={`/imagen/${producto.imagen}`}
+                  src={
+                    new URL(
+                      `../assets/imagen/${producto.imagen}`,
+                      import.meta.url
+                    ).href
+                  }
                   alt={producto.nombre}
                   onError={handleImgError}
                   className="w-full h-56 object-cover"
