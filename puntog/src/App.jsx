@@ -4,7 +4,7 @@ import { CartProvider } from "./context/CartContext";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 
 import PublicLayout from "./componentes/PublicLayout";
-import Header from "./componentes/Header";
+
 import CartDrawer from "./componentes/CartDrawer";
 import FormularioEnvio from "./componentes/FormularioEnvio";
 import Home from "./pages/Home";
@@ -30,8 +30,6 @@ function AppContent() {
 
   return (
     <>
-      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
-
       <FloatingWhatsApp
         phoneNumber="+573147041149"
         accountName="Punto G"

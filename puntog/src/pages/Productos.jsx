@@ -1,4 +1,3 @@
-// src/pages/Productos.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShoppingCart, Tag, Filter } from "lucide-react";
@@ -14,6 +13,11 @@ const Productos = () => {
 
   const categoriaActual = searchParams.get("categoria") || "todas";
   const filtroOferta = searchParams.get("filtro") === "ofertas";
+
+  // ✅ FUNCIÓN CORRECTA PARA IMÁGENES (DESDE /public)
+  const getImageSrc = (imagen) => {
+    return imagen ? `/imagenes/${imagen}` : "/imagenes/no-image.png";
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
@@ -53,10 +57,6 @@ const Productos = () => {
     const params = new URLSearchParams(searchParams);
     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
     setSearchParams(params);
-  };
-
-  const handleImgError = (e) => {
-    e.target.src = "/imagen/placeholder.png";
   };
 
   if (loading) {
@@ -121,7 +121,6 @@ const Productos = () => {
         {/* Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
-            // 🔒 NORMALIZACIÓN (ANTI-ERROR DEFINITIVO)
             const precio = Number(producto?.precio ?? 0);
             const precioAntes = Number(
               producto?.precio_antes ?? producto?.precio ?? 0
@@ -140,19 +139,9 @@ const Productos = () => {
                 )}
 
                 <img
-                  src={
-                    producto.imagen
-                      ? new URL(
-                          `../assets/imagen/${producto.imagen}`,
-                          import.meta.url
-                        ).href
-                      : "/imagenes/no-image.png"
-                  }
+                  src={getImageSrc(producto.imagen)}
                   alt={producto.nombre}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "/imagenes/no-image.png";
-                  }}
+                  loading="lazy"
                   className="w-full h-56 object-cover"
                 />
 

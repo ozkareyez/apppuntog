@@ -11,7 +11,7 @@ import Header from "../componentes/Header";
 const Home = () => {
   return (
     <div className="w-full">
-      <Header />
+      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
       <Productos />
 
       {/* Categorías */}
