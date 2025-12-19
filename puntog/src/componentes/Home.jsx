@@ -1,6 +1,5 @@
-import MainCTA from "./MainCTA";
 import Ofertas from "./Ofertas";
-import Cards from "./Navbar/header/Cards";
+import Cards from "./Cards";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
