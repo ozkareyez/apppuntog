@@ -7,9 +7,12 @@ const Ofertas = ({ addToCart }) => {
 
   useEffect(() => {
     fetch(`${API_URL}/api/productos?es_oferta=true`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar ofertas");
+        return res.json();
+      })
       .then((data) => setOfertas(data))
-      .catch((err) => console.error("Error:", err));
+      .catch((err) => console.error(err));
   }, []);
 
   if (ofertas.length === 0) return null;

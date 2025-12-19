@@ -11,7 +11,10 @@ const Home = () => {
       {/* CTA principal */}
       <MainCTA />
 
-      {/* Separador suave */}
+      {/* Categorías */}
+      <Categorias />
+
+      {/* Separador */}
       <motion.div
         className="w-full h-1 bg-linear-to-r from-pink-500 to-purple-600 my-10 rounded-full"
         initial={{ width: 0 }}
@@ -19,20 +22,10 @@ const Home = () => {
         transition={{ duration: 0.8 }}
       />
 
-      {/* Cards del catálogo */}
-      <section id="cards-section" className="max-w-7xl mx-auto px-4 pb-10">
-        <motion.h2
-          className="text-3xl font-bold text-center text-pink-600 mb-6"
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        ></motion.h2>
-
-        {/* <Cards /> */}
+      {/* Ofertas / Cards */}
+      <section className="max-w-7xl mx-auto px-4 pb-10">
         <Ofertas />
-
         <MainEnterga />
-
         <ContactForm />
       </section>
     </div>
