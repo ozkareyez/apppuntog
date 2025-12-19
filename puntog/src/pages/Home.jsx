@@ -1,5 +1,3 @@
-//import Ofertas from "../componentes/Ofertas";
-//import Cards from "../componentes/Cards";
 import { motion } from "framer-motion";
 import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
@@ -7,11 +5,17 @@ import Categorias from "../componentes/Categorias";
 import Productos from "./Productos";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../componentes/Header";
+import { useCart } from "@/context/CartContext";
 
 const Home = () => {
+  // ✅ CORRECCIÓN: obtener totalItems del contexto
+  const { totalItems } = useCart();
+
   return (
     <div className="w-full">
-      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
+      {/* ✅ totalItems ahora existe */}
+      <Header totalItems={totalItems} />
+
       <Productos />
 
       {/* Categorías */}
@@ -25,9 +29,7 @@ const Home = () => {
         transition={{ duration: 0.8 }}
       />
 
-      {/* Ofertas / Cards */}
       <section className="max-w-7xl mx-auto px-4 pb-10">
-        {/* <Ofertas /> */}
         <MainEnterga />
         <ContactForm />
 
