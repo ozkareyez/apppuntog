@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
-import Categorias from "../componentes/Categorias";
+
 import Productos from "./Productos";
 import Header from "../componentes/Header";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
@@ -17,7 +17,6 @@ const Home = () => {
       <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
 
       <Productos />
-      <Categorias />
 
       <motion.div
         className="w-full h-1 bg-linear-to-r from-pink-500 to-purple-600 my-10 rounded-full"
