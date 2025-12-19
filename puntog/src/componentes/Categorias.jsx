@@ -42,7 +42,7 @@ const Categorias = () => {
 
               <img
                 className="w-full h-35 object-cover rounded-xl"
-                src={categoria.imagen}
+                src={`/imagenes/${categoria.imagen}`}
                 alt={categoria.nombre}
               />
             </div>
