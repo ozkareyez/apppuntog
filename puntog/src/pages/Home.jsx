@@ -1,14 +1,15 @@
-import Ofertas from "./Ofertas";
-import Cards from "./Cards";
+import Ofertas from "../componentes/Ofertas";
+//import Cards from "../componentes/Cards";
 import { motion } from "framer-motion";
-import ContactForm from "./ContactForm";
-import MainEnterga from "./MainEnterga";
-import Categorias from "./Categorias";
+import ContactForm from "../componentes/ContactForm";
+import MainEnterga from "../componentes/MainEnterga";
+import Categorias from "../componentes/Categorias";
+import Productos from "./Productos";
 
 const Home = () => {
   return (
     <div className="w-full">
-      <Cards />
+      <Productos />
 
       {/* Categorías */}
       <Categorias />

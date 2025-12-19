@@ -78,13 +78,13 @@ const Cards = () => {
   }, [formData.departamento]);
 
   /* ===================== FETCH PRODUCTOS ===================== */
-  useEffect(() => {
-    fetch(`${API_URL}/api/productos`)
-      .then((res) => res.json())
-      .then(setProductos)
-      .catch(() => setError("Error al cargar productos"))
-      .finally(() => setLoading(false));
-  }, []);
+  // useEffect(() => {
+  //   fetch(`${API_URL}/api/productos`)
+  //     .then((res) => res.json())
+  //     .then(setProductos)
+  //     .catch(() => setError("Error al cargar productos"))
+  //     .finally(() => setLoading(false));
+  // }, []);
 
   /* ===================== CARRITO ===================== */
   const addToCart = (producto) => {
