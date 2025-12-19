@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
 import MainEnterga from "./MainEnterga";
 import Categorias from "./Categorias";
+import Header from "./Header";
 
 const Home = () => {
   return (
     <div className="w-full">
+      <Header />
       {/* CTA principal */}
       <MainCTA />
 
