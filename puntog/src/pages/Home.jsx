@@ -1,27 +1,22 @@
 import { motion } from "framer-motion";
 import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
-//import Categorias from "../componentes/Categorias";
+import Categorias from "../componentes/Categorias";
 import Productos from "./Productos";
-import { FloatingWhatsApp } from "react-floating-whatsapp";
 import Header from "../componentes/Header";
+import { FloatingWhatsApp } from "react-floating-whatsapp";
 import { useCart } from "@/context/CartContext";
 
 const Home = () => {
-  // ✅ CORRECCIÓN: obtener totalItems del contexto
-  const { totalItems } = useCart();
+  const { totalItems, setShowCart } = useCart();
 
   return (
     <div className="w-full">
-      {/* ✅ totalItems ahora existe */}
-      <Header totalItems={totalItems} />
+      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
 
       <Productos />
+      <Categorias />
 
-      {/* Categorías */}
-      {/* <Categorias /> */}
-
-      {/* Separador */}
       <motion.div
         className="w-full h-1 bg-linear-to-r from-pink-500 to-purple-600 my-10 rounded-full"
         initial={{ width: 0 }}
