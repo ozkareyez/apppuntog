@@ -40,24 +40,10 @@ const Categorias = () => {
                 {categoria.nombre}
               </h3>
 
-              <button
-                className="
-                  px-10 py-3 rounded-full text-sm font-semibold
-                  bg-linear-to-r from-pink-500 to-purple-600
-                  text-white shadow-lg shadow-pink-500/30
-                  hover:scale-110 hover:shadow-pink-500/50
-                  transition-all duration-300
-                "
-              >
-                Ver más
-              </button>
-
-              <span
-                className="
-                  absolute inset-0 rounded-2xl border
-                  border-pink-500/0 group-hover:border-pink-500/40
-                  transition-all duration-500
-                "
+              <img
+                className="w-full "
+                src={categorias.imagen}
+                alt={categorias.nombre}
               />
             </div>
           ))}
