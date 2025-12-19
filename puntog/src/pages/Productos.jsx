@@ -141,13 +141,18 @@ const Productos = () => {
 
                 <img
                   src={
-                    new URL(
-                      `../assets/imagen/${producto.imagen}`,
-                      import.meta.url
-                    ).href
+                    producto.imagen
+                      ? new URL(
+                          `../assets/imagen/${producto.imagen}`,
+                          import.meta.url
+                        ).href
+                      : "/imagenes/no-image.png"
                   }
                   alt={producto.nombre}
-                  onError={handleImgError}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/imagenes/no-image.png";
+                  }}
                   className="w-full h-56 object-cover"
                 />
 

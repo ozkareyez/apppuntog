@@ -6,10 +6,12 @@ import MainEnterga from "../componentes/MainEnterga";
 import Categorias from "../componentes/Categorias";
 import Productos from "./Productos";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
+import Header from "../componentes/Header";
 
 const Home = () => {
   return (
     <div className="w-full">
+      <Header />
       <Productos />
 
       {/* Categorías */}
