@@ -16,48 +16,49 @@ const Productos = () => {
   const categoriaActual = searchParams.get("categoria") || "todas";
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
-  /* ===============================
-     MANEJO DEFINITIVO DE IMÁGENES
-     =============================== */
+  /* =========================
+     🖼️ IMÁGENES — SOLUCIÓN MIXED CONTENT
+     ========================= */
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
 
-    if (imagen.startsWith("http")) return imagen;
+    // Si viene URL completa → forzar HTTPS
+    if (imagen.startsWith("http://")) {
+      return imagen.replace("http://", "https://");
+    }
 
-    if (imagen.startsWith("/imagenes/")) return imagen;
+    if (imagen.startsWith("https://")) {
+      return imagen;
+    }
 
+    // Si viene con carpeta
+    if (imagen.startsWith("imagenes/")) {
+      return `/${imagen}`;
+    }
+
+    // Nombre simple
     return `/imagenes/${imagen}`;
   };
 
-  const handleImgError = (e) => {
-    e.currentTarget.src = "/imagenes/no-image.png";
-  };
-
-  /* ===============================
+  /* =========================
      CARGAR CATEGORÍAS
-     =============================== */
+     ========================= */
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
       .then((data) => setCategorias(Array.isArray(data) ? data : []))
-      .catch(() => setCategorias([]));
+      .catch(console.error);
   }, []);
 
-  /* ===============================
+  /* =========================
      CARGAR PRODUCTOS
-     =============================== */
+     ========================= */
   useEffect(() => {
     setLoading(true);
 
     let url = `${API_URL}/api/productos?`;
-
-    if (categoriaActual !== "todas") {
-      url += `categoria=${categoriaActual}&`;
-    }
-
-    if (filtroOferta) {
-      url += `es_oferta=true&`;
-    }
+    if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
+    if (filtroOferta) url += `es_oferta=true&`;
 
     fetch(url)
       .then((res) => res.json())
@@ -68,41 +69,37 @@ const Productos = () => {
       .catch(() => setLoading(false));
   }, [categoriaActual, filtroOferta]);
 
-  /* ===============================
+  /* =========================
      FILTROS
-     =============================== */
+     ========================= */
   const cambiarCategoria = (slug) => {
     const params = new URLSearchParams(searchParams);
-
     slug === "todas"
       ? params.delete("categoria")
       : params.set("categoria", slug);
-
     setSearchParams(params);
   };
 
   const toggleOferta = () => {
     const params = new URLSearchParams(searchParams);
-
     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
-
     setSearchParams(params);
   };
 
-  /* ===============================
+  /* =========================
      LOADING
-     =============================== */
+     ========================= */
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white text-xl">Cargando productos...</p>
+        <p className="text-white text-xl">Cargando productos…</p>
       </div>
     );
   }
 
-  /* ===============================
+  /* =========================
      RENDER
-     =============================== */
+     ========================= */
   return (
     <section className="min-h-screen bg-black py-10">
       <div className="max-w-7xl mx-auto p-4">
@@ -154,19 +151,19 @@ const Productos = () => {
           ))}
         </div>
 
-        {/* GRID PRODUCTOS */}
+        {/* GRID */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
-            const precio = Number(producto.precio || 0);
-            const precioAntes = Number(producto.precio_antes || 0);
+            const precio = Number(producto.precio ?? 0);
+            const precioAntes = Number(producto.precio_antes ?? 0);
 
             return (
               <div
                 key={producto.id}
-                className="relative bg-[#1f1f1f] border border-white/10 rounded-2xl overflow-hidden"
+                className="bg-[#1f1f1f] border border-white/10 rounded-2xl overflow-hidden"
               >
                 {producto.es_oferta && (
-                  <div className="absolute z-10 m-3 bg-pink-500 text-white text-xs px-3 py-1 rounded-lg">
+                  <div className="absolute m-3 bg-pink-500 text-white text-xs px-3 py-1 rounded-lg">
                     {producto.descuento}% OFF
                   </div>
                 )}
@@ -174,7 +171,6 @@ const Productos = () => {
                 <img
                   src={getImageSrc(producto.imagen)}
                   alt={producto.nombre}
-                  onError={handleImgError}
                   loading="lazy"
                   className="w-full h-56 object-cover"
                 />
@@ -201,7 +197,7 @@ const Productos = () => {
 
                   <button
                     onClick={() => addToCart(producto)}
-                    className="mt-3 w-full py-2 bg-pink-500 hover:bg-pink-600 transition text-white rounded-xl"
+                    className="mt-3 w-full py-2 bg-pink-500 text-white rounded-xl"
                   >
                     <ShoppingCart size={16} className="inline mr-2" />
                     Agregar
