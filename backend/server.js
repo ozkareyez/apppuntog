@@ -52,23 +52,61 @@ app.get("/api/categorias", (req, res) => {
 });
 
 /* ================= PRODUCTOS ================= */
+// backend - en tu archivo de rutas (probablemente server.js o routes.js)
 app.get("/api/productos", (req, res) => {
-  const baseUrl = `${req.protocol}://${req.headers.host}`;
+  const { categoria, es_oferta, limit } = req.query;
 
-  DB.query("SELECT * FROM productos", (err, rows) => {
-    if (err) return res.status(500).json(err);
+  let query = "SELECT p.* FROM productos p";
+  const params = [];
+  const conditions = [];
 
-    res.json(
-      rows.map((p) => ({
-        ...p,
-        imagen: p.imagen?.startsWith("http")
-          ? p.imagen
-          : `${baseUrl}/images/${p.imagen}`,
-      }))
-    );
+  // Filtrar por slug de categoría
+  if (categoria && categoria !== "todas") {
+    query += " INNER JOIN categorias c ON p.categoria_id = c.id";
+    conditions.push("c.slug = ?");
+    params.push(categoria);
+  }
+
+  // Filtrar por ofertas
+  if (es_oferta === "true") {
+    conditions.push("p.es_oferta = 1");
+  }
+
+  // Agregar WHERE si hay condiciones
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += " ORDER BY p.id DESC";
+
+  // Limitar resultados
+  if (limit) {
+    query += " LIMIT ?";
+    params.push(parseInt(limit));
+  }
+
+  console.log("🔍 Query productos:", query);
+  console.log("📊 Params:", params);
+
+  db.query(query, params, (err, results) => {
+    if (err) {
+      console.error("❌ Error en query productos:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    // Normalizar datos
+    const productos = results.map((p) => ({
+      ...p,
+      precio: parseFloat(p.precio) || 0,
+      precio_antes: p.precio_antes ? parseFloat(p.precio_antes) : null,
+      descuento: p.descuento ? parseInt(p.descuento) : 0,
+      es_oferta: Boolean(p.es_oferta),
+    }));
+
+    console.log(`✅ ${productos.length} productos encontrados`);
+    res.json(productos);
   });
 });
-
 /* ================= DEPARTAMENTOS ================= */
 app.get("/api/departamentos", (req, res) => {
   DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
