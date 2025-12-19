@@ -1,44 +1,81 @@
+// src/App.jsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { CartProvider } from "./context/CartContext";
+import { FloatingWhatsApp } from "react-floating-whatsapp";
 
 import PublicLayout from "./componentes/PublicLayout";
+import Header from "./componentes/Header";
+import CartDrawer from "./componentes/CartDrawer";
+import FormularioEnvio from "./componentes/FormularioEnvio";
 import Home from "./pages/Home";
-// import Login from "./admin/Login";
-// import AdminLayout from "./admin/dashboard/AdminLayout";
-// import Dashboard from "./admin/dashboard/Dashboard";
-// import PedidosAdmin from "./admin/PedidosAdmin";
-// import ContactosAdmin from "./admin/ContactosAdmin";
-// import ProtectedRoute from "./admin/ProtectedRoute";
+import Productos from "./pages/Productos";
 import Foter from "./componentes/Foter";
+import { useCart } from "./context/CartContext";
+
+// Componente wrapper para usar el cart
+function AppContent() {
+  const {
+    cart,
+    setCart,
+    totalItems,
+    showCart,
+    setShowCart,
+    increaseQuantity,
+    decreaseQuantity,
+    removeFromCart,
+    total,
+    mostrarFormulario,
+    setMostrarFormulario,
+  } = useCart();
+
+  return (
+    <>
+      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
+
+      <FloatingWhatsApp
+        phoneNumber="+573147041149"
+        accountName="Punto G"
+        chatMessage="Hola 👋 ¿en qué te ayudamos?"
+        avatar="/imagenes/logo.png"
+      />
+
+      <CartDrawer
+        showCart={showCart}
+        setShowCart={setShowCart}
+        cart={cart}
+        increaseQuantity={increaseQuantity}
+        decreaseQuantity={decreaseQuantity}
+        removeFromCart={removeFromCart}
+        total={total}
+        setMostrarFormulario={setMostrarFormulario}
+      />
+
+      <FormularioEnvio
+        mostrarFormulario={mostrarFormulario}
+        setMostrarFormulario={setMostrarFormulario}
+        cart={cart}
+        setCart={setCart}
+        total={total}
+      />
+
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
+        </Route>
+      </Routes>
+
+      <Foter />
+    </>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* RUTAS PÚBLICAS */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          {/* otras rutas públicas */}
-        </Route>
-
-        {/* LOGIN ADMIN */}
-        {/* <Route path="/admin/login" element={<Login />} />
-
-        {/* RUTAS ADMIN PROTEGIDAS */}
-        {/* <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="pedidos" element={<PedidosAdmin />} />
-          <Route path="contacto" element={<ContactosAdmin />} />
-        </Route> */}
-      </Routes>
-      <Foter />
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
     </BrowserRouter>
   );
 }

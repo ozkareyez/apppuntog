@@ -1,7 +1,7 @@
 // src/context/CartContext.jsx
 import { createContext, useContext, useState } from "react";
 
-const CartContext = createContext();
+const CartContext = createContext(null); // ⭐ Cambia undefined a null
 
 export const useCart = () => {
   const context = useContext(CartContext);
