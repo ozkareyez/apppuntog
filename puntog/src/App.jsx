@@ -62,23 +62,21 @@ function AppContent() {
         total={total}
       />
 
-      <BrowserRouter>
-        <Routes>
-          {/* LOGIN */}
-          <Route path="/admin/login" element={<Login />} />
+      <Routes>
+        {/* LOGIN */}
+        <Route path="/admin/login" element={<Login />} />
 
-          {/* ADMIN */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} /> {/* 👈 ESTO ES CLAVE */}
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="pedidos" element={<PedidosAdmin />} />
-            <Route path="contacto" element={<ContactosAdmin />} />
-          </Route>
+        {/* ADMIN */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} /> {/* 👈 ESTO ES CLAVE */}
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
+          <Route path="contacto" element={<ContactosAdmin />} />
+        </Route>
 
-          {/* PUBLIC */}
-          <Route path="/" element={<Home />} />
-        </Routes>
-      </BrowserRouter>
+        {/* PUBLIC */}
+        <Route path="/" element={<Home />} />
+      </Routes>
 
       <Foter />
     </>
@@ -87,11 +85,9 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <CartProvider>
-        <AppContent />
-      </CartProvider>
-    </BrowserRouter>
+    <CartProvider>
+      <AppContent />
+    </CartProvider>
   );
 }
 
