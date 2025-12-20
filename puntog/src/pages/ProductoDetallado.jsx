@@ -290,7 +290,7 @@ const ProductoDetallado = () => {
         {/* SECCIÓN ADICIONAL - INFORMACIÓN EXTRA */}
         <div className="mt-12 bg-[#1f1f1f] rounded-2xl p-8 border border-white/10">
           {producto.descripcion && (
-            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-4">
               <p className="text-gray-300 text-lg leading-relaxed">
                 {producto.descripcion}
               </p>
