@@ -1,5 +1,5 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import AdminLayout from "./admin/dashboard/AdminLayout";
 
@@ -64,11 +64,17 @@ function AppContent() {
 
       <Routes>
         {/* LOGIN */}
-        <Route path="/admin/login" element={<Login />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/productos/:id" element={<ProductoDetallado />} />
+        </Route>
 
         {/* ADMIN */}
+        <Route path="/admin/login" element={<Login />} />
+
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} /> {/* 👈 ESTO ES CLAVE */}
+          <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
