@@ -233,39 +233,39 @@ app.post("/api/enviar-formulario", (req, res) => {
   const total = carrito.reduce((s, i) => s + i.precio * (i.quantity || 1), 0);
 
   DB.query(
-    `
-    INSERT INTO pedidos 
-    (nombre,email,telefono,direccion,departamento,ciudad,total,estado)
-    VALUES (?,?,?,?,?,?,'pendiente')
-    `,
-    [nombre, email, telefono, direccion, departamento, ciudad, total],
-    (err, r) => {
-      if (err) {
-        console.error("Error creando pedido:", err);
-        return res.status(500).json({ error: "Error creando pedido" });
-      }
-
-      const detalles = carrito.map((i) => [
-        r.insertId,
-        i.id,
-        i.nombre,
-        i.precio,
-        i.quantity,
-        i.precio * i.quantity,
-      ]);
-
-      DB.query(
-        `
-        INSERT INTO pedido_detalles
-        (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-        VALUES ?
-        `,
-        [detalles],
-        () => res.json({ ok: true })
-      );
+  `
+  INSERT INTO pedidos 
+  (nombre,email,telefono,direccion,departamento,ciudad,total,estado)
+  VALUES (?,?,?,?,?,?,?,'pendiente')
+  `,
+  [nombre, email, telefono, direccion, departamento, ciudad, total],
+  (err, r) => {
+    if (err) {
+      console.error("Error creando pedido:", err);
+      return res.status(500).json({ error: "Error creando pedido" });
     }
-  );
-});
+
+    const detalles = carrito.map((i) => [
+      r.insertId,
+      i.id,
+      i.nombre,
+      i.precio,
+      i.quantity,
+      i.precio * i.quantity,
+    ]);
+
+    DB.query(
+      `
+      INSERT INTO pedido_detalles
+      (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+      VALUES ?
+      `,
+      [detalles],
+      () => res.json({ ok: true })
+    );
+  }
+);
+
 
 /* ================= ADMIN PEDIDOS ================= */
 app.get("/api/pedidos-completo", (req, res) => {
