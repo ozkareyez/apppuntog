@@ -41,7 +41,7 @@ export default function PedidosAdmin() {
       {pedidos.length === 0 ? (
         <p>No hay pedidos</p>
       ) : (
-        <table className="w-full border text-sm">
+        <table className="w-full border text-sm justify-center text-center">
           <thead>
             <tr>
               <th>ID</th>
