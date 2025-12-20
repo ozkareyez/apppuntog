@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const ADMIN_USER = "oscar"; // 👈 TU USUARIO
-const ADMIN_PASS = "811012"; // 👈 TU PASSWORD
+const ADMIN_USER = "oscar";
+const ADMIN_PASS = "811012";
 
 export default function Login() {
   const [user, setUser] = useState("");
@@ -14,11 +14,11 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
-    // ✅ VALIDACIÓN SIMPLE
     if (user === ADMIN_USER && password === ADMIN_PASS) {
-      localStorage.setItem("admin_auth", "yes");
+      // 🔐 CLAVE CORRECTA (coincide con AdminLayout)
+      localStorage.setItem("admin_token", "yes");
 
-      // redirigir al dashboard
+      // 🚀 redirección correcta
       navigate("/admin/dashboard", { replace: true });
     } else {
       setError("Usuario o contraseña incorrectos");
@@ -37,7 +37,6 @@ export default function Login() {
 
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        {/* USUARIO */}
         <input
           type="text"
           placeholder="Usuario"
@@ -47,7 +46,6 @@ export default function Login() {
           required
         />
 
-        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Contraseña"
