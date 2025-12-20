@@ -6,6 +6,7 @@ import Productos from "./Productos";
 import Header from "../componentes/Header";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import { useCart } from "@/context/CartContext";
+import MainCTA from "../componentes/MainCTA";
 
 const Home = () => {
   const { setShowCart, totalItems } = useCart();
@@ -15,7 +16,7 @@ const Home = () => {
   return (
     <div className="w-full">
       <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
-      <Header />
+      <MainCTA />
 
       <Productos />
 
