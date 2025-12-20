@@ -19,7 +19,7 @@ export default function Dashboard() {
       setLoading(true);
 
       const params = new URLSearchParams();
-      if (buscar) params.append("search", buscar);
+      if (buscar.trim()) params.append("search", buscar.trim());
       if (fechaInicio) params.append("inicio", fechaInicio);
       if (fechaFin) params.append("fin", fechaFin);
 
@@ -42,9 +42,19 @@ export default function Dashboard() {
     }
   };
 
+  // 🔹 carga inicial
   useEffect(() => {
     fetchPedidos();
   }, []);
+
+  // 🔹 volver a buscar cuando cambian filtros
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchPedidos();
+    }, 500); // debounce
+
+    return () => clearTimeout(delay);
+  }, [buscar, fechaInicio, fechaFin]);
 
   return (
     <div className="min-h-screen bg-[#0B0B0F] text-white p-6">
@@ -52,31 +62,39 @@ export default function Dashboard() {
 
       {/* ================= FILTROS ================= */}
       <div className="bg-[#12121A] p-4 rounded-xl border border-white/10 grid md:grid-cols-4 gap-4 mb-6">
+        {/* BUSCADOR */}
         <input
           type="text"
           placeholder="Buscar cliente o teléfono"
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
-          className="bg-black/40 border border-white/10 rounded px-3 py-2"
+          className="bg-black/50 border border-white/10 rounded px-3 py-2
+                     focus:outline-none focus:ring-2 focus:ring-pink-500"
         />
 
+        {/* FECHA INICIO */}
         <input
           type="date"
           value={fechaInicio}
           onChange={(e) => setFechaInicio(e.target.value)}
-          className="bg-black/40 border border-white/10 rounded px-3 py-2"
+          className="bg-black/50 border border-white/10 rounded px-3 py-2
+                     text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+          style={{ colorScheme: "dark" }}
         />
 
+        {/* FECHA FIN */}
         <input
           type="date"
           value={fechaFin}
           onChange={(e) => setFechaFin(e.target.value)}
-          className="bg-black/40 border border-white/10 rounded px-3 py-2"
+          className="bg-black/50 border border-white/10 rounded px-3 py-2
+                     text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+          style={{ colorScheme: "dark" }}
         />
 
         <button
           onClick={fetchPedidos}
-          className="bg-pink-500 hover:bg-pink-600 rounded px-4 py-2"
+          className="bg-pink-500 hover:bg-pink-600 rounded px-4 py-2 font-semibold"
         >
           🔍 Buscar
         </button>
@@ -88,7 +106,7 @@ export default function Dashboard() {
           href={`${API_URL}/api/exportar-pedidos-completo`}
           target="_blank"
           rel="noreferrer"
-          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm"
+          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm font-semibold"
         >
           📥 Descargar Excel
         </a>
@@ -128,13 +146,15 @@ export default function Dashboard() {
 
             {!loading &&
               pedidos.map((p) => (
-                <tr key={p.id} className="border-t border-white/10">
+                <tr
+                  key={p.id}
+                  className="border-t border-white/10 hover:bg-white/5"
+                >
                   <td className="px-4 py-2">{p.id}</td>
                   <td className="px-4 py-2">{p.nombre}</td>
                   <td className="px-4 py-2">{p.telefono}</td>
                   <td className="px-4 py-2">${p.total}</td>
 
-                  {/* ESTADO */}
                   <td className="px-4 py-2">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold
