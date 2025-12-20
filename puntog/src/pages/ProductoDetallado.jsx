@@ -179,13 +179,13 @@ const ProductoDetallado = () => {
               </h1>
 
               {/* DESCRIPCIÓN */}
-              {producto.descripcion && (
+              {/* {producto.descripcion && (
                 <div className="bg-white/5 rounded-xl p-6 border border-white/10">
                   <p className="text-gray-300 text-lg leading-relaxed">
                     {producto.descripcion}
                   </p>
                 </div>
-              )}
+              )} */}
 
               {/* PRECIOS */}
               <div className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-xl p-6 border border-pink-500/20">
@@ -288,7 +288,15 @@ const ProductoDetallado = () => {
         </div>
 
         {/* SECCIÓN ADICIONAL - INFORMACIÓN EXTRA */}
+
         {producto.descripcion && (
+          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+            <p className="text-gray-300 text-lg leading-relaxed">
+              {producto.descripcion}
+            </p>
+          </div>
+        )}
+        {/* {producto.descripcion && (
           <div className="mt-12 bg-[#1f1f1f] rounded-2xl p-8 border border-white/10">
             <h2 className="text-2xl text-white font-bold mb-4">
               Detalles del Producto
@@ -315,7 +323,7 @@ const ProductoDetallado = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </section>
   );
