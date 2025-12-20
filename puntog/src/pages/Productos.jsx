@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import { API_URL } from "@/config";
 
 const Productos = () => {
+  console.log("🎨 PRODUCTOS RENDERIZANDO"); // ⭐ Agrega esto
   const { addToCart } = useCart();
 
   const [productos, setProductos] = useState([]);
