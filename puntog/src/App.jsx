@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Productos from "./pages/Productos";
 import Foter from "./componentes/Foter";
 import { useCart } from "./context/CartContext";
+import ProductoDetallado from "./pages/ProductoDetallado";
 
 // Componente wrapper para usar el cart
 function AppContent() {

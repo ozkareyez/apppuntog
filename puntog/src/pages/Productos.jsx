@@ -251,7 +251,7 @@ const Productos = () => {
                     }}
                     className={`w-full py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
                       esOferta
-                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 shadow-md hover:shadow-pink-500/50"
+                        ? "bg-linear-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 shadow-md hover:shadow-pink-500/50"
                         : "bg-white text-black hover:bg-pink-500 hover:text-white"
                     }`}
                   >
