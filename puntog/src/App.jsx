@@ -1,4 +1,10 @@
 // src/App.jsx
+import AdminLayout from "./admin/AdminLayout";
+import Login from "./admin/Login";
+import Dashboard from "./admin/dashboard/Dashboard";
+import PedidosAdmin from "./admin/PedidosAdmin";
+import ContactosAdmin from "./admin/ContactosAdmin";
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
@@ -59,6 +65,22 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
           {/* ⭐ MOVIDO DENTRO del PublicLayout */}
+          <Route path="/productos/:id" element={<ProductoDetallado />} />
+        </Route>
+
+        {/* ADMIN */}
+        <Route path="/admin/login" element={<Login />} />
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
+          <Route path="contacto" element={<ContactosAdmin />} />
+        </Route>
+
+        {/* PUBLIC */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
           <Route path="/productos/:id" element={<ProductoDetallado />} />
         </Route>
       </Routes>

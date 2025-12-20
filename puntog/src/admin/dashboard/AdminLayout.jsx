@@ -1,86 +1,35 @@
-// import { NavLink, Outlet } from "react-router-dom";
-
-// export default function AdminLayout() {
-//   return (
-//     <div className="flex min-h-screen bg-[#0B0B0F] text-white">
-//       {/* SIDEBAR */}
-//       <aside className="w-64 bg-black border-r border-white/10 p-5">
-//         <h2 className="text-xl font-bold mb-6 text-pink-500">Panel Admin</h2>
-
-//         <nav className="space-y-3">
-//           <NavLink
-//             to="dashboard"
-//             className={({ isActive }) =>
-//               `block px-3 py-2 rounded-lg transition ${
-//                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
-//               }`
-//             }
-//           >
-//             📊 Dashboard
-//           </NavLink>
-
-//           <NavLink
-//             to="pedidos"
-//             className={({ isActive }) =>
-//               `block px-3 py-2 rounded-lg transition ${
-//                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
-//               }`
-//             }
-//           >
-//             📦 Pedidos
-//           </NavLink>
-
-//           <NavLink
-//             to="contacto"
-//             className={({ isActive }) =>
-//               `block px-3 py-2 rounded-lg transition ${
-//                 isActive ? "bg-pink-600" : "text-gray-300 hover:bg-white/10"
-//               }`
-//             }
-//           >
-//             📋 Conctactos
-//           </NavLink>
-//         </nav>
-//       </aside>
-
-//       {/* CONTENIDO */}
-//       <main className="flex-1 p-6">
-//         <Outlet />
-//       </main>
-//     </div>
-//   );
-// }
-
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 
 export default function AdminLayout() {
   const token = localStorage.getItem("admin_token");
+  const navigate = useNavigate();
 
   if (!token) {
-    return <Navigate to="/admin/Login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return (
     <div className="flex min-h-screen bg-[#0B0B0F] text-white">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-black border-r border-white/10 p-5">
+      <aside className="w-64 bg-black border-r border-white/10 p-5 flex flex-col">
         <h2 className="text-xl font-bold mb-6 text-pink-500">Panel Admin</h2>
 
-        <nav className="space-y-3">
+        <nav className="space-y-3 flex-1">
           <NavLink to="dashboard">📊 Dashboard</NavLink>
           <NavLink to="pedidos">📦 Pedidos</NavLink>
           <NavLink to="contacto">📋 Contactos</NavLink>
         </nav>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem("admin_token");
+            navigate("/admin/login");
+          }}
+          className="mt-6 text-red-400 hover:text-red-500"
+        >
+          🚪 Cerrar sesión
+        </button>
       </aside>
-      <button
-        onClick={() => {
-          localStorage.removeItem("admin_token");
-          window.location.href = "/admin/login";
-        }}
-        className="mt-6 text-red-400 hover:text-red-500"
-      >
-        🚪 Cerrar sesión
-      </button>
 
       <main className="flex-1 p-6">
         <Outlet />
