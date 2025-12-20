@@ -4,21 +4,18 @@ import { CartProvider } from "./context/CartContext";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 
 import PublicLayout from "./componentes/PublicLayout";
-
 import CartDrawer from "./componentes/CartDrawer";
 import FormularioEnvio from "./componentes/FormularioEnvio";
 import Home from "./pages/Home";
 import Productos from "./pages/Productos";
+import ProductoDetallado from "./pages/ProductoDetallado";
 import Foter from "./componentes/Foter";
 import { useCart } from "./context/CartContext";
-import ProductoDetallado from "./pages/ProductoDetallado";
 
-// Componente wrapper para usar el cart
 function AppContent() {
   const {
     cart,
     setCart,
-    totalItems,
     showCart,
     setShowCart,
     increaseQuantity,
@@ -37,6 +34,7 @@ function AppContent() {
         chatMessage="Hola 👋 ¿en qué te ayudamos?"
         avatar="/imagenes/logo.png"
       />
+
       <CartDrawer
         showCart={showCart}
         setShowCart={setShowCart}
@@ -47,6 +45,7 @@ function AppContent() {
         total={total}
         setMostrarFormulario={setMostrarFormulario}
       />
+
       <FormularioEnvio
         mostrarFormulario={mostrarFormulario}
         setMostrarFormulario={setMostrarFormulario}
@@ -55,11 +54,11 @@ function AppContent() {
         total={total}
       />
 
-      {/* ⭐ TODAS las rutas deben estar dentro de <Routes> */}
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
+          {/* ⭐ MOVIDO DENTRO del PublicLayout */}
           <Route path="/productos/:id" element={<ProductoDetallado />} />
         </Route>
       </Routes>
