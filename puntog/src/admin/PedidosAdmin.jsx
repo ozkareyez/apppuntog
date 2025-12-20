@@ -62,6 +62,7 @@ export default function PedidosAdmin() {
                 <td>{p.id}</td>
                 <td>{p.nombre}</td>
                 <td>{p.telefono}</td>
+                <td>{p.direccion}</td>
                 <td>{p.departamento}</td>
                 <td>{p.ciudad}</td>
                 <td>{p.fecha}</td>
