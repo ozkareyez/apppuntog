@@ -14,11 +14,11 @@ export default function PedidosAdmin() {
         const data = await res.json();
 
         // 🔐 VALIDACIÓN CLAVE
-        if (!data.ok || !Array.isArray(data.resultados)) {
+        if (!data.ok || !Array.isArray(data.results)) {
           throw new Error("Formato de datos inválido");
         }
 
-        setPedidos(data.resultados);
+        setPedidos(data.results);
       } catch (err) {
         console.error(err);
         setError("No se pudieron cargar los pedidos");
