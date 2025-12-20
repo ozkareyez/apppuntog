@@ -5,33 +5,34 @@ const API = "https://gleaming-motivation-production-4018.up.railway.app";
 export default function PedidosAdmin() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const cargarPedidos = async () => {
-    try {
-      const res = await fetch(`${API}/api/pedidos-completo`);
-      const text = await res.text();
-
-      // 🔍 DEBUG CLAVE
-      if (text.startsWith("<!DOCTYPE")) {
-        throw new Error("El backend respondió HTML, no JSON");
-      }
-
-      const data = JSON.parse(text);
-
-      if (data.ok) {
-        setPedidos(data.resultados);
-      }
-    } catch (error) {
-      console.error("Error cargando pedidos:", error.message);
-    }
-    setLoading(false);
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const cargarPedidos = async () => {
+      try {
+        const res = await fetch(`${API}/api/pedidos-completo`);
+        const data = await res.json();
+
+        // 🔐 VALIDACIÓN CLAVE
+        if (!data.ok || !Array.isArray(data.resultados)) {
+          throw new Error("Formato de datos inválido");
+        }
+
+        setPedidos(data.resultados);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudieron cargar los pedidos");
+        setPedidos([]); // 🔥 evita undefined
+      } finally {
+        setLoading(false);
+      }
+    };
+
     cargarPedidos();
   }, []);
 
   if (loading) return <p>Cargando pedidos...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div>
