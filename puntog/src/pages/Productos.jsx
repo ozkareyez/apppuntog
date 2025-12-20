@@ -22,11 +22,15 @@ const Productos = () => {
      ========================= */
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
+
+    // Si ya es URL completa con http/https
     if (imagen.startsWith("http://"))
       return imagen.replace("http://", "https://");
     if (imagen.startsWith("https://")) return imagen;
-    if (imagen.startsWith("imagenes/")) return `/${imagen}`;
-    return `/imagenes/${imagen}`;
+
+    // ⭐ Si es solo el nombre del archivo, construye URL del backend
+    // Ejemplo: "producto1.jpg" → "https://tu-backend.railway.app/images/producto1.jpg"
+    return `${API_URL}/images/${imagen}`;
   };
 
   /* =========================
