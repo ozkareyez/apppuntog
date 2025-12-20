@@ -296,6 +296,12 @@ const ProductoDetallado = () => {
             </p>
           </div>
         )}
+
+        <h3 className="text-pink-400 font-semibold mb-4">Garantía:</h3>
+        <p className="text-gray-300">
+          Este producto cuenta con garantía de satisfacción. Si no estás
+          completamente satisfecho, contáctanos dentro de los primeros 30 días.
+        </p>
         {/* {producto.descripcion && (
           <div className="mt-12 bg-[#1f1f1f] rounded-2xl p-8 border border-white/10">
             <h2 className="text-2xl text-white font-bold mb-4">
