@@ -19,6 +19,7 @@ import Productos from "./pages/Productos";
 import ProductoDetallado from "./pages/ProductoDetallado";
 import Foter from "./componentes/Foter";
 import { useCart } from "./context/CartContext";
+import ContactForm from "./componentes/ContactForm";
 
 function AppContent() {
   const {
@@ -69,7 +70,7 @@ function AppContent() {
           <Route path="/productos/:id" element={<ProductoDetallado />} />
 
           {/* ✅ CONTACTO */}
-          <Route path="/contacto" element={<FormularioContacto />} />
+          <Route path="/contacto" element={<ContactForm />} />
         </Route>
 
         {/* ADMIN */}
