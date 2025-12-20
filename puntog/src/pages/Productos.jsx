@@ -6,7 +6,6 @@ import { useCart } from "@/context/CartContext";
 import { API_URL } from "@/config";
 
 const Productos = () => {
-  console.log("🎨 PRODUCTOS RENDERIZANDO"); // ⭐ Agrega esto
   const { addToCart } = useCart();
 
   const [productos, setProductos] = useState([]);
@@ -41,10 +40,10 @@ const Productos = () => {
   }, []);
 
   /* =========================
-     CARGAR PRODUCTOS (CORREGIDO)
+     CARGAR PRODUCTOS (CORREGIDO) ⭐
      ========================= */
   useEffect(() => {
-    const controller = new AbortController(); // ⭐ Para cancelar peticiones
+    const controller = new AbortController();
     setLoading(true);
 
     let url = `${API_URL}/api/productos?`;
@@ -52,11 +51,15 @@ const Productos = () => {
     if (filtroOferta) url += `es_oferta=true&`;
 
     console.log("🔍 Cargando productos desde:", url);
-    console.log("📌 Categoría actual:", categoriaActual);
-    console.log("🏷️ Filtro oferta:", filtroOferta);
 
-    fetch(url, { signal: controller.signal }) // ⭐ Añadido signal
-      .then((res) => res.json())
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        // ⭐ Verifica si la respuesta es exitosa ANTES de parsear
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         console.log("✅ Productos recibidos:", data);
         setProductos(Array.isArray(data) ? data : []);
@@ -64,14 +67,14 @@ const Productos = () => {
       })
       .catch((err) => {
         if (err.name !== "AbortError") {
-          // ⭐ Ignora errores de cancelación
           console.error("❌ Error cargando productos:", err);
-          setLoading(false);
+          setProductos([]); // ⭐ Limpia productos en caso de error
+          setLoading(false); // ⭐ CRÍTICO: siempre desactiva loading
         }
       });
 
-    return () => controller.abort(); // ⭐ Cleanup: cancela petición al desmontar
-  }, [categoriaActual, filtroOferta]); // Solo estas dependencias
+    return () => controller.abort();
+  }, [categoriaActual, filtroOferta]);
 
   /* =========================
      FILTROS

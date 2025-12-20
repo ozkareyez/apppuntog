@@ -88,7 +88,7 @@ app.get("/api/productos", (req, res) => {
   console.log("🔍 Query:", query);
   console.log("📊 Params:", params);
 
-  db.query(query, params, (err, results) => {
+  DB.query(query, params, (err, results) => {
     if (err) {
       console.error("❌ Error en productos:", err);
       return res.status(500).json({ error: err.message });
