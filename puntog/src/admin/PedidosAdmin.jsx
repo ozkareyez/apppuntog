@@ -77,7 +77,7 @@ export default function PedidosAdmin() {
           </tr>
         </thead>
 
-        <tbody>
+        <tbody className="text-center justify-center">
           {pedidos.map((p) => (
             <tr key={p.id} className="border-t border-white/10">
               <td className="p-2 text-center">{p.id}</td>
