@@ -1,18 +1,15 @@
 // Dashboard.jsx
 import { useEffect, useState } from "react";
 import KpiCard from "./KpiCard";
-import VentasPorDia from "./VentasPorDia";
 import { API_URL } from "../../config";
+
+const formatCurrency = (n) => `$${Number(n || 0).toLocaleString("es-CO")}`;
 
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState([]);
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
-  const [buscar, setBuscar] = useState("");
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalResultados, setTotalResultados] = useState(0);
-  const [detalle, setDetalle] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const hoy = new Date().toISOString().split("T")[0];
@@ -24,28 +21,22 @@ export default function Dashboard() {
     0
   );
 
-  const totalVentasMes = pedidos.reduce(
+  const totalVentasPagina = pedidos.reduce(
     (sum, p) => sum + Number(p.total || 0),
     0
   );
 
   const ticketPromedio =
-    pedidos.length > 0 ? Math.round(totalVentasMes / pedidos.length) : 0;
+    pedidos.length > 0 ? Math.round(totalVentasPagina / pedidos.length) : 0;
 
   const fetchPedidos = async (page = pagina) => {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams();
-      params.append("page", page);
-      if (buscar) params.append("search", buscar);
-      if (fechaInicio) params.append("inicio", fechaInicio);
-      if (fechaFin) params.append("fin", fechaFin);
-
-      const res = await fetch(
-        `${API_URL}/api/pedidos-completo?${params.toString()}`
-      );
+      const res = await fetch(`${API_URL}/api/pedidos-completo?page=${page}`);
       const data = await res.json();
+
+      if (!data.ok) throw new Error("Formato inválido");
 
       setPedidos(data.results || []);
       setTotalPaginas(data.totalPages || 1);
@@ -60,69 +51,113 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchPedidos(pagina);
-    // eslint-disable-next-line
   }, [pagina]);
 
-  const ventasPorDia = Object.values(
-    pedidos.reduce((acc, p) => {
-      const f = p.fecha?.split(" ")[0];
-      if (!f) return acc;
-      if (!acc[f]) acc[f] = { fecha: f, total: 0 };
-      acc[f].total += Number(p.total || 0);
-      return acc;
-    }, {})
-  );
-
   return (
-    <div className="min-h-screen bg-[#0B0B0F] text-white p-6">
-      <h1 className="text-3xl font-bold mb-8">Panel Administrador</h1>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <KpiCard title="Ventas hoy" value={`$${totalVentasHoy}`} />
-        <KpiCard title="Pedidos hoy" value={pedidosHoy.length} />
-        <KpiCard title="Ventas mes" value={`$${totalVentasMes}`} />
-        <KpiCard title="Ticket promedio" value={`$${ticketPromedio}`} />
-
-        <div className="text-white">
-          <h1>Dashboard OK</h1>
-        </div>
+    <div className="min-h-screen bg-[#0B0B0F] text-white p-6 space-y-8">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-bold">📊 Dashboard</h1>
+        <p className="text-gray-400 text-sm">
+          Resumen general de ventas y pedidos
+        </p>
       </div>
 
-      {/* <VentasPorDia data={ventasPorDia} /> */}
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KpiCard title="Ventas hoy" value={formatCurrency(totalVentasHoy)} />
+        <KpiCard title="Pedidos hoy" value={pedidosHoy.length} />
+        <KpiCard
+          title="Ventas (página)"
+          value={formatCurrency(totalVentasPagina)}
+        />
+        <KpiCard
+          title="Ticket promedio"
+          value={formatCurrency(ticketPromedio)}
+        />
+      </div>
 
       {/* TABLA */}
-      <div className="bg-[#12121A] mt-8 rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-[#181824]">
-            <tr>
-              {["ID", "Cliente", "Teléfono", "Total", "Fecha"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
+      <div className="bg-[#12121A] rounded-xl border border-white/10 overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b border-white/10">
+          <h2 className="font-semibold">Pedidos recientes</h2>
+          <span className="text-sm text-gray-400">
+            Total: {totalResultados}
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-[#181824] text-gray-400">
               <tr>
-                <td colSpan="5" className="py-6 text-center">
-                  Cargando...
-                </td>
+                <th className="px-4 py-3 text-left">ID</th>
+                <th className="px-4 py-3 text-left">Cliente</th>
+                <th className="px-4 py-3 text-left">Teléfono</th>
+                <th className="px-4 py-3 text-right">Total</th>
+                <th className="px-4 py-3 text-left">Fecha</th>
               </tr>
-            )}
-            {!loading &&
-              pedidos.map((p) => (
-                <tr key={p.id} className="border-t border-white/10">
-                  <td className="px-4 py-2">{p.id}</td>
-                  <td className="px-4 py-2">{p.nombre}</td>
-                  <td className="px-4 py-2">{p.telefono}</td>
-                  <td className="px-4 py-2">${p.total}</td>
-                  <td className="px-4 py-2">{p.fecha}</td>
+            </thead>
+
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan="5" className="py-6 text-center">
+                    ⏳ Cargando pedidos...
+                  </td>
                 </tr>
-              ))}
-          </tbody>
-        </table>
+              )}
+
+              {!loading && pedidos.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="py-6 text-center text-gray-500">
+                    No hay pedidos registrados
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                pedidos.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-t border-white/5 hover:bg-white/5 transition"
+                  >
+                    <td className="px-4 py-2">{p.id}</td>
+                    <td className="px-4 py-2 font-medium">{p.nombre}</td>
+                    <td className="px-4 py-2 text-gray-400">{p.telefono}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-pink-400">
+                      {formatCurrency(p.total)}
+                    </td>
+                    <td className="px-4 py-2 text-gray-400">
+                      {p.fecha?.split(" ")[0]}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINACIÓN */}
+        <div className="flex justify-between items-center p-4 border-t border-white/10">
+          <button
+            disabled={pagina === 1}
+            onClick={() => setPagina((p) => p - 1)}
+            className="px-4 py-2 rounded bg-white/10 hover:bg-white/20 disabled:opacity-40"
+          >
+            ◀ Anterior
+          </button>
+
+          <span className="text-sm text-gray-400">
+            Página {pagina} de {totalPaginas}
+          </span>
+
+          <button
+            disabled={pagina === totalPaginas}
+            onClick={() => setPagina((p) => p + 1)}
+            className="px-4 py-2 rounded bg-white/10 hover:bg-white/20 disabled:opacity-40"
+          >
+            Siguiente ▶
+          </button>
+        </div>
       </div>
     </div>
   );
