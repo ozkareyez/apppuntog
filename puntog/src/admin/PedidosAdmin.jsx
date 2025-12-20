@@ -84,8 +84,8 @@ export default function PedidosAdmin() {
               <td>{p.nombre}</td>
               <td>{p.telefono}</td>
               <td>{p.direccion}</td>
-              <td>{p.departamento}</td>
-              <td>{p.ciudad}</td>
+              <td>{p.departamento_nombre}</td>
+              <td>{p.ciudad_nombre}</td>
               <td>${Number(p.total).toLocaleString()}</td>
 
               <td>
