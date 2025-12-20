@@ -55,14 +55,15 @@ function AppContent() {
         total={total}
       />
 
-      <Route path="/productos/:id" element={<ProductoDetallado />} />
-
+      {/* ⭐ TODAS las rutas deben estar dentro de <Routes> */}
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
+          <Route path="/productos/:id" element={<ProductoDetallado />} />
         </Route>
       </Routes>
+
       <Foter />
     </>
   );
