@@ -61,25 +61,23 @@ function AppContent() {
         total={total}
       />
 
-      <Routes>
-        <Route path="/admin" element={<div>ADMIN TEST OK</div>} />
+      <BrowserRouter>
+        <Routes>
+          {/* LOGIN */}
+          <Route path="/admin/login" element={<Login />} />
 
-        <Route path="/admin/login" element={<Login />} />
+          {/* ADMIN */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} /> {/* 👈 ESTO ES CLAVE */}
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="pedidos" element={<PedidosAdmin />} />
+            <Route path="contacto" element={<ContactosAdmin />} />
+          </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="pedidos" element={<PedidosAdmin />} />
-          <Route path="contacto" element={<ContactosAdmin />} />
-        </Route>
-
-        {/* PUBLIC */}
-        <Route element={<PublicLayout />}>
+          {/* PUBLIC */}
           <Route path="/" element={<Home />} />
-          <Route path="/productos" element={<Productos />} />
-          <Route path="/productos/:id" element={<ProductoDetallado />} />
-        </Route>
-      </Routes>
+        </Routes>
+      </BrowserRouter>
 
       <Foter />
     </>
