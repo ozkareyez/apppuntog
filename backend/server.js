@@ -278,67 +278,99 @@ app.post("/api/enviar-formulario", (req, res) => {
 
 /* ================= ADMIN PEDIDOS ================= */
 app.get("/api/pedidos-completo", (req, res) => {
-  const page = Math.max(Number(req.query.page) || 1, 1);
-  const limit = 10;
-  const offset = (page - 1) * limit;
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = 10;
+    const offset = (page - 1) * limit;
 
-  const { search, inicio, fin } = req.query;
+    const { search, inicio, fin } = req.query;
 
-  let where = "WHERE 1=1";
-  const params = [];
+    let where = "WHERE 1=1";
+    const params = [];
 
-  if (search) {
-    where += " AND (nombre LIKE ? OR telefono LIKE ?)";
-    params.push(`%${search}%`, `%${search}%`);
-  }
+    // 🔍 BUSCADOR SEGURO
+    if (search) {
+      where += `
+        AND (
+          p.nombre LIKE ?
+          OR CAST(p.telefono AS CHAR) LIKE ?
+        )
+      `;
+      params.push(`%${search}%`, `%${search}%`);
+    }
 
-  if (inicio) {
-    where += " AND DATE(fecha) >= ?";
-    params.push(inicio);
-  }
+    // 📅 FECHA INICIO
+    if (inicio) {
+      where += " AND DATE(p.fecha) >= ?";
+      params.push(inicio);
+    }
 
-  if (fin) {
-    where += " AND DATE(fecha) <= ?";
-    params.push(fin);
-  }
+    // 📅 FECHA FIN
+    if (fin) {
+      where += " AND DATE(p.fecha) <= ?";
+      params.push(fin);
+    }
 
-  DB.query(
-    `SELECT COUNT(*) AS total FROM pedidos ${where}`,
-    params,
-    (errCount, countRows) => {
-      if (errCount) return res.status(500).json({ ok: false });
-
-      const total = countRows[0].total;
-
-      DB.query(
-        `
-  SELECT 
-    p.*,
-    d.nombre AS departamento_nombre,
-    c.nombre AS ciudad_nombre
-  FROM pedidos p
-  LEFT JOIN departamentos d ON p.departamento = d.id
-  LEFT JOIN ciudades c ON p.ciudad = c.id
-  ${where}
-  ORDER BY p.id DESC
-  LIMIT ? OFFSET ?
-  `,
-        [...params, limit, offset],
-        (errRows, rows) => {
-          if (errRows) return res.status(500).json({ ok: false });
-
-          res.json({
-            ok: true,
-            results: rows,
-            total,
-            totalPages: Math.ceil(total / limit),
-            page,
+    // 🔢 TOTAL DE REGISTROS
+    DB.query(
+      `SELECT COUNT(*) AS total FROM pedidos p ${where}`,
+      params,
+      (errCount, countRows) => {
+        if (errCount) {
+          console.error("❌ Error COUNT pedidos:", errCount);
+          return res.status(500).json({
+            ok: false,
+            error: "Error contando pedidos",
           });
         }
-      );
-    }
-  );
+
+        const total = countRows[0].total;
+
+        // 📦 LISTADO COMPLETO
+        DB.query(
+          `
+          SELECT 
+            p.*,
+            d.nombre AS departamento_nombre,
+            c.nombre AS ciudad_nombre
+          FROM pedidos p
+          LEFT JOIN departamentos d ON p.departamento = d.id
+          LEFT JOIN ciudades c ON p.ciudad = c.id
+          ${where}
+          ORDER BY p.id DESC
+          LIMIT ? OFFSET ?
+          `,
+          [...params, limit, offset],
+          (errRows, rows) => {
+            if (errRows) {
+              console.error("❌ Error obteniendo pedidos:", errRows);
+              return res.status(500).json({
+                ok: false,
+                error: "Error obteniendo pedidos",
+              });
+            }
+
+            res.json({
+              ok: true,
+              results: rows,
+              total,
+              totalPages: Math.ceil(total / limit),
+              page,
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error("🔥 Error general pedidos:", error);
+    res.status(500).json({
+      ok: false,
+      error: "Error interno del servidor",
+    });
+  }
 });
+
+/*=================== PEDIDOS DETALLE ================= */
 
 app.get("/api/pedidos-detalle/:id", (req, res) => {
   DB.query(
