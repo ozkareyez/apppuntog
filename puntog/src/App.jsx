@@ -19,7 +19,6 @@ import Productos from "./pages/Productos";
 import ProductoDetallado from "./pages/ProductoDetallado";
 import Foter from "./componentes/Foter";
 import { useCart } from "./context/CartContext";
-import ContactForm from "./componentes/ContactForm";
 
 function AppContent() {
   const {
@@ -64,31 +63,22 @@ function AppContent() {
       />
 
       <Routes>
-        {/* LOGIN */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/productos/:id" element={<ProductoDetallado />} />
-          
+
+          {/* ✅ CONTACTO */}
+          <Route path="/contacto" element={<FormularioContacto />} />
         </Route>
-
-
-           {/* ✅ CONTACTO */}
-    <Route path="/contacto" element={<ContactForm />} />
-  </Route>
 
         {/* ADMIN */}
         <Route path="/admin/login" element={<Login />} />
-
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
         </Route>
-
-        {/* PUBLIC */}
-        <Route path="/" element={<Home />} />
       </Routes>
 
       <Foter />
