@@ -148,7 +148,7 @@ const ProductoDetallado = () => {
             )}
 
             {/* IMAGEN PRINCIPAL */}
-            <div className="aspect-square md:aspect-auto md:h-[600px] lg:h-[700px]">
+            <div className="aspect-square md:aspect-auto md:h-[400px] lg:h-[500px]">
               <img
                 src={getImageSrc(producto.imagen)}
                 alt={producto.nombre}
