@@ -15,6 +15,7 @@ const Home = () => {
   return (
     <div className="w-full">
       <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
+      <Header />
 
       <Productos />
 
