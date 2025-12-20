@@ -36,7 +36,6 @@ function AppContent() {
         chatMessage="Hola 👋 ¿en qué te ayudamos?"
         avatar="/imagenes/logo.png"
       />
-
       <CartDrawer
         showCart={showCart}
         setShowCart={setShowCart}
@@ -47,7 +46,6 @@ function AppContent() {
         total={total}
         setMostrarFormulario={setMostrarFormulario}
       />
-
       <FormularioEnvio
         mostrarFormulario={mostrarFormulario}
         setMostrarFormulario={setMostrarFormulario}
@@ -56,13 +54,14 @@ function AppContent() {
         total={total}
       />
 
+      <Route path="/productos/:id" element={<ProductoDetallado />} />
+
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
         </Route>
       </Routes>
-
       <Foter />
     </>
   );

@@ -107,6 +107,42 @@ app.get("/api/productos", (req, res) => {
     res.json(productos);
   });
 });
+
+/* ================= PRODUCTO INDIVIDUAL ================= */
+app.get("/api/productos/:id", (req, res) => {
+  const { id } = req.params;
+
+  const query = `
+    SELECT p.*, c.nombre as categoria, c.slug as categoria_slug
+    FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    WHERE p.id = ?
+  `;
+
+  DB.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Error obteniendo producto:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    const producto = {
+      ...results[0],
+      precio: parseFloat(results[0].precio) || 0,
+      precio_antes: results[0].precio_antes
+        ? parseFloat(results[0].precio_antes)
+        : null,
+      descuento: results[0].descuento ? parseInt(results[0].descuento) : 0,
+      es_oferta: Boolean(results[0].es_oferta),
+    };
+
+    res.json(producto);
+  });
+});
+
 /* ================= DEPARTAMENTOS ================= */
 app.get("/api/departamentos", (req, res) => {
   DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
