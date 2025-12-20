@@ -1,7 +1,8 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import AdminLayout from "./admin/AdminLayout";
+import AdminLayout from "./admin/dashboard/AdminLayout";
+
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
