@@ -62,7 +62,8 @@ function AppContent() {
       />
 
       <Routes>
-        {/* ADMIN */}
+        <Route path="/admin" element={<div>ADMIN TEST OK</div>} />
+
         <Route path="/admin/login" element={<Login />} />
 
         <Route path="/admin" element={<AdminLayout />}>
