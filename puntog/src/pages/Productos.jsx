@@ -40,64 +40,38 @@ const Productos = () => {
   }, []);
 
   /* =========================
-     CARGAR PRODUCTOS
+     CARGAR PRODUCTOS (CORREGIDO)
      ========================= */
-  /* ================= PRODUCTOS ================= */
-  app.get("/api/productos", (req, res) => {
-    const { categoria, es_oferta, limit } = req.query;
+  useEffect(() => {
+    const controller = new AbortController(); // ⭐ Para cancelar peticiones
+    setLoading(true);
 
-    let query = "SELECT p.* FROM productos p";
-    const params = [];
-    const conditions = [];
+    let url = `${API_URL}/api/productos?`;
+    if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
+    if (filtroOferta) url += `es_oferta=true&`;
 
-    // ⭐ FILTRO POR CATEGORÍA (usando slug)
-    if (categoria && categoria !== "todas") {
-      query += " INNER JOIN categorias c ON p.categoria_id = c.id";
-      conditions.push("c.slug = ?");
-      params.push(categoria);
-    }
+    console.log("🔍 Cargando productos desde:", url);
+    console.log("📌 Categoría actual:", categoriaActual);
+    console.log("🏷️ Filtro oferta:", filtroOferta);
 
-    // ⭐ FILTRO POR OFERTAS
-    if (es_oferta === "true") {
-      conditions.push("p.es_oferta = 1");
-    }
+    fetch(url, { signal: controller.signal }) // ⭐ Añadido signal
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("✅ Productos recibidos:", data);
+        setProductos(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          // ⭐ Ignora errores de cancelación
+          console.error("❌ Error cargando productos:", err);
+          setLoading(false);
+        }
+      });
 
-    // Construir WHERE
-    if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
-    }
+    return () => controller.abort(); // ⭐ Cleanup: cancela petición al desmontar
+  }, [categoriaActual, filtroOferta]); // Solo estas dependencias
 
-    query += " ORDER BY p.id DESC";
-
-    // Límite opcional
-    if (limit) {
-      query += " LIMIT ?";
-      params.push(parseInt(limit));
-    }
-
-    console.log("🔍 Query:", query);
-    console.log("📊 Params:", params);
-
-    // ⭐ CAMBIO CRÍTICO: db → DB
-    DB.query(query, params, (err, results) => {
-      if (err) {
-        console.error("❌ Error en productos:", err);
-        return res.status(500).json({ error: err.message });
-      }
-
-      // Normalizar datos
-      const productos = results.map((p) => ({
-        ...p,
-        precio: parseFloat(p.precio) || 0,
-        precio_antes: p.precio_antes ? parseFloat(p.precio_antes) : null,
-        descuento: p.descuento ? parseInt(p.descuento) : 0,
-        es_oferta: Boolean(p.es_oferta),
-      }));
-
-      console.log(`✅ ${productos.length} productos encontrados`);
-      res.json(productos);
-    });
-  });
   /* =========================
      FILTROS
      ========================= */
