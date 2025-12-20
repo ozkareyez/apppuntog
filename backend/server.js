@@ -312,11 +312,17 @@ app.get("/api/pedidos-completo", (req, res) => {
 
       DB.query(
         `
-        SELECT * FROM pedidos
-        ${where}
-        ORDER BY id DESC
-        LIMIT ? OFFSET ?
-        `,
+  SELECT 
+    p.*,
+    d.nombre AS departamento_nombre,
+    c.nombre AS ciudad_nombre
+  FROM pedidos p
+  LEFT JOIN departamentos d ON p.departamento = d.id
+  LEFT JOIN ciudades c ON p.ciudad = c.id
+  ${where}
+  ORDER BY p.id DESC
+  LIMIT ? OFFSET ?
+  `,
         [...params, limit, offset],
         (errRows, rows) => {
           if (errRows) return res.status(500).json({ ok: false });
