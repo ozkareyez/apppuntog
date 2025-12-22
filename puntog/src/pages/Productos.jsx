@@ -281,6 +281,7 @@
 // export default Productos;
 // src / pages / Productos.jsx;
 // src/pages/Productos.jsx
+
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, Tag, Filter } from "lucide-react";
@@ -379,93 +380,112 @@ const Productos = () => {
      ========================= */
   return (
     <section className="min-h-screen bg-black py-10">
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* TÍTULO */}
         <h1 className="text-4xl text-center text-pink-400 mb-8">
-          {categoriaActual !== "todas"
-            ? categorias.find((c) => c.slug === categoriaActual)?.nombre ||
-              "Productos"
-            : "Nuestros Productos"}
+          Nuestros Productos
         </h1>
 
+        {/* =========================
+            BOTONES CATEGORÍAS
+           ========================= */}
+        <div className="flex flex-wrap justify-center gap-3 mb-6">
+          <button
+            onClick={() => cambiarCategoria("todas")}
+            className={`px-4 py-2 rounded-xl font-semibold transition-all
+              ${
+                categoriaActual === "todas"
+                  ? "bg-pink-500 text-white shadow-lg shadow-pink-500/40"
+                  : "bg-white/10 text-white hover:bg-white/20"
+              }`}
+          >
+            Todas
+          </button>
+
+          {categorias.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => cambiarCategoria(cat.slug)}
+              className={`px-4 py-2 rounded-xl font-semibold transition-all
+                ${
+                  categoriaActual === cat.slug
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-500/40"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+            >
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
+
         {/* BOTÓN OFERTAS */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-8">
           <button
             onClick={toggleOferta}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
-              filtroOferta
-                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/50"
-                : "bg-white/10 text-white hover:bg-white/20"
-            }`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all
+              ${
+                filtroOferta
+                  ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/50"
+                  : "bg-white/10 text-white hover:bg-white/20"
+              }`}
           >
             <Tag size={18} />
             {filtroOferta ? "Mostrando Ofertas" : "Ver Solo Ofertas"}
           </button>
         </div>
 
-        {/* GRID */}
+        {/* GRID PRODUCTOS */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
 
-            // 🔥 LÓGICA CORRECTA
             const esOferta = Number(producto.es_oferta) === 1;
-            const mostrarPrecioAntes = precioAntes > 0;
 
             return (
               <div
                 key={producto.id}
                 onClick={() => navigate(`/productos/${producto.id}`)}
-                className={`group bg-[#1f1f1f] border rounded-2xl overflow-hidden relative cursor-pointer transition-all
+                className={`group bg-[#1f1f1f] border rounded-2xl overflow-hidden cursor-pointer transition-all
                   ${
                     esOferta
-                      ? "border-pink-500/60 hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/40"
+                      ? "border-pink-500/60 hover:shadow-lg hover:shadow-pink-500/40"
                       : "border-white/10 hover:border-pink-400 hover:shadow-pink-500/20"
                   }
                 `}
               >
                 {/* ETIQUETA OFERTA */}
                 {esOferta && (
-                  <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1">
-                    <Tag size={12} />
+                  <div className="absolute top-3 left-3 z-10 bg-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
                     OFERTA
                   </div>
                 )}
 
                 {/* IMAGEN */}
-                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden">
+                <div className="h-48 overflow-hidden">
                   <img
                     src={getImageSrc(producto.imagen)}
                     alt={producto.nombre}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                 </div>
 
                 {/* INFO */}
                 <div className="p-4 text-center">
-                  <h3 className="text-white text-sm sm:text-base font-semibold line-clamp-2 mb-2 min-h-[2.5rem]">
+                  <h3 className="text-white text-sm font-semibold line-clamp-2 mb-2">
                     {producto.nombre}
                   </h3>
 
                   {/* PRECIOS */}
-                  <div className="mt-2 mb-3 space-y-1">
-                    {esOferta && mostrarPrecioAntes && (
-                      <p className="text-gray-400 text-sm line-through">
-                        ${precioAntes.toLocaleString()}
-                      </p>
-                    )}
-
-                    <p
-                      className={`font-bold ${
-                        esOferta
-                          ? "text-pink-400 text-xl sm:text-2xl"
-                          : "text-pink-400 text-lg sm:text-xl"
-                      }`}
-                    >
-                      ${precio.toLocaleString()}
+                  {esOferta && precioAntes > 0 && (
+                    <p className="text-gray-400 text-sm line-through">
+                      ${precioAntes.toLocaleString()}
                     </p>
-                  </div>
+                  )}
+
+                  <p className="text-pink-400 text-xl font-bold mb-3">
+                    ${precio.toLocaleString()}
+                  </p>
 
                   {/* BOTÓN */}
                   <button
@@ -473,16 +493,15 @@ const Productos = () => {
                       e.stopPropagation();
                       addToCart(producto);
                     }}
-                    className={`w-full py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
+                    className={`w-full py-2 rounded-xl font-semibold transition-all
                       ${
                         esOferta
-                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md hover:shadow-pink-500/50"
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white"
                           : "bg-white text-black hover:bg-pink-500 hover:text-white"
-                      }
-                    `}
+                      }`}
                   >
-                    <ShoppingCart size={16} />
-                    {esOferta ? "¡Aprovechar!" : "Agregar"}
+                    <ShoppingCart size={16} className="inline mr-2" />
+                    Agregar
                   </button>
                 </div>
               </div>
@@ -495,7 +514,7 @@ const Productos = () => {
           <div className="text-center py-20">
             <Filter className="w-16 h-16 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400 text-lg">
-              No hay productos disponibles con estos filtros
+              No hay productos con estos filtros
             </p>
           </div>
         )}
