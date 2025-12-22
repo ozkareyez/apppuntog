@@ -282,249 +282,109 @@
 // src / pages / Productos.jsx;
 // src/pages/Productos.jsx
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { ShoppingCart, Tag, Filter } from "lucide-react";
-import { useCart } from "@/context/CartContext";
-import { API_URL } from "@/config";
+import { motion } from "framer-motion";
+import { ShoppingCart, Flame, Timer } from "lucide-react";
 
-const Productos = () => {
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
+export default function ProductoCard({ producto, onAdd }) {
+  /* =============================
+     🔎 NORMALIZACIÓN DE DATOS
+  ============================= */
+  const precio = Number(producto.precio || 0);
+  const precioAntes = Number(producto.precio_antes || 0);
+  const esOferta = Number(producto.es_oferta) === 1;
 
-  const [productos, setProductos] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [loading, setLoading] = useState(true);
+  /* =============================
+     ⏱️ CONTADOR DE OFERTA
+  ============================= */
+  const [segundos, setSegundos] = useState(3600); // 1 hora
 
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const categoriaActual = searchParams.get("categoria") || "todas";
-  const filtroOferta = searchParams.get("filtro") === "ofertas";
-
-  /* =========================
-     🖼️ OBTENER RUTA DE IMAGEN
-     ========================= */
-  const getImageSrc = (imagen) => {
-    if (!imagen) return "/imagenes/no-image.png";
-    if (imagen.startsWith("http://"))
-      return imagen.replace("http://", "https://");
-    if (imagen.startsWith("https://")) return imagen;
-    return `${API_URL}/images/${imagen}`;
-  };
-
-  /* =========================
-     CARGAR CATEGORÍAS
-     ========================= */
   useEffect(() => {
-    fetch(`${API_URL}/api/categorias`)
-      .then((res) => res.json())
-      .then((data) => setCategorias(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("❌ Error cargando categorías:", err));
-  }, []);
+    if (!esOferta) return;
 
-  /* =========================
-     CARGAR PRODUCTOS
-     ========================= */
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
+    const interval = setInterval(() => {
+      setSegundos((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
 
-    let url = `${API_URL}/api/productos?`;
-    if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
-    if (filtroOferta) url += `es_oferta=true&`;
+    return () => clearInterval(interval);
+  }, [esOferta]);
 
-    fetch(url, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error(res.status);
-        return res.json();
-      })
-      .then((data) => {
-        setProductos(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          console.error(err);
-          setProductos([]);
-          setLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [categoriaActual, filtroOferta]);
-
-  /* =========================
-     FILTROS
-     ========================= */
-  const cambiarCategoria = (slug) => {
-    const params = new URLSearchParams(searchParams);
-    slug === "todas"
-      ? params.delete("categoria")
-      : params.set("categoria", slug);
-    setSearchParams(params);
+  const formatoTiempo = (s) => {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${r.toString().padStart(2, "0")}`;
   };
 
-  const toggleOferta = () => {
-    const params = new URLSearchParams(searchParams);
-    filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
-    setSearchParams(params);
-  };
+  /* =============================
+     🎨 CLASES DINÁMICAS
+  ============================= */
+  const cardClass = esOferta
+    ? "bg-gradient-to-br from-pink-600/20 to-zinc-900 ring-2 ring-pink-500 shadow-pink-500/40 shadow-xl"
+    : "bg-zinc-900";
 
-  /* =========================
-     LOADING
-     ========================= */
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white text-xl">Cargando productos...</p>
-      </div>
-    );
-  }
-
-  /* =========================
-     RENDER
-     ========================= */
   return (
-    <section className="min-h-screen bg-black py-10">
-      <div className="max-w-7xl mx-auto p-4">
-        <h1 className="text-4xl text-center text-pink-400 mb-8">
-          {categoriaActual !== "todas"
-            ? categorias.find((c) => c.slug === categoriaActual)?.nombre ||
-              "Productos"
-            : "Nuestros Productos"}
-        </h1>
+    <motion.div
+      whileHover={{ scale: 1.04 }}
+      className={`relative rounded-2xl p-4 text-white transition-all ${cardClass}`}
+    >
+      {/* 🔥 BADGE OFERTA */}
+      {esOferta && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-pink-600 px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-bounce">
+          <Flame size={14} />
+          OFERTA
+        </div>
+      )}
 
-        {/* FILTRO OFERTAS */}
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={toggleOferta}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
-              filtroOferta
-                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/50"
-                : "bg-white/10 text-white hover:bg-white/20"
-            }`}
-          >
-            <Tag size={18} />
-            {filtroOferta ? "Mostrando Ofertas" : "Ver Solo Ofertas"}
-          </button>
+      {/* 🖼️ IMAGEN */}
+      <div className="relative overflow-hidden rounded-xl bg-black/20">
+        <img
+          src={`/imagenes/${producto.imagen}`}
+          alt={producto.nombre}
+          className="w-full h-44 object-contain transition-transform duration-300 hover:scale-110"
+        />
+      </div>
+
+      {/* 📦 INFO */}
+      <div className="mt-4 space-y-2">
+        <h3 className="font-semibold text-sm line-clamp-2">
+          {producto.nombre}
+        </h3>
+
+        {/* 💰 PRECIOS */}
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-extrabold text-pink-400">
+            ${precio.toLocaleString()}
+          </span>
+
+          {esOferta && precioAntes > precio && (
+            <span className="text-sm line-through text-zinc-300">
+              ${precioAntes.toLocaleString()}
+            </span>
+          )}
         </div>
 
-        {/* CATEGORÍAS */}
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
-          <button
-            onClick={() => cambiarCategoria("todas")}
-            className={`px-5 py-2 rounded-xl font-semibold ${
-              categoriaActual === "todas"
-                ? "bg-pink-500 text-white"
-                : "bg-white/10 text-white"
-            }`}
-          >
-            Todas
-          </button>
-
-          {categorias.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => cambiarCategoria(cat.slug)}
-              className={`px-5 py-2 rounded-xl font-semibold ${
-                categoriaActual === cat.slug
-                  ? "bg-pink-500 text-white"
-                  : "bg-white/10 text-white"
-              }`}
-            >
-              {cat.nombre}
-            </button>
-          ))}
-        </div>
-
-        {/* GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {productos.map((producto) => {
-            const precio = Number(producto.precio ?? 0);
-            const precioAntes = Number(producto.precio_antes ?? 0);
-            const esOferta = producto.es_oferta && precioAntes > precio;
-
-            return (
-              <div
-                key={producto.id}
-                onClick={() => navigate(`/productos/${producto.id}`)}
-                className={`relative group rounded-2xl overflow-hidden transition-all cursor-pointer
-                  ${
-                    esOferta
-                      ? "border-2 border-pink-500 shadow-lg shadow-pink-500/50 hover:shadow-pink-500/80 scale-[1.01]"
-                      : "border border-white/10 hover:border-pink-400"
-                  }
-                `}
-              >
-                {/* ETIQUETA OFERTA */}
-                {esOferta && (
-                  <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
-                    <span className="bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-lg">
-                      🔥 OFERTA
-                    </span>
-
-                    {producto.descuento > 0 && (
-                      <span className="bg-black/80 text-pink-400 text-[11px] font-bold px-2 py-0.5 rounded-full text-center">
-                        {producto.descuento}% DESCUENTO
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* IMAGEN */}
-                <div className="h-56 overflow-hidden">
-                  <img
-                    src={getImageSrc(producto.imagen)}
-                    alt={producto.nombre}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-                </div>
-
-                {/* INFO */}
-                <div className="p-4 text-center bg-[#1f1f1f]">
-                  <h3 className="text-white text-sm font-semibold mb-2 line-clamp-2">
-                    {producto.nombre}
-                  </h3>
-
-                  {esOferta ? (
-                    <>
-                      <p className="text-gray-400 text-sm line-through">
-                        ${precioAntes.toFixed(2)}
-                      </p>
-                      <p className="text-pink-400 text-xl font-extrabold">
-                        ${precio.toFixed(2)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-pink-400 text-lg font-bold">
-                      ${precio.toFixed(2)}
-                    </p>
-                  )}
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart(producto);
-                    }}
-                    className="mt-3 w-full py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
-                  >
-                    <ShoppingCart size={16} className="inline mr-1" />
-                    Agregar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {productos.length === 0 && (
-          <div className="text-center py-20">
-            <Filter className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No hay productos disponibles</p>
+        {/* ⏳ CONTADOR */}
+        {esOferta && (
+          <div className="flex items-center gap-1 text-xs font-semibold text-pink-300">
+            <Timer size={14} />
+            Termina en {formatoTiempo(segundos)}
           </div>
         )}
-      </div>
-    </section>
-  );
-};
 
-export default Productos;
+        {/* 🛒 BOTÓN */}
+        <button
+          onClick={() => onAdd(producto)}
+          className={`w-full mt-3 flex items-center justify-center gap-2 py-2 rounded-xl font-semibold transition-all
+            ${
+              esOferta
+                ? "bg-pink-600 hover:bg-pink-700 shadow-lg shadow-pink-500/40 animate-pulse"
+                : "bg-zinc-700 hover:bg-zinc-600"
+            }
+          `}
+        >
+          <ShoppingCart size={18} />
+          Agregar al carrito
+        </button>
+      </div>
+    </motion.div>
+  );
+}
