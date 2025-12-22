@@ -462,7 +462,7 @@ const Productos = () => {
                 )}
 
                 {/* IMAGEN */}
-                <div className="h-48 w-full flex items-center justify-center overflow-hidden bg-black/10">
+                <div className="h-60 w-full flex items-center justify-center overflow-hidden bg-black/10">
                   <img
                     src={getImageSrc(producto.imagen)}
                     alt={producto.nombre}
