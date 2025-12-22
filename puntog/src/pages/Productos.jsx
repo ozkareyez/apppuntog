@@ -280,7 +280,7 @@
 
 // export default Productos;
 // src / pages / Productos.jsx;
-
+// src/pages/Productos.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, Tag, Filter } from "lucide-react";
@@ -305,11 +305,9 @@ const Productos = () => {
      ========================= */
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
-
     if (imagen.startsWith("http://"))
       return imagen.replace("http://", "https://");
     if (imagen.startsWith("https://")) return imagen;
-
     return `${API_URL}/images/${imagen}`;
   };
 
@@ -336,7 +334,7 @@ const Productos = () => {
 
     fetch(url, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        if (!res.ok) throw new Error(res.status);
         return res.json();
       })
       .then((data) => {
@@ -345,7 +343,7 @@ const Productos = () => {
       })
       .catch((err) => {
         if (err.name !== "AbortError") {
-          console.error("❌ Error cargando productos:", err);
+          console.error(err);
           setProductos([]);
           setLoading(false);
         }
@@ -377,10 +375,7 @@ const Productos = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-white text-xl">Cargando productos...</p>
-        </div>
+        <p className="text-white text-xl">Cargando productos...</p>
       </div>
     );
   }
@@ -391,7 +386,6 @@ const Productos = () => {
   return (
     <section className="min-h-screen bg-black py-10">
       <div className="max-w-7xl mx-auto p-4">
-        {/* TÍTULO */}
         <h1 className="text-4xl text-center text-pink-400 mb-8">
           {categoriaActual !== "todas"
             ? categorias.find((c) => c.slug === categoriaActual)?.nombre ||
@@ -406,7 +400,7 @@ const Productos = () => {
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
               filtroOferta
                 ? "bg-pink-500 text-white shadow-lg shadow-pink-500/50"
-                : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
+                : "bg-white/10 text-white hover:bg-white/20"
             }`}
           >
             <Tag size={18} />
@@ -414,14 +408,14 @@ const Productos = () => {
           </button>
         </div>
 
-        {/* FILTRO CATEGORÍAS */}
+        {/* CATEGORÍAS */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           <button
             onClick={() => cambiarCategoria("todas")}
-            className={`px-5 py-2 rounded-xl font-semibold transition-all ${
+            className={`px-5 py-2 rounded-xl font-semibold ${
               categoriaActual === "todas"
                 ? "bg-pink-500 text-white"
-                : "bg-white/10 text-white hover:bg-white/20"
+                : "bg-white/10 text-white"
             }`}
           >
             Todas
@@ -431,10 +425,10 @@ const Productos = () => {
             <button
               key={cat.id}
               onClick={() => cambiarCategoria(cat.slug)}
-              className={`px-5 py-2 rounded-xl font-semibold transition-all ${
+              className={`px-5 py-2 rounded-xl font-semibold ${
                 categoriaActual === cat.slug
                   ? "bg-pink-500 text-white"
-                  : "bg-white/10 text-white hover:bg-white/20"
+                  : "bg-white/10 text-white"
               }`}
             >
               {cat.nombre}
@@ -442,14 +436,8 @@ const Productos = () => {
           ))}
         </div>
 
-        {/* CONTADOR */}
-        <p className="text-center text-gray-400 mb-6">
-          {productos.length} producto{productos.length !== 1 ? "s" : ""}{" "}
-          encontrado{productos.length !== 1 ? "s" : ""}
-        </p>
-
         {/* GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
             const precio = Number(producto.precio ?? 0);
             const precioAntes = Number(producto.precio_antes ?? 0);
@@ -459,76 +447,68 @@ const Productos = () => {
               <div
                 key={producto.id}
                 onClick={() => navigate(`/productos/${producto.id}`)}
-                className={`group bg-[#1f1f1f] rounded-2xl overflow-hidden relative transition-all cursor-pointer
+                className={`relative group rounded-2xl overflow-hidden transition-all cursor-pointer
                   ${
                     esOferta
-                      ? "border border-pink-500/60 shadow-lg shadow-pink-500/30 hover:shadow-pink-500/60 animate-[pulse_2.5s_ease-in-out_infinite]"
-                      : "border border-white/10 hover:border-pink-400 hover:shadow-pink-500/20"
+                      ? "border-2 border-pink-500 shadow-lg shadow-pink-500/50 hover:shadow-pink-500/80 scale-[1.01]"
+                      : "border border-white/10 hover:border-pink-400"
                   }
                 `}
               >
                 {/* ETIQUETA OFERTA */}
-                {esOferta && producto.descuento && (
+                {esOferta && (
                   <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
-                    <span className="bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                    <span className="bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-lg">
                       🔥 OFERTA
                     </span>
-                    <span className="bg-black/80 text-pink-400 text-[11px] font-bold px-2 py-0.5 rounded-full text-center">
-                      {producto.descuento}% DESCUENTO
-                    </span>
+
+                    {producto.descuento > 0 && (
+                      <span className="bg-black/80 text-pink-400 text-[11px] font-bold px-2 py-0.5 rounded-full text-center">
+                        {producto.descuento}% DESCUENTO
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {/* IMAGEN */}
-                <div className="w-full h-48 sm:h-56 md:h-64 overflow-hidden">
+                <div className="h-56 overflow-hidden">
                   <img
                     src={getImageSrc(producto.imagen)}
                     alt={producto.nombre}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                 </div>
 
                 {/* INFO */}
-                <div className="p-3 sm:p-4 text-center">
-                  <h3 className="text-white text-sm sm:text-base font-semibold line-clamp-2 mb-2 min-h-[2.5rem]">
+                <div className="p-4 text-center bg-[#1f1f1f]">
+                  <h3 className="text-white text-sm font-semibold mb-2 line-clamp-2">
                     {producto.nombre}
                   </h3>
 
-                  {/* PRECIOS */}
-                  <div className="mt-2 mb-3">
-                    {esOferta ? (
-                      <div className="space-y-1">
-                        <p className="text-gray-400 text-sm line-through">
-                          ${precioAntes.toFixed(2)}
-                        </p>
-                        <p className="text-pink-400 text-xl sm:text-2xl font-extrabold tracking-wide">
-                          ${precio.toFixed(2)}
-                        </p>
-                        <p className="text-green-400 text-xs font-medium">
-                          Ahorras ${(precioAntes - precio).toFixed(2)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-pink-400 text-lg sm:text-xl font-bold">
+                  {esOferta ? (
+                    <>
+                      <p className="text-gray-400 text-sm line-through">
+                        ${precioAntes.toFixed(2)}
+                      </p>
+                      <p className="text-pink-400 text-xl font-extrabold">
                         ${precio.toFixed(2)}
                       </p>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <p className="text-pink-400 text-lg font-bold">
+                      ${precio.toFixed(2)}
+                    </p>
+                  )}
 
-                  {/* BOTÓN */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       addToCart(producto);
                     }}
-                    className={`w-full py-2 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                      esOferta
-                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 shadow-md hover:shadow-pink-500/50"
-                        : "bg-white text-black hover:bg-pink-500 hover:text-white"
-                    }`}
+                    className="mt-3 w-full py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
                   >
-                    <ShoppingCart size={16} />
-                    {esOferta ? "¡Aprovechar!" : "Agregar"}
+                    <ShoppingCart size={16} className="inline mr-1" />
+                    Agregar
                   </button>
                 </div>
               </div>
@@ -536,13 +516,10 @@ const Productos = () => {
           })}
         </div>
 
-        {/* VACÍO */}
         {productos.length === 0 && (
           <div className="text-center py-20">
             <Filter className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400 text-lg">
-              No hay productos disponibles con estos filtros
-            </p>
+            <p className="text-gray-400">No hay productos disponibles</p>
           </div>
         )}
       </div>
