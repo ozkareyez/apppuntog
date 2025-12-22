@@ -313,7 +313,7 @@ const Productos = () => {
   };
 
   /* =========================
-     CATEGORÍAS
+     CARGAR CATEGORÍAS
      ========================= */
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
@@ -323,7 +323,7 @@ const Productos = () => {
   }, []);
 
   /* =========================
-     PRODUCTOS
+     CARGAR PRODUCTOS
      ========================= */
   useEffect(() => {
     const controller = new AbortController();
@@ -375,9 +375,6 @@ const Productos = () => {
     );
   }
 
-  /* =========================
-     RENDER
-     ========================= */
   return (
     <section className="min-h-screen bg-black py-10">
       <div className="max-w-7xl mx-auto p-4">
@@ -388,18 +385,18 @@ const Productos = () => {
             : "Nuestros Productos"}
         </h1>
 
-        {/* BOTÓN OFERTAS */}
+        {/* FILTRO OFERTAS */}
         <div className="flex justify-center mb-6">
           <button
             onClick={toggleOferta}
-            className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
               filtroOferta
                 ? "bg-pink-500 text-white shadow-lg shadow-pink-500/50"
                 : "bg-white/10 text-white hover:bg-white/20"
             }`}
           >
-            <Tag size={16} className="inline mr-2" />
-            {filtroOferta ? "Mostrando ofertas" : "Ver ofertas"}
+            <Tag size={18} />
+            {filtroOferta ? "Mostrando Ofertas" : "Ver Solo Ofertas"}
           </button>
         </div>
 
@@ -409,6 +406,7 @@ const Productos = () => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
             const descuento = Number(producto.descuento || 0);
+
             const esOferta =
               Number(producto.es_oferta) === 1 && precioAntes > precio;
 
@@ -416,27 +414,36 @@ const Productos = () => {
               <div
                 key={producto.id}
                 onClick={() => navigate(`/productos/${producto.id}`)}
-                className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all
+                className={`group bg-[#1f1f1f] border rounded-2xl overflow-hidden relative transition-all hover:shadow-lg cursor-pointer
                   ${
                     esOferta
-                      ? "border-2 border-pink-500 bg-gradient-to-br from-pink-500/20 to-[#1f1f1f] shadow-xl shadow-pink-500/30 hover:scale-[1.03]"
-                      : "border border-white/10 bg-[#1f1f1f] hover:border-pink-400"
+                      ? "border-pink-500/60 hover:shadow-pink-500/40"
+                      : "border-white/10 hover:border-pink-400"
                   }
                 `}
               >
                 {/* ETIQUETA OFERTA */}
                 {esOferta && (
-                  <div className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-lg">
+                  <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1">
+                    <Tag size={12} />
                     OFERTA {descuento > 0 && `-${descuento}%`}
                   </div>
                 )}
 
-                <img
-                  src={getImageSrc(producto.imagen)}
-                  alt={producto.nombre}
-                  className="w-full h-56 object-cover"
-                />
+                {/* IMAGEN */}
+                <div className="relative w-full h-56 overflow-hidden">
+                  <img
+                    src={getImageSrc(producto.imagen)}
+                    alt={producto.nombre}
+                    className={`w-full h-full object-cover transition-transform duration-300 ${
+                      esOferta
+                        ? "group-hover:scale-110"
+                        : "group-hover:scale-105"
+                    }`}
+                  />
+                </div>
 
+                {/* INFO */}
                 <div className="p-4 text-center">
                   <h3 className="text-white text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
                     {producto.nombre}
@@ -449,7 +456,7 @@ const Productos = () => {
                         <p className="text-gray-400 text-sm line-through">
                           ${precioAntes.toLocaleString()}
                         </p>
-                        <p className="text-pink-400 text-xl font-bold">
+                        <p className="text-pink-400 text-2xl font-bold">
                           ${precio.toLocaleString()}
                         </p>
                       </>
@@ -460,6 +467,7 @@ const Productos = () => {
                     )}
                   </div>
 
+                  {/* BOTÓN */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -468,13 +476,13 @@ const Productos = () => {
                     className={`w-full mt-4 py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
                       ${
                         esOferta
-                          ? "bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-500/40"
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg hover:shadow-pink-500/50"
                           : "bg-white text-black hover:bg-pink-500 hover:text-white"
                       }
                     `}
                   >
                     <ShoppingCart size={16} />
-                    {esOferta ? "Aprovechar" : "Agregar"}
+                    {esOferta ? "¡Aprovechar!" : "Agregar"}
                   </button>
                 </div>
               </div>
@@ -484,9 +492,11 @@ const Productos = () => {
 
         {/* SIN PRODUCTOS */}
         {productos.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-            <Filter className="mx-auto mb-4" size={40} />
-            No hay productos con estos filtros
+          <div className="text-center py-20">
+            <Filter className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400">
+              No hay productos disponibles con estos filtros
+            </p>
           </div>
         )}
       </div>
