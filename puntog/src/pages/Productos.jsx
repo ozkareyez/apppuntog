@@ -281,7 +281,6 @@
 // export default Productos;
 // src / pages / Productos.jsx;
 // src/pages/Productos.jsx
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, Tag, Filter } from "lucide-react";
@@ -375,9 +374,13 @@ const Productos = () => {
     );
   }
 
+  /* =========================
+     RENDER
+     ========================= */
   return (
     <section className="min-h-screen bg-black py-10">
       <div className="max-w-7xl mx-auto p-4">
+        {/* TÍTULO */}
         <h1 className="text-4xl text-center text-pink-400 mb-8">
           {categoriaActual !== "todas"
             ? categorias.find((c) => c.slug === categoriaActual)?.nombre ||
@@ -385,7 +388,7 @@ const Productos = () => {
             : "Nuestros Productos"}
         </h1>
 
-        {/* FILTRO OFERTAS */}
+        {/* BOTÓN OFERTAS */}
         <div className="flex justify-center mb-6">
           <button
             onClick={toggleOferta}
@@ -401,24 +404,24 @@ const Productos = () => {
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
-            const descuento = Number(producto.descuento || 0);
 
-            const esOferta =
-              Number(producto.es_oferta) === 1 && precioAntes > precio;
+            // 🔥 LÓGICA CORRECTA
+            const esOferta = Number(producto.es_oferta) === 1;
+            const mostrarPrecioAntes = precioAntes > 0;
 
             return (
               <div
                 key={producto.id}
                 onClick={() => navigate(`/productos/${producto.id}`)}
-                className={`group bg-[#1f1f1f] border rounded-2xl overflow-hidden relative transition-all hover:shadow-lg cursor-pointer
+                className={`group bg-[#1f1f1f] border rounded-2xl overflow-hidden relative cursor-pointer transition-all
                   ${
                     esOferta
-                      ? "border-pink-500/60 hover:shadow-pink-500/40"
-                      : "border-white/10 hover:border-pink-400"
+                      ? "border-pink-500/60 hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/40"
+                      : "border-white/10 hover:border-pink-400 hover:shadow-pink-500/20"
                   }
                 `}
               >
@@ -426,45 +429,42 @@ const Productos = () => {
                 {esOferta && (
                   <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1">
                     <Tag size={12} />
-                    OFERTA {descuento > 0 && `-${descuento}%`}
+                    OFERTA
                   </div>
                 )}
 
                 {/* IMAGEN */}
-                <div className="relative w-full h-56 overflow-hidden">
+                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden">
                   <img
                     src={getImageSrc(producto.imagen)}
                     alt={producto.nombre}
-                    className={`w-full h-full object-cover transition-transform duration-300 ${
-                      esOferta
-                        ? "group-hover:scale-110"
-                        : "group-hover:scale-105"
-                    }`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
 
                 {/* INFO */}
                 <div className="p-4 text-center">
-                  <h3 className="text-white text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
+                  <h3 className="text-white text-sm sm:text-base font-semibold line-clamp-2 mb-2 min-h-[2.5rem]">
                     {producto.nombre}
                   </h3>
 
                   {/* PRECIOS */}
-                  <div className="mt-3 space-y-1">
-                    {esOferta ? (
-                      <>
-                        <p className="text-gray-400 text-sm line-through">
-                          ${precioAntes.toLocaleString()}
-                        </p>
-                        <p className="text-pink-400 text-2xl font-bold">
-                          ${precio.toLocaleString()}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-pink-400 text-xl font-bold">
-                        ${precio.toLocaleString()}
+                  <div className="mt-2 mb-3 space-y-1">
+                    {esOferta && mostrarPrecioAntes && (
+                      <p className="text-gray-400 text-sm line-through">
+                        ${precioAntes.toLocaleString()}
                       </p>
                     )}
+
+                    <p
+                      className={`font-bold ${
+                        esOferta
+                          ? "text-pink-400 text-xl sm:text-2xl"
+                          : "text-pink-400 text-lg sm:text-xl"
+                      }`}
+                    >
+                      ${precio.toLocaleString()}
+                    </p>
                   </div>
 
                   {/* BOTÓN */}
@@ -473,10 +473,10 @@ const Productos = () => {
                       e.stopPropagation();
                       addToCart(producto);
                     }}
-                    className={`w-full mt-4 py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
+                    className={`w-full py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
                       ${
                         esOferta
-                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg hover:shadow-pink-500/50"
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md hover:shadow-pink-500/50"
                           : "bg-white text-black hover:bg-pink-500 hover:text-white"
                       }
                     `}
@@ -494,7 +494,7 @@ const Productos = () => {
         {productos.length === 0 && (
           <div className="text-center py-20">
             <Filter className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-lg">
               No hay productos disponibles con estos filtros
             </p>
           </div>
