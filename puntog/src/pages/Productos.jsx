@@ -403,41 +403,14 @@ const Productos = () => {
           </button>
         </div>
 
-        {/* CATEGORÍAS */}
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
-          <button
-            onClick={() => cambiarCategoria("todas")}
-            className={`px-5 py-2 rounded-xl ${
-              categoriaActual === "todas"
-                ? "bg-pink-500 text-white"
-                : "bg-white/10 text-white"
-            }`}
-          >
-            Todas
-          </button>
-
-          {categorias.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => cambiarCategoria(cat.slug)}
-              className={`px-5 py-2 rounded-xl ${
-                categoriaActual === cat.slug
-                  ? "bg-pink-500 text-white"
-                  : "bg-white/10 text-white"
-              }`}
-            >
-              {cat.nombre}
-            </button>
-          ))}
-        </div>
-
         {/* GRID */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {productos.map((producto) => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
             const descuento = Number(producto.descuento || 0);
-            const esOferta = Number(producto.es_oferta) === 1;
+            const esOferta =
+              Number(producto.es_oferta) === 1 && precioAntes > precio;
 
             return (
               <div
@@ -469,8 +442,9 @@ const Productos = () => {
                     {producto.nombre}
                   </h3>
 
-                  <div className="mt-3">
-                    {esOferta && precioAntes > precio ? (
+                  {/* PRECIOS */}
+                  <div className="mt-3 space-y-1">
+                    {esOferta ? (
                       <>
                         <p className="text-gray-400 text-sm line-through">
                           ${precioAntes.toLocaleString()}
