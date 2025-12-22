@@ -281,100 +281,243 @@
 // export default Productos;
 // src / pages / Productos.jsx;
 // src/pages/Productos.jsx
-import { ShoppingCart, Tag } from "lucide-react";
+
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { ShoppingCart, Tag, Filter } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 import { API_URL } from "@/config";
 
-export default function ProductoCard({ producto, onAdd, onClick }) {
-  /* =============================
-     NORMALIZAR DATOS (CRÍTICO)
-  ============================= */
-  const precio = Number(producto.precio || 0);
-  const precioAntes = Number(producto.precio_antes || 0);
-  const descuento = Number(producto.descuento || 0);
-  const esOferta = Number(producto.es_oferta) === 1;
+const Productos = () => {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
-  /* =============================
-     IMAGEN SEGURA
-  ============================= */
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const categoriaActual = searchParams.get("categoria") || "todas";
+  const filtroOferta = searchParams.get("filtro") === "ofertas";
+
+  /* =========================
+     IMÁGENES
+     ========================= */
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
-    if (imagen.startsWith("http")) return imagen;
+    if (imagen.startsWith("http://"))
+      return imagen.replace("http://", "https://");
+    if (imagen.startsWith("https://")) return imagen;
     return `${API_URL}/images/${imagen}`;
   };
 
+  /* =========================
+     CATEGORÍAS
+     ========================= */
+  useEffect(() => {
+    fetch(`${API_URL}/api/categorias`)
+      .then((res) => res.json())
+      .then((data) => setCategorias(Array.isArray(data) ? data : []))
+      .catch(() => setCategorias([]));
+  }, []);
+
+  /* =========================
+     PRODUCTOS
+     ========================= */
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+
+    let url = `${API_URL}/api/productos?`;
+    if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
+    if (filtroOferta) url += `es_oferta=true&`;
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => {
+        setProductos(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setProductos([]);
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [categoriaActual, filtroOferta]);
+
+  /* =========================
+     FILTROS
+     ========================= */
+  const cambiarCategoria = (slug) => {
+    const params = new URLSearchParams(searchParams);
+    slug === "todas"
+      ? params.delete("categoria")
+      : params.set("categoria", slug);
+    setSearchParams(params);
+  };
+
+  const toggleOferta = () => {
+    const params = new URLSearchParams(searchParams);
+    filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
+    setSearchParams(params);
+  };
+
+  /* =========================
+     LOADING
+     ========================= */
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin h-16 w-16 border-t-2 border-b-2 border-pink-500 rounded-full"></div>
+      </div>
+    );
+  }
+
+  /* =========================
+     RENDER
+     ========================= */
   return (
-    <div
-      onClick={onClick}
-      className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all
-        ${
-          esOferta
-            ? "bg-gradient-to-br from-pink-600/20 to-zinc-900 border-2 border-pink-500 shadow-xl shadow-pink-500/30 hover:scale-[1.02]"
-            : "bg-[#1f1f1f] border border-white/10 hover:border-pink-400"
-        }
-      `}
-    >
-      {/* 🔥 BADGE OFERTA */}
-      {esOferta && (
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-lg">
-          <Tag size={12} />
-          OFERTA {descuento > 0 && `-${descuento}%`}
-        </div>
-      )}
+    <section className="min-h-screen bg-black py-10">
+      <div className="max-w-7xl mx-auto p-4">
+        <h1 className="text-4xl text-center text-pink-400 mb-8">
+          {categoriaActual !== "todas"
+            ? categorias.find((c) => c.slug === categoriaActual)?.nombre ||
+              "Productos"
+            : "Nuestros Productos"}
+        </h1>
 
-      {/* 🖼️ IMAGEN */}
-      <div className="w-full h-56 bg-black/20 overflow-hidden">
-        <img
-          src={getImageSrc(producto.imagen)}
-          alt={producto.nombre}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-        />
-      </div>
-
-      {/* 📦 INFO */}
-      <div className="p-4 text-center">
-        <h3 className="text-white text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
-          {producto.nombre}
-        </h3>
-
-        {/* 💰 PRECIOS */}
-        <div className="mt-3">
-          {esOferta && precioAntes > precio ? (
-            <>
-              <p className="text-gray-400 text-sm line-through">
-                ${precioAntes.toLocaleString()}
-              </p>
-              <p className="text-pink-400 text-xl font-bold">
-                ${precio.toLocaleString()}
-              </p>
-              <p className="text-green-400 text-xs font-semibold">
-                Ahorras ${(precioAntes - precio).toLocaleString()}
-              </p>
-            </>
-          ) : (
-            <p className="text-pink-400 text-xl font-bold">
-              ${precio.toLocaleString()}
-            </p>
-          )}
+        {/* BOTÓN OFERTAS */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={toggleOferta}
+            className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+              filtroOferta
+                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/50"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            <Tag size={16} className="inline mr-2" />
+            {filtroOferta ? "Mostrando ofertas" : "Ver ofertas"}
+          </button>
         </div>
 
-        {/* 🛒 BOTÓN */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdd(producto);
-          }}
-          className={`w-full mt-4 py-2 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all
-            ${
-              esOferta
-                ? "bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-500/40"
-                : "bg-white text-black hover:bg-pink-500 hover:text-white"
-            }
-          `}
-        >
-          <ShoppingCart size={16} />
-          {esOferta ? "Aprovechar oferta" : "Agregar"}
-        </button>
+        {/* CATEGORÍAS */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <button
+            onClick={() => cambiarCategoria("todas")}
+            className={`px-5 py-2 rounded-xl ${
+              categoriaActual === "todas"
+                ? "bg-pink-500 text-white"
+                : "bg-white/10 text-white"
+            }`}
+          >
+            Todas
+          </button>
+
+          {categorias.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => cambiarCategoria(cat.slug)}
+              className={`px-5 py-2 rounded-xl ${
+                categoriaActual === cat.slug
+                  ? "bg-pink-500 text-white"
+                  : "bg-white/10 text-white"
+              }`}
+            >
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
+
+        {/* GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {productos.map((producto) => {
+            const precio = Number(producto.precio || 0);
+            const precioAntes = Number(producto.precio_antes || 0);
+            const descuento = Number(producto.descuento || 0);
+            const esOferta = Number(producto.es_oferta) === 1;
+
+            return (
+              <div
+                key={producto.id}
+                onClick={() => navigate(`/productos/${producto.id}`)}
+                className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all
+                  ${
+                    esOferta
+                      ? "border-2 border-pink-500 bg-gradient-to-br from-pink-500/20 to-[#1f1f1f] shadow-xl shadow-pink-500/30 hover:scale-[1.03]"
+                      : "border border-white/10 bg-[#1f1f1f] hover:border-pink-400"
+                  }
+                `}
+              >
+                {/* ETIQUETA OFERTA */}
+                {esOferta && (
+                  <div className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-lg">
+                    OFERTA {descuento > 0 && `-${descuento}%`}
+                  </div>
+                )}
+
+                <img
+                  src={getImageSrc(producto.imagen)}
+                  alt={producto.nombre}
+                  className="w-full h-56 object-cover"
+                />
+
+                <div className="p-4 text-center">
+                  <h3 className="text-white text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
+                    {producto.nombre}
+                  </h3>
+
+                  <div className="mt-3">
+                    {esOferta && precioAntes > precio ? (
+                      <>
+                        <p className="text-gray-400 text-sm line-through">
+                          ${precioAntes.toLocaleString()}
+                        </p>
+                        <p className="text-pink-400 text-xl font-bold">
+                          ${precio.toLocaleString()}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-pink-400 text-xl font-bold">
+                        ${precio.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(producto);
+                    }}
+                    className={`w-full mt-4 py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
+                      ${
+                        esOferta
+                          ? "bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-500/40"
+                          : "bg-white text-black hover:bg-pink-500 hover:text-white"
+                      }
+                    `}
+                  >
+                    <ShoppingCart size={16} />
+                    {esOferta ? "Aprovechar" : "Agregar"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* SIN PRODUCTOS */}
+        {productos.length === 0 && (
+          <div className="text-center py-20 text-gray-400">
+            <Filter className="mx-auto mb-4" size={40} />
+            No hay productos con estos filtros
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
-}
+};
+
+export default Productos;
