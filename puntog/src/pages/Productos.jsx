@@ -281,110 +281,100 @@
 // export default Productos;
 // src / pages / Productos.jsx;
 // src/pages/Productos.jsx
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ShoppingCart, Flame, Timer } from "lucide-react";
+import { ShoppingCart, Tag } from "lucide-react";
+import { API_URL } from "@/config";
 
-export default function ProductoCard({ producto, onAdd }) {
+export default function ProductoCard({ producto, onAdd, onClick }) {
   /* =============================
-     🔎 NORMALIZACIÓN DE DATOS
+     NORMALIZAR DATOS (CRÍTICO)
   ============================= */
   const precio = Number(producto.precio || 0);
   const precioAntes = Number(producto.precio_antes || 0);
+  const descuento = Number(producto.descuento || 0);
   const esOferta = Number(producto.es_oferta) === 1;
 
   /* =============================
-     ⏱️ CONTADOR DE OFERTA
+     IMAGEN SEGURA
   ============================= */
-  const [segundos, setSegundos] = useState(3600); // 1 hora
-
-  useEffect(() => {
-    if (!esOferta) return;
-
-    const interval = setInterval(() => {
-      setSegundos((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [esOferta]);
-
-  const formatoTiempo = (s) => {
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}:${r.toString().padStart(2, "0")}`;
+  const getImageSrc = (imagen) => {
+    if (!imagen) return "/imagenes/no-image.png";
+    if (imagen.startsWith("http")) return imagen;
+    return `${API_URL}/images/${imagen}`;
   };
 
-  /* =============================
-     🎨 CLASES DINÁMICAS
-  ============================= */
-  const cardClass = esOferta
-    ? "bg-gradient-to-br from-pink-600/20 to-zinc-900 ring-2 ring-pink-500 shadow-pink-500/40 shadow-xl"
-    : "bg-zinc-900";
-
   return (
-    <motion.div
-      whileHover={{ scale: 1.04 }}
-      className={`relative rounded-2xl p-4 text-white transition-all ${cardClass}`}
+    <div
+      onClick={onClick}
+      className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all
+        ${
+          esOferta
+            ? "bg-gradient-to-br from-pink-600/20 to-zinc-900 border-2 border-pink-500 shadow-xl shadow-pink-500/30 hover:scale-[1.02]"
+            : "bg-[#1f1f1f] border border-white/10 hover:border-pink-400"
+        }
+      `}
     >
       {/* 🔥 BADGE OFERTA */}
       {esOferta && (
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-pink-600 px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-bounce">
-          <Flame size={14} />
-          OFERTA
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-lg">
+          <Tag size={12} />
+          OFERTA {descuento > 0 && `-${descuento}%`}
         </div>
       )}
 
       {/* 🖼️ IMAGEN */}
-      <div className="relative overflow-hidden rounded-xl bg-black/20">
+      <div className="w-full h-56 bg-black/20 overflow-hidden">
         <img
-          src={`/imagenes/${producto.imagen}`}
+          src={getImageSrc(producto.imagen)}
           alt={producto.nombre}
-          className="w-full h-44 object-contain transition-transform duration-300 hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         />
       </div>
 
       {/* 📦 INFO */}
-      <div className="mt-4 space-y-2">
-        <h3 className="font-semibold text-sm line-clamp-2">
+      <div className="p-4 text-center">
+        <h3 className="text-white text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
           {producto.nombre}
         </h3>
 
         {/* 💰 PRECIOS */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-extrabold text-pink-400">
-            ${precio.toLocaleString()}
-          </span>
-
-          {esOferta && precioAntes > precio && (
-            <span className="text-sm line-through text-zinc-300">
-              ${precioAntes.toLocaleString()}
-            </span>
+        <div className="mt-3">
+          {esOferta && precioAntes > precio ? (
+            <>
+              <p className="text-gray-400 text-sm line-through">
+                ${precioAntes.toLocaleString()}
+              </p>
+              <p className="text-pink-400 text-xl font-bold">
+                ${precio.toLocaleString()}
+              </p>
+              <p className="text-green-400 text-xs font-semibold">
+                Ahorras ${(precioAntes - precio).toLocaleString()}
+              </p>
+            </>
+          ) : (
+            <p className="text-pink-400 text-xl font-bold">
+              ${precio.toLocaleString()}
+            </p>
           )}
         </div>
 
-        {/* ⏳ CONTADOR */}
-        {esOferta && (
-          <div className="flex items-center gap-1 text-xs font-semibold text-pink-300">
-            <Timer size={14} />
-            Termina en {formatoTiempo(segundos)}
-          </div>
-        )}
-
         {/* 🛒 BOTÓN */}
         <button
-          onClick={() => onAdd(producto)}
-          className={`w-full mt-3 flex items-center justify-center gap-2 py-2 rounded-xl font-semibold transition-all
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd(producto);
+          }}
+          className={`w-full mt-4 py-2 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all
             ${
               esOferta
-                ? "bg-pink-600 hover:bg-pink-700 shadow-lg shadow-pink-500/40 animate-pulse"
-                : "bg-zinc-700 hover:bg-zinc-600"
+                ? "bg-pink-600 text-white hover:bg-pink-700 shadow-lg shadow-pink-500/40"
+                : "bg-white text-black hover:bg-pink-500 hover:text-white"
             }
           `}
         >
-          <ShoppingCart size={18} />
-          Agregar al carrito
+          <ShoppingCart size={16} />
+          {esOferta ? "Aprovechar oferta" : "Agregar"}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
