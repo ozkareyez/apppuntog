@@ -462,11 +462,11 @@ const Productos = () => {
                 )}
 
                 {/* IMAGEN */}
-                <div className="h-48 w-full overflow-hidden bg-black/20">
+                <div className="h-48 w-full flex items-center justify-center overflow-hidden bg-black/10">
                   <img
                     src={getImageSrc(producto.imagen)}
                     alt={producto.nombre}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
 
