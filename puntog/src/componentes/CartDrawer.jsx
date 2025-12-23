@@ -1,64 +1,73 @@
 import { X } from "lucide-react";
-import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import FormularioEnvio from "./FormularioEnvio";
 
 export default function CartDrawer() {
-  const { cart, showCart, setShowCart, total } = useCart();
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const {
+    cart,
+    showCart,
+    setShowCart,
+    mostrarFormulario,
+    setMostrarFormulario,
+    totalFinal,
+  } = useCart();
 
   if (!showCart) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* FONDO OSCURO */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={() => {
-          setShowCart(false);
-          setMostrarFormulario(false);
-        }}
-      />
+    <>
+      {/* FORMULARIO MODAL */}
+      {mostrarFormulario && <FormularioEnvio />}
 
       {/* DRAWER */}
-      <div className="relative w-80 h-full bg-white shadow-lg p-4 overflow-y-auto">
-        <button
-          className="absolute top-3 right-3"
+      <div className="fixed inset-0 z-50 flex justify-end">
+        {/* FONDO */}
+        <div
+          className="absolute inset-0 bg-black/50"
           onClick={() => {
             setShowCart(false);
             setMostrarFormulario(false);
           }}
-        >
-          <X />
-        </button>
+        />
 
-        <h2 className="text-xl font-bold mb-4">Carrito</h2>
+        {/* PANEL */}
+        <div className="relative w-80 h-full bg-white shadow-2xl p-4 overflow-y-auto">
+          <button
+            className="absolute top-3 right-3"
+            onClick={() => {
+              setShowCart(false);
+              setMostrarFormulario(false);
+            }}
+          >
+            <X />
+          </button>
 
-        {cart.length === 0 && <p>Carrito vacío</p>}
+          <h2 className="text-xl font-bold mb-4">Carrito</h2>
 
-        {!mostrarFormulario &&
-          cart.map((item) => (
+          {cart.length === 0 && <p>Carrito vacío</p>}
+
+          {cart.map((item) => (
             <div key={item.id} className="flex justify-between my-2">
               <span>{item.nombre}</span>
               <span>
-                {item.cantidad} x ${item.precio}
+                {item.quantity} x ${item.precio}
               </span>
             </div>
           ))}
 
-        <p className="font-bold mt-4">Total: ${total}</p>
+          <p className="font-bold mt-4">
+            Total: ${totalFinal.toLocaleString()}
+          </p>
 
-        {!mostrarFormulario ? (
           <button
             onClick={() => setMostrarFormulario(true)}
-            className="w-full mt-4 bg-black text-white py-2 rounded"
+            className="w-full mt-4 bg-black text-white py-2 rounded hover:bg-gray-900 transition"
+            disabled={cart.length === 0}
           >
             Confirmar pedido
           </button>
-        ) : (
-          <FormularioEnvio />
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
