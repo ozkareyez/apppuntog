@@ -64,18 +64,19 @@ export const CartProvider = ({ children }) => {
   ========================= */
 
   // 🧾 Subtotal
+  // 🧾 Subtotal
   const subtotal = useMemo(() => {
     return cart.reduce((sum, p) => sum + Number(p.precio) * p.quantity, 0);
   }, [cart]);
 
-  // 🚚 Domicilio
-  const domicilio = useMemo(() => {
-    if (subtotal >= 200000) return 0;
+  // 🚚 Envío
+  const envio = useMemo(() => {
+    if (subtotal >= 250000) return 0;
     return ciudad === "Cali" ? 5000 : 16000;
   }, [subtotal, ciudad]);
 
   // 💰 Total final
-  const totalFinal = subtotal + domicilio;
+  const totalFinal = subtotal + envio;
 
   const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
 
