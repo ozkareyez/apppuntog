@@ -1,47 +1,84 @@
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 
-export default function ContactForm({ onSuccess }) {
-  const { ciudad, setCiudad, total, envio, totalFinal } = useCart();
+export default function ContactForm() {
+  const { subtotal = 0, envio = 0, totalFinal = 0 } = useCart();
+
+  const [form, setForm] = useState({
+    nombre: "",
+    email: "",
+    mensaje: "",
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    console.log("Mensaje enviado:", form);
+    alert("Mensaje enviado correctamente 🖤");
+
+    setForm({
+      nombre: "",
+      email: "",
+      mensaje: "",
+    });
+  };
 
   return (
-    <form className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <input className="input" placeholder="Nombre completo" />
-      <input className="input" placeholder="Teléfono / WhatsApp" />
+    <div className="max-w-xl mx-auto px-4 py-10 text-white">
+      <h1 className="text-3xl font-bold text-pink-400 mb-6 text-center">
+        Contáctanos
+      </h1>
 
-      <select
-        className="input md:col-span-2"
-        value={ciudad}
-        onChange={(e) => setCiudad(e.target.value)}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-white/5 p-6 rounded-xl"
       >
-        <option value="">Selecciona tu ciudad</option>
-        <option value="Cali">Cali</option>
-        <option value="Bogotá">Bogotá</option>
-        <option value="Medellín">Medellín</option>
-        <option value="Otra">Otra</option>
-      </select>
+        <input
+          type="text"
+          placeholder="Nombre"
+          className="w-full p-3 rounded bg-black border border-white/10"
+          value={form.nombre}
+          onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+          required
+        />
 
-      <input className="input md:col-span-2" placeholder="Dirección de envío" />
+        <input
+          type="email"
+          placeholder="Correo electrónico"
+          className="w-full p-3 rounded bg-black border border-white/10"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+        />
 
-      {/* RESUMEN */}
-      <div className="md:col-span-2 bg-black/40 rounded-xl p-4 space-y-2 text-sm">
-        <p>
-          Subtotal: <strong>${total.toLocaleString()}</strong>
-        </p>
-        <p>
-          Envío: <strong>${envio.toLocaleString()}</strong>
-        </p>
-        <p className="text-pink-400 text-lg">
-          Total: <strong>${totalFinal.toLocaleString()}</strong>
-        </p>
-      </div>
+        <textarea
+          placeholder="Mensaje"
+          rows={4}
+          className="w-full p-3 rounded bg-black border border-white/10"
+          value={form.mensaje}
+          onChange={(e) => setForm({ ...form, mensaje: e.target.value })}
+          required
+        />
 
-      <button
-        type="submit"
-        className="md:col-span-2 bg-pink-500 hover:bg-pink-600 transition text-white py-3 rounded-xl font-semibold"
-        onClick={onSuccess}
-      >
-        Confirmar pedido
-      </button>
-    </form>
+        {/* SOLO MOSTRAMOS TOTALES SI EXISTEN */}
+        <div className="text-sm text-white/70 space-y-1">
+          <p>Subtotal: ${Number(subtotal || 0).toLocaleString()}</p>
+          <p>
+            Envío:{" "}
+            {envio === 0 ? "Gratis" : `$${Number(envio).toLocaleString()}`}
+          </p>
+          <p className="font-semibold text-pink-400">
+            Total: ${Number(totalFinal || 0).toLocaleString()}
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-pink-500 hover:bg-pink-600 transition py-3 rounded font-semibold"
+        >
+          Enviar mensaje
+        </button>
+      </form>
+    </div>
   );
 }
