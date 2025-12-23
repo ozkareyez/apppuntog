@@ -13,10 +13,10 @@ export default function PedidosAdmin() {
       const res = await fetch(`${API}/api/pedidos-completo`);
       const data = await res.json();
 
-      if (!data.ok) throw new Error("Error cargando pedidos");
+      if (!data.ok) throw new Error();
+
       setPedidos(data.results);
     } catch (err) {
-      console.error(err);
       setError("No se pudieron cargar los pedidos");
     } finally {
       setLoading(false);
@@ -32,6 +32,7 @@ export default function PedidosAdmin() {
       const res = await fetch(`${API}/api/pedidos-estado/${id}`, {
         method: "PUT",
       });
+
       const data = await res.json();
       if (!data.ok) throw new Error();
 
@@ -50,18 +51,18 @@ export default function PedidosAdmin() {
     }
   };
 
-  if (loading) return <p className="text-white">Cargando pedidos...</p>;
+  if (loading) return <p>Cargando pedidos...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
   return (
-    <div className="p-6 text-white">
+    <div className="p-6">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
         📦 Pedidos
       </h1>
 
       <div className="overflow-x-auto rounded-xl border border-white/10">
-        <table className="w-full text-sm">
-          <thead className="bg-black/40 text-white/80">
+        <table className="w-full text-sm text-white">
+          <thead className="bg-black/60">
             <tr>
               <th className="p-3 text-left">ID</th>
               <th>Cliente</th>
@@ -71,7 +72,7 @@ export default function PedidosAdmin() {
               <th>Ciudad</th>
               <th>Total</th>
               <th>Estado</th>
-              <th className="text-center">Acciones</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
@@ -81,15 +82,12 @@ export default function PedidosAdmin() {
                 key={p.id}
                 className="border-t border-white/10 hover:bg-white/5 transition"
               >
-                <td className="p-3 font-semibold">{p.id}</td>
+                <td className="p-3">{p.id}</td>
                 <td>{p.nombre}</td>
                 <td>{p.telefono}</td>
-                <td className="max-w-[220px] truncate">{p.direccion}</td>
-                <td>{p.departamento_nombre}</td>
-
-                {/* ✅ CIUDAD CORRECTA */}
+                <td>{p.direccion}</td>
+                <td>{p.departamento_nombre || "—"}</td>
                 <td>{p.ciudad_nombre || "—"}</td>
-
                 <td className="font-semibold">
                   ${Number(p.total).toLocaleString()}
                 </td>
@@ -106,10 +104,10 @@ export default function PedidosAdmin() {
                   </span>
                 </td>
 
-                <td className="flex flex-col gap-2 items-center py-3">
+                <td className="flex flex-col gap-2 py-2">
                   <button
                     onClick={() => cambiarEstado(p.id)}
-                    className={`px-3 py-1 rounded text-xs font-semibold transition ${
+                    className={`px-3 py-1 rounded text-xs font-semibold ${
                       p.estado === "pendiente"
                         ? "bg-green-600 hover:bg-green-700"
                         : "bg-yellow-600 hover:bg-yellow-700"
@@ -122,7 +120,7 @@ export default function PedidosAdmin() {
 
                   <Link
                     to={`/admin/orden-servicio/${p.id}`}
-                    className="text-blue-400 text-xs underline hover:text-blue-300"
+                    className="text-blue-400 underline text-xs text-center hover:text-blue-300"
                   >
                     Orden de Servicio
                   </Link>

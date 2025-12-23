@@ -42,25 +42,34 @@ html {
   body {
     margin: 0;
     padding: 0;
-    height: auto;
+    background: white !important;
   }
 
+  /* Ocultar todo */
   body * {
-    display: none !important;
+    visibility: hidden;
   }
 
+  /* Mostrar SOLO el área de impresión */
   .print-area,
   .print-area * {
-    display: block !important;
+    visibility: visible;
   }
 
+  /* Asegurar fondo blanco */
   .print-area {
-    position: relative;
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
-    height: auto;
-    margin: 0;
-    padding: 0;
+    background: white !important;
+    color: black !important;
+    padding: 24px;
+  }
+
+  /* Quitar sombras y fondos oscuros */
+  .print-area * {
+    box-shadow: none !important;
+    background: transparent !important;
   }
 }
-
-
