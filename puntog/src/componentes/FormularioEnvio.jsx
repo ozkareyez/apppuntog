@@ -1,166 +1,64 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { API_URL } from "@/config";
 
-export default function FormularioEnvio() {
-  const {
-    cart,
-    totalFinal,
-    setMostrarFormulario,
-    clearCart,
-    setShowCart,
-    setCiudad,
-  } = useCart();
-
-  const [departamentos, setDepartamentos] = useState([]);
-  const [ciudades, setCiudades] = useState([]);
+export default function FormularioEnvio({ cerrar }) {
+  const { cart, totalFinal, clearCart } = useCart();
 
   const [form, setForm] = useState({
     nombre: "",
     telefono: "",
     direccion: "",
-    departamento: "",
     ciudad: "",
   });
 
-  /* =====================
-     CARGAR DEPARTAMENTOS
-  ===================== */
-  useEffect(() => {
-    fetch(`${API_URL}/api/departamentos`)
-      .then((res) => res.json())
-      .then(setDepartamentos)
-      .catch(console.error);
-  }, []);
-
-  /* =====================
-     CARGAR CIUDADES
-  ===================== */
-  useEffect(() => {
-    if (!form.departamento) {
-      setCiudades([]);
-      return;
-    }
-
-    fetch(`${API_URL}/api/ciudades?departamento_id=${form.departamento}`)
-      .then((res) => res.json())
-      .then(setCiudades)
-      .catch(console.error);
-  }, [form.departamento]);
-
-  /* =====================
-     ENVIAR PEDIDO
-  ===================== */
   const enviarPedido = () => {
-    if (!form.nombre || !form.telefono || !form.direccion || !form.ciudad) {
-      alert("Completa todos los campos");
-      return;
-    }
-
-    setCiudad(form.ciudad);
-
     const mensaje = `
-🖤 *Pedido Punto G*
+🖤 Pedido Punto G
 
-👤 ${form.nombre}
-📞 ${form.telefono}
-📍 ${form.direccion}
-🏙 ${form.ciudad}
+Nombre: ${form.nombre}
+Teléfono: ${form.telefono}
+Dirección: ${form.direccion}
+Ciudad: ${form.ciudad}
 
-🛒 Productos:
+Productos:
 ${cart.map((p) => `• ${p.nombre} x${p.quantity}`).join("\n")}
 
-💰 Total: $${totalFinal.toLocaleString()}
+Total: $${totalFinal.toLocaleString()}
 `;
 
     const url = `https://wa.me/573147041149?text=${encodeURIComponent(
       mensaje
     )}`;
-    window.open(url, "_blank");
 
+    window.open(url, "_blank");
     clearCart();
-    setMostrarFormulario(false);
-    setShowCart(false);
+    cerrar();
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70">
-      <div className="bg-white w-full max-w-md rounded-xl p-6 relative shadow-2xl">
-        <button
-          className="absolute top-3 right-3"
-          onClick={() => setMostrarFormulario(false)}
-        >
-          <X />
-        </button>
+    <div className="mt-4 space-y-3">
+      <h3 className="text-pink-400 font-semibold mb-2">Datos de entrega</h3>
 
-        <h2 className="text-xl font-bold mb-4">Datos de envío</h2>
+      {["nombre", "telefono", "direccion", "ciudad"].map((campo) => (
+        <input
+          key={campo}
+          placeholder={campo.toUpperCase()}
+          className="w-full bg-black border border-white/20 p-2 rounded text-white"
+          value={form[campo]}
+          onChange={(e) => setForm({ ...form, [campo]: e.target.value })}
+        />
+      ))}
 
-        <div className="space-y-3">
-          <input
-            placeholder="Nombre completo"
-            className="w-full border p-2 rounded"
-            value={form.nombre}
-            onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-          />
+      <button
+        onClick={enviarPedido}
+        className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold mt-3"
+      >
+        Enviar pedido por WhatsApp
+      </button>
 
-          <input
-            placeholder="Teléfono"
-            className="w-full border p-2 rounded"
-            value={form.telefono}
-            onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-          />
-
-          <input
-            placeholder="Dirección"
-            className="w-full border p-2 rounded"
-            value={form.direccion}
-            onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-          />
-
-          {/* DEPARTAMENTO */}
-          <select
-            className="w-full border p-2 rounded"
-            value={form.departamento}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                departamento: e.target.value,
-                ciudad: "",
-              })
-            }
-          >
-            <option value="">Departamento *</option>
-            {departamentos.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre}
-              </option>
-            ))}
-          </select>
-
-          {/* CIUDAD */}
-          <select
-            className="w-full border p-2 rounded"
-            value={form.ciudad}
-            onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
-            disabled={!ciudades.length}
-          >
-            <option value="">Ciudad *</option>
-            {ciudades.map((c) => (
-              <option key={c.id} value={c.nombre}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={enviarPedido}
-            className="w-full bg-black text-white py-2 rounded hover:bg-gray-900"
-          >
-            Enviar pedido por WhatsApp
-          </button>
-        </div>
-      </div>
+      <button onClick={cerrar} className="w-full text-sm text-gray-400 mt-2">
+        ← Volver al carrito
+      </button>
     </div>
   );
 }
