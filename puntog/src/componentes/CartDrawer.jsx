@@ -1,160 +1,112 @@
 import { X, Plus, Minus, Trash } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { API_URL } from "@/config";
+import FormularioEnvio from "./FormularioEnvio";
 
-const CartDrawer = () => {
+export default function CartDrawer() {
   const {
     cart,
     showCart,
     setShowCart,
+    mostrarFormulario,
+    setMostrarFormulario,
+    subtotal,
+    domicilio,
+    totalFinal,
     increaseQuantity,
     decreaseQuantity,
     removeFromCart,
-    total,
-    setMostrarFormulario,
+    clearCart,
   } = useCart();
 
   if (!showCart) return null;
 
-  // ⭐ FUNCIÓN MEJORADA para obtener la imagen
-  const getImageSrc = (img) => {
-    if (!img) return "/imagenes/no-image.png";
-
-    // Si ya es URL completa
-    if (img.startsWith("http://")) return img.replace("http://", "https://");
-    if (img.startsWith("https://")) return img;
-
-    // ⭐ Si es solo el nombre del archivo, construye URL del backend
-    return `${API_URL}/images/${img}`;
-  };
-
   return (
-    <>
-      {/* OVERLAY */}
-      <div
-        className="fixed inset-0 bg-black/60 z-90"
-        onClick={() => setShowCart(false)}
-      />
+    <div className="fixed top-0 right-0 w-80 h-full bg-white shadow-xl z-[9999] flex flex-col">
+      {/* HEADER */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <h2 className="text-lg font-bold">Carrito</h2>
+        <button
+          onClick={() => {
+            setShowCart(false);
+            setMostrarFormulario(false);
+          }}
+        >
+          <X />
+        </button>
+      </div>
 
-      {/* DRAWER */}
-      <aside className="fixed top-0 right-0 h-full w-[380px] max-w-full bg-[#111] z-[100] shadow-2xl flex flex-col">
-        {/* HEADER */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-pink-400">Tu carrito</h2>
-          <button
-            onClick={() => setShowCart(false)}
-            className="hover:bg-white/10 p-2 rounded-lg transition-colors"
-          >
-            <X className="text-white" />
-          </button>
-        </div>
-
-        {/* ITEMS */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {cart.length === 0 && (
-            <div className="text-center mt-20">
-              <div className="text-6xl mb-4">🛒</div>
-              <p className="text-gray-400">Tu carrito está vacío</p>
-            </div>
-          )}
-
-          {cart.map((item) => (
-            <div
-              key={item.id}
-              className="flex gap-3 bg-[#1a1a1a] p-3 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors"
-            >
-              {/* ⭐ IMAGEN CON LOADING STATE */}
-              <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black/50">
-                <img
-                  src={getImageSrc(item.imagen)}
-                  alt={item.nombre}
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error(
-                      "❌ Error cargando imagen en carrito:",
-                      item.imagen
-                    );
-                    e.currentTarget.src = "/imagenes/no-image.png";
-                  }}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h4 className="text-white text-sm font-semibold line-clamp-2 mb-1">
-                  {item.nombre}
-                </h4>
-
-                <p className="text-pink-400 font-bold text-lg">
-                  ${Number(item.precio).toFixed(2)}
-                </p>
-
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={() => decreaseQuantity(item.id)}
-                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors text-white"
-                    aria-label="Disminuir cantidad"
-                  >
-                    <Minus size={14} />
-                  </button>
-
-                  <span className="text-white font-semibold min-w-[24px] text-center">
-                    {item.quantity}
-                  </span>
-
-                  <button
-                    onClick={() => increaseQuantity(item.id)}
-                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors text-white"
-                    aria-label="Aumentar cantidad"
-                  >
-                    <Plus size={14} />
-                  </button>
-
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="ml-auto text-red-500 hover:text-red-400 transition-colors p-1.5 hover:bg-red-500/10 rounded"
-                    aria-label="Eliminar del carrito"
-                  >
-                    <Trash size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* FOOTER */}
-        {cart.length > 0 && (
-          <div className="p-4 border-t border-white/10 bg-[#0a0a0a]">
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-gray-400 text-sm">
-                <span>
-                  Productos (
-                  {cart.reduce((acc, item) => acc + item.quantity, 0)})
-                </span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-white font-bold text-lg">
-                <span>Total</span>
-                <span className="text-pink-400">${total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setMostrarFormulario(true);
-                setShowCart(false);
-              }}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-green-500/50 flex items-center justify-center gap-2"
-            >
-              <span>Confirmar entrega</span>
-              <span>🚚</span>
-            </button>
-          </div>
+      {/* BODY */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {cart.length === 0 && (
+          <p className="text-center text-gray-500">Carrito vacío</p>
         )}
-      </aside>
-    </>
-  );
-};
 
-export default CartDrawer;
+        {cart.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center justify-between border-b pb-2"
+          >
+            <div>
+              <p className="font-medium">{item.nombre}</p>
+              <p className="text-sm text-gray-500">
+                ${Number(item.precio || 0).toFixed(0)} x {item.quantity}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => item.quantity > 1 && decreaseQuantity(item.id)}
+              >
+                <Minus size={16} />
+              </button>
+
+              <span>{item.quantity}</span>
+
+              <button onClick={() => increaseQuantity(item.id)}>
+                <Plus size={16} />
+              </button>
+
+              <button onClick={() => removeFromCart(item.id)}>
+                <Trash size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* FOOTER */}
+      <div className="p-4 border-t space-y-2">
+        <p>Subtotal: ${Number(subtotal || 0).toFixed(0)}</p>
+        <p>Domicilio: ${Number(domicilio || 0).toFixed(0)}</p>
+
+        <p className="font-bold text-lg">
+          Total: ${Number(totalFinal || 0).toFixed(0)}
+        </p>
+
+        {!mostrarFormulario ? (
+          <button
+            onClick={() => setMostrarFormulario(true)}
+            className="w-full bg-black text-white py-2 rounded mt-3"
+          >
+            Confirmar pedido
+          </button>
+        ) : (
+          <FormularioEnvio
+            onSubmit={(datos) => {
+              console.log("Pedido confirmado:", {
+                datos,
+                cart,
+                totalFinal,
+              });
+
+              alert("Pedido confirmado correctamente");
+              clearCart();
+              setMostrarFormulario(false);
+              setShowCart(false);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

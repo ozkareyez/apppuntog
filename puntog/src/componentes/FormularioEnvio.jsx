@@ -1,43 +1,26 @@
-import { X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { API_URL } from "@/config";
 
-const FormularioEnvio = ({
-  mostrarFormulario,
-  setMostrarFormulario,
-  cart,
-  setCart,
-  total,
-}) => {
-  /* =====================
-     STATE
-     ===================== */
+export default function FormularioEnvio({ onSubmit }) {
+  const [departamentos, setDepartamentos] = useState([]);
+  const [ciudades, setCiudades] = useState([]);
+
   const [formData, setFormData] = useState({
     nombre: "",
-    email: "",
     telefono: "",
+    email: "",
     direccion: "",
     departamento: "",
     ciudad: "",
   });
 
-  const [departamentos, setDepartamentos] = useState([]);
-  const [ciudades, setCiudades] = useState([]);
-  const [enviando, setEnviando] = useState(false);
-
-  /* =====================
-     CARGAR DEPARTAMENTOS
-     ===================== */
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
       .then((res) => res.json())
-      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("❌ Error cargando departamentos:", err));
+      .then(setDepartamentos)
+      .catch(console.error);
   }, []);
 
-  /* =====================
-     CARGAR CIUDADES
-     ===================== */
   useEffect(() => {
     if (!formData.departamento) {
       setCiudades([]);
@@ -46,215 +29,83 @@ const FormularioEnvio = ({
 
     fetch(`${API_URL}/api/ciudades?departamento_id=${formData.departamento}`)
       .then((res) => res.json())
-      .then((data) => setCiudades(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("❌ Error cargando ciudades:", err));
+      .then(setCiudades)
+      .catch(console.error);
   }, [formData.departamento]);
 
-  /* =====================
-     HANDLERS
-     ===================== */
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const nombreDepartamento =
-    departamentos.find((d) => d.id == formData.departamento)?.nombre || "";
-
-  /* =====================
-     ENVIAR FORMULARIO
-     ===================== */
-  const enviarFormulario = async (e) => {
-    e.preventDefault();
-
-    if (!cart.length) {
-      alert("🛒 El carrito está vacío");
-      return;
-    }
-
-    setEnviando(true);
-
-    try {
-      const res = await fetch(`${API_URL}/api/enviar-formulario`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          carrito: cart,
-          total,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Error al enviar pedido");
-
-      enviarWhatsApp();
-      setCart([]);
-      setMostrarFormulario(false);
-
-      setFormData({
-        nombre: "",
-        email: "",
-        telefono: "",
-        direccion: "",
-        departamento: "",
-        ciudad: "",
-      });
-    } catch (error) {
-      console.error(error);
-      alert("❌ No se pudo enviar el pedido. Intenta nuevamente.");
-    } finally {
-      setEnviando(false);
-    }
-  };
-
-  /* =====================
-     WHATSAPP
-     ===================== */
-  const enviarWhatsApp = () => {
-    const mensaje = encodeURIComponent(`
-📦 *Nuevo Pedido Punto G*
-
-👤 ${formData.nombre}
-📧 ${formData.email}
-📞 ${formData.telefono}
-📍 ${formData.direccion}
-🏙 ${formData.ciudad}, ${nombreDepartamento}
-
-🛒 Productos:
-${cart
-  .map(
-    (p) =>
-      `• ${p.nombre} x${p.quantity} = $${(p.precio * p.quantity).toFixed(2)}`
-  )
-  .join("\n")}
-
-💰 Total: $${total.toFixed(2)}
-`);
-
-    window.open(`https://wa.me/573147041149?text=${mensaje}`, "_blank");
-  };
-
-  /* =====================
-     NO MOSTRAR
-     ===================== */
-  if (!mostrarFormulario) return null;
-
-  /* =====================
-     RENDER
-     ===================== */
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/60 z-[100]"
-        onClick={() => setMostrarFormulario(false)}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(formData);
+      }}
+      className="space-y-3 bg-gray-100 p-3 rounded mt-4"
+    >
+      <input
+        placeholder="Nombre completo"
+        value={formData.nombre}
+        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+        required
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-          {/* Cerrar */}
-          <button
-            onClick={() => setMostrarFormulario(false)}
-            className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100"
-          >
-            <X />
-          </button>
+      <input
+        placeholder="Teléfono"
+        value={formData.telefono}
+        onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+        required
+      />
 
-          <h2 className="text-2xl font-bold text-center my-6">
-            🚚 Datos de Envío
-          </h2>
+      <input
+        placeholder="Email"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+      />
 
-          <form onSubmit={enviarFormulario} className="space-y-4 px-6 pb-6">
-            <input
-              name="nombre"
-              required
-              placeholder="Nombre completo"
-              value={formData.nombre}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg"
-            />
+      <input
+        placeholder="Dirección"
+        value={formData.direccion}
+        onChange={(e) =>
+          setFormData({ ...formData, direccion: e.target.value })
+        }
+        required
+      />
 
-            <input
-              name="email"
-              required
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg"
-            />
+      <select
+        value={formData.departamento}
+        onChange={(e) =>
+          setFormData({
+            ...formData,
+            departamento: e.target.value,
+            ciudad: "",
+          })
+        }
+        required
+      >
+        <option value="">Departamento *</option>
+        {departamentos.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.nombre}
+          </option>
+        ))}
+      </select>
 
-            <input
-              name="telefono"
-              required
-              placeholder="Teléfono"
-              value={formData.telefono}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg"
-            />
+      <select
+        value={formData.ciudad}
+        onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
+        required
+        disabled={!ciudades.length}
+      >
+        <option value="">Ciudad *</option>
+        {ciudades.map((c) => (
+          <option key={c.id} value={c.nombre}>
+            {c.nombre}
+          </option>
+        ))}
+      </select>
 
-            <input
-              name="direccion"
-              required
-              placeholder="Dirección"
-              value={formData.direccion}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg"
-            />
-
-            <select
-              name="departamento"
-              required
-              value={formData.departamento}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg"
-            >
-              <option value="">Seleccione un departamento</option>
-              {departamentos.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-
-            <select
-              name="ciudad"
-              required
-              disabled={!ciudades.length}
-              value={formData.ciudad}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded-lg disabled:bg-gray-100"
-            >
-              <option value="">Seleccione una ciudad</option>
-              {ciudades.map((c) => (
-                <option key={c.id} value={c.nombre}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-
-            <div className="border-t pt-4 mt-4">
-              <div className="flex justify-between mb-4">
-                <span className="font-bold">Total:</span>
-                <span className="text-pink-500 font-bold text-xl">
-                  ${total.toFixed(2)}
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={enviando}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50"
-              >
-                {enviando ? "Enviando..." : "Confirmar Pedido ✅"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </>
+      <button className="bg-black text-white w-full py-2 rounded">
+        Enviar pedido
+      </button>
+    </form>
   );
-};
-
-export default FormularioEnvio;
+}
