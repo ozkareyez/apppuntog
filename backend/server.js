@@ -467,13 +467,23 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
     res.status(500).json({ error: "Error interno" });
   }
 });
+/*============orden de servicio======================*/
 
 app.get("/api/orden-servicio/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
     const [pedido] = await DB.promise().query(
-      "SELECT * FROM pedidos WHERE id = ?",
+      `
+      SELECT 
+        p.*,
+        d.nombre AS departamento_nombre,
+        c.nombre AS ciudad_nombre
+      FROM pedidos p
+      LEFT JOIN departamentos d ON p.departamento = d.id
+      LEFT JOIN ciudades c ON p.ciudad = c.id
+      WHERE p.id = ?
+      `,
       [id]
     );
 
