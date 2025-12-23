@@ -143,7 +143,7 @@ const ProductoDetallado = () => {
 
         <div className="grid md:grid-cols-2 gap-10">
           {/* IMAGEN */}
-          <div className="relative bg-[#1f1f1f] rounded-2xl overflow-hidden border border-white/10">
+          {/* <div className="relative bg-[#1f1f1f] rounded-2xl overflow-hidden border border-white/10">
             {esOferta && producto.descuento && (
               <div className="absolute top-6 left-6 bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
                 <Tag size={18} />
@@ -155,6 +155,21 @@ const ProductoDetallado = () => {
               alt={producto.nombre}
               className="w-full h-[500px] object-cover"
               onError={(e) => (e.target.src = "/imagenes/no-image.png")}
+            />
+          </div> */}
+          <div className="relative bg-[#1f1f1f] rounded-2xl overflow-hidden border border-white/10 h-[500px]">
+            {esOferta && producto.descuento && (
+              <div className="absolute top-6 left-6 bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 z-10">
+                <Tag size={18} />
+                {producto.descuento}% OFF
+              </div>
+            )}
+
+            <img
+              src={getImageSrc(producto.imagen)}
+              alt={producto.nombre}
+              className="w-full h-full object-cover"
+              onError={(e) => (e.currentTarget.src = "/imagenes/no-image.png")}
             />
           </div>
 
