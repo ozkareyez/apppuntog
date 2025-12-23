@@ -1,4 +1,4 @@
-import { X, Plus, Minus, Trash } from "lucide-react";
+import { X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import FormularioEnvio from "./FormularioEnvio";
 
@@ -12,19 +12,46 @@ export default function CartDrawer() {
     subtotal,
     domicilio,
     totalFinal,
-    increaseQuantity,
-    decreaseQuantity,
-    removeFromCart,
     clearCart,
   } = useCart();
 
   if (!showCart) return null;
 
+  const enviarPedido = (datos) => {
+    const mensaje = `
+🛒 *Nuevo pedido Punto G*
+
+👤 Nombre: ${datos.nombre}
+📞 Teléfono: ${datos.telefono}
+📧 Email: ${datos.email || "No"}
+📍 Dirección: ${datos.direccion}
+🏙️ Ciudad: ${datos.ciudad}
+
+🧾 Productos:
+${cart
+  .map((p) => `- ${p.nombre} x${p.quantity} ($${Number(p.precio).toFixed(0)})`)
+  .join("\n")}
+
+💰 Subtotal: $${subtotal}
+🚚 Envío: $${domicilio}
+🔥 Total: $${totalFinal}
+`;
+
+    const urlWhatsapp = `https://wa.me/573147041149?text=${encodeURIComponent(
+      mensaje
+    )}`;
+
+    window.open(urlWhatsapp, "_blank");
+
+    clearCart();
+    setMostrarFormulario(false);
+    setShowCart(false);
+  };
+
   return (
-    <div className="fixed top-0 right-0 w-80 h-full bg-white shadow-xl z-[9999] flex flex-col">
-      {/* HEADER */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-bold">Carrito</h2>
+    <div className="fixed top-0 right-0 w-80 h-full bg-white z-[9999] shadow-xl flex flex-col">
+      <div className="p-4 border-b flex justify-between">
+        <h2 className="font-bold">Carrito</h2>
         <button
           onClick={() => {
             setShowCart(false);
@@ -35,76 +62,26 @@ export default function CartDrawer() {
         </button>
       </div>
 
-      {/* BODY */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {cart.length === 0 && (
-          <p className="text-center text-gray-500">Carrito vacío</p>
-        )}
-
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {cart.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between border-b pb-2"
-          >
-            <div>
-              <p className="font-medium">{item.nombre}</p>
-              <p className="text-sm text-gray-500">
-                ${Number(item.precio || 0).toFixed(0)} x {item.quantity}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => item.quantity > 1 && decreaseQuantity(item.id)}
-              >
-                <Minus size={16} />
-              </button>
-
-              <span>{item.quantity}</span>
-
-              <button onClick={() => increaseQuantity(item.id)}>
-                <Plus size={16} />
-              </button>
-
-              <button onClick={() => removeFromCart(item.id)}>
-                <Trash size={16} />
-              </button>
-            </div>
+          <div key={item.id} className="text-sm">
+            {item.nombre} x {item.quantity}
           </div>
         ))}
       </div>
 
-      {/* FOOTER */}
-      <div className="p-4 border-t space-y-2">
-        <p>Subtotal: ${Number(subtotal || 0).toFixed(0)}</p>
-        <p>Domicilio: ${Number(domicilio || 0).toFixed(0)}</p>
-
-        <p className="font-bold text-lg">
-          Total: ${Number(totalFinal || 0).toFixed(0)}
-        </p>
+      <div className="p-4 border-t">
+        <p>Total: ${Number(totalFinal || 0).toFixed(0)}</p>
 
         {!mostrarFormulario ? (
           <button
             onClick={() => setMostrarFormulario(true)}
-            className="w-full bg-black text-white py-2 rounded mt-3"
+            className="w-full bg-black text-white py-2 mt-3 rounded"
           >
             Confirmar pedido
           </button>
         ) : (
-          <FormularioEnvio
-            onSubmit={(datos) => {
-              console.log("Pedido confirmado:", {
-                datos,
-                cart,
-                totalFinal,
-              });
-
-              alert("Pedido confirmado correctamente");
-              clearCart();
-              setMostrarFormulario(false);
-              setShowCart(false);
-            }}
-          />
+          <FormularioEnvio onSubmit={enviarPedido} />
         )}
       </div>
     </div>
