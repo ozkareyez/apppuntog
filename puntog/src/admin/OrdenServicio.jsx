@@ -1,33 +1,64 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { API_URL } from "@/config";
 
 export default function OrdenServicio() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/orden-servicio/${id}`)
-      .then((res) => res.json())
-      .then(setData);
+    const cargarOrden = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/orden-servicio/${id}`);
+
+        // ❌ si no existe
+        if (!res.ok) {
+          throw new Error("Orden no encontrada");
+        }
+
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudo cargar la orden de servicio");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarOrden();
   }, [id]);
 
-  if (!data) return <p className="p-6">Cargando orden...</p>;
+  if (loading) return <p className="p-6">Cargando orden...</p>;
+  if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   const { pedido, productos } = data;
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white text-black">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">ORDEN DE SERVICIO</h1>
+      {/* BOTONES */}
+      <div className="flex justify-between items-center mb-6 print:hidden">
+        <button
+          onClick={() => navigate("/admin/pedidos")}
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+        >
+          ✖ Cerrar
+        </button>
+
         <button
           onClick={() => window.print()}
-          className="px-4 py-2 bg-black text-white rounded print:hidden"
+          className="px-4 py-2 bg-black text-white rounded"
         >
-          Imprimir
+          🖨️ Imprimir
         </button>
       </div>
+
+      {/* HEADER */}
+      <h1 className="text-2xl font-bold mb-6 text-center">ORDEN DE SERVICIO</h1>
 
       {/* INFO CLIENTE */}
       <section className="mb-6">
@@ -77,9 +108,13 @@ export default function OrdenServicio() {
           {productos.map((p, i) => (
             <tr key={i}>
               <td className="border p-2">{p.nombre}</td>
-              <td className="border p-2">${p.precio.toLocaleString()}</td>
+              <td className="border p-2">
+                ${Number(p.precio).toLocaleString()}
+              </td>
               <td className="border p-2 text-center">{p.cantidad}</td>
-              <td className="border p-2">${p.subtotal.toLocaleString()}</td>
+              <td className="border p-2">
+                ${Number(p.subtotal).toLocaleString()}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -87,7 +122,7 @@ export default function OrdenServicio() {
 
       {/* TOTAL */}
       <div className="text-right text-xl font-bold">
-        TOTAL: ${pedido.total.toLocaleString()}
+        TOTAL: ${Number(pedido.total).toLocaleString()}
       </div>
 
       {/* FOOTER */}
