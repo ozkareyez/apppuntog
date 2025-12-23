@@ -73,3 +73,7 @@ html {
     background: transparent !important;
   }
 }
+
+.input {
+  @apply bg-neutral-800 text-white px-4 py-3 rounded-xl outline-none border border-white/10 focus:border-pink-500 transition;
+}
