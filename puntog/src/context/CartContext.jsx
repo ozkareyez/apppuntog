@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo } from "react";
 
 /* =========================
    CONTEXT
@@ -23,6 +23,9 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
+  /* 🚚 CIUDAD DOMICILIO */
+  const [ciudad, setCiudad] = useState("Cali");
 
   /* ===== ADD ===== */
   const addToCart = (producto) => {
@@ -56,7 +59,23 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => setCart([]);
 
-  const total = cart.reduce((sum, p) => sum + Number(p.precio) * p.quantity, 0);
+  /* =========================
+     TOTALES
+  ========================= */
+
+  // 🧾 Subtotal
+  const subtotal = useMemo(() => {
+    return cart.reduce((sum, p) => sum + Number(p.precio) * p.quantity, 0);
+  }, [cart]);
+
+  // 🚚 Domicilio
+  const domicilio = useMemo(() => {
+    if (subtotal >= 200000) return 0;
+    return ciudad === "Cali" ? 5000 : 16000;
+  }, [subtotal, ciudad]);
+
+  // 💰 Total final
+  const totalFinal = subtotal + domicilio;
 
   const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -64,14 +83,24 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cart,
-        setCart, // ✅ AHORA SÍ
+        setCart,
         addToCart,
         increaseQuantity,
         decreaseQuantity,
         removeFromCart,
         clearCart,
-        total,
+
+        // 🔢 Totales
+        subtotal,
+        domicilio,
+        totalFinal,
         totalItems,
+
+        // 🚚 Ciudad
+        ciudad,
+        setCiudad,
+
+        // UI
         showCart,
         setShowCart,
         mostrarFormulario,
