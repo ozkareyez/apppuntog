@@ -472,46 +472,26 @@ app.get("/api/orden-servicio/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [pedidoRows] = await DB.promise().query(
-      `
-      SELECT 
-        p.id,
-        DATE(p.fecha) AS fecha,
-        p.estado,
-        p.nombre,
-        p.email,
-        p.telefono,
-        p.direccion,
-        d.nombre AS departamento,
-        c.nombre AS ciudad,
-        p.total
-      FROM pedidos p
-      LEFT JOIN departamentos d ON p.departamento = d.id
-      LEFT JOIN ciudades c ON p.ciudad = c.id
-      WHERE p.id = ?
-      `,
+    const [pedido] = await DB.promise().query(
+      "SELECT * FROM pedidos WHERE id = ?",
       [id]
     );
 
-    if (!pedidoRows.length) {
+    if (!pedido.length) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
 
-    const [detalleRows] = await DB.promise().query(
-      `
-      SELECT producto_id, nombre, precio, cantidad, subtotal
-      FROM pedido_detalles
-      WHERE pedido_id = ?
-      `,
+    const [detalle] = await DB.promise().query(
+      "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
       [id]
     );
 
     res.json({
-      pedido: pedidoRows[0],
-      productos: detalleRows,
+      pedido: pedido[0],
+      productos: detalle,
     });
   } catch (error) {
-    console.error("❌ Error orden servicio:", error);
+    console.error(error);
     res.status(500).json({ error: "Error del servidor" });
   }
 });
