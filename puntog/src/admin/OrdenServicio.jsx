@@ -78,9 +78,12 @@ export default function OrdenServicio() {
           <p>
             <b>Dirección:</b> {pedido.direccion}
           </p>
+          <p>
+            <b>Departamento:</b> {pedido.departamento_nombre}
+          </p>
 
           <p>
-            <b>Ciudad:</b> {pedido.ciudad} – {pedido.departamento_nombre}
+            <b>Ciudad:</b> {pedido.ciudad}
           </p>
         </section>
 
