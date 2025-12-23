@@ -1,43 +1,29 @@
 import { createContext, useContext, useState, useMemo } from "react";
 
-/* =========================
-   CONTEXT
-========================= */
 const CartContext = createContext(null);
 
-/* =========================
-   HOOK
-========================= */
 export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart debe usarse dentro de CartProvider");
-  }
-  return context;
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart debe usarse dentro de CartProvider");
+  return ctx;
 };
 
-/* =========================
-   PROVIDER
-========================= */
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-
-  /* 🚚 CIUDAD DOMICILIO */
   const [ciudad, setCiudad] = useState("Cali");
 
-  /* ===== ADD ===== */
+  /* =====================
+     CARRITO
+  ===================== */
   const addToCart = (producto) => {
     setCart((prev) => {
       const existe = prev.find((p) => p.id === producto.id);
-
       if (existe) {
         return prev.map((p) =>
           p.id === producto.id ? { ...p, quantity: p.quantity + 1 } : p
         );
       }
-
       return [...prev, { ...producto, quantity: 1 }];
     });
   };
@@ -49,9 +35,9 @@ export const CartProvider = ({ children }) => {
 
   const decreaseQuantity = (id) =>
     setCart((prev) =>
-      prev.map((p) =>
-        p.id === id && p.quantity > 1 ? { ...p, quantity: p.quantity - 1 } : p
-      )
+      prev
+        .map((p) => (p.id === id ? { ...p, quantity: p.quantity - 1 } : p))
+        .filter((p) => p.quantity > 0)
     );
 
   const removeFromCart = (id) =>
@@ -59,53 +45,44 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => setCart([]);
 
-  /* =========================
+  /* =====================
      TOTALES
-  ========================= */
+  ===================== */
 
-  // 🧾 Subtotal
-  // 🧾 Subtotal
+  // Subtotal
   const subtotal = useMemo(() => {
-    return cart.reduce((sum, p) => sum + Number(p.precio) * p.quantity, 0);
+    return cart.reduce((acc, p) => acc + Number(p.precio || 0) * p.quantity, 0);
   }, [cart]);
 
-  // 🚚 Envío
+  // Envío
   const envio = useMemo(() => {
     if (subtotal >= 250000) return 0;
     return ciudad === "Cali" ? 5000 : 16000;
   }, [subtotal, ciudad]);
 
-  // 💰 Total final
+  // Total final
   const totalFinal = subtotal + envio;
-
-  const totalItems = cart.reduce((sum, p) => sum + p.quantity, 0);
 
   return (
     <CartContext.Provider
       value={{
         cart,
         setCart,
+        showCart,
+        setShowCart,
+
         addToCart,
         increaseQuantity,
         decreaseQuantity,
         removeFromCart,
         clearCart,
 
-        // 🔢 Totales
         subtotal,
-        domicilio,
+        envio,
         totalFinal,
-        totalItems,
 
-        // 🚚 Ciudad
         ciudad,
         setCiudad,
-
-        // UI
-        showCart,
-        setShowCart,
-        mostrarFormulario,
-        setMostrarFormulario,
       }}
     >
       {children}
