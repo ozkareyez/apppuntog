@@ -38,25 +38,29 @@ html {
 
 
 @media print {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: auto;
+  }
+
   body * {
-    visibility: hidden;
+    display: none !important;
   }
 
   .print-area,
   .print-area * {
-    visibility: visible;
+    display: block !important;
   }
 
   .print-area {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-  }
-
-  @page {
-    size: A4;
-    margin: 20mm;
+    height: auto;
+    margin: 0;
+    padding: 0;
   }
 }
+
 
