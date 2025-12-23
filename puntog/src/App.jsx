@@ -10,7 +10,7 @@ import ContactosAdmin from "./admin/ContactosAdmin";
 
 import { CartProvider } from "./context/CartContext";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
-import { OrdenServicio } from "./admin/OrdenServicio";
+import OrdenServicio from "./admin/OrdenServicio";
 
 import PublicLayout from "./componentes/PublicLayout";
 import CartDrawer from "./componentes/CartDrawer";
