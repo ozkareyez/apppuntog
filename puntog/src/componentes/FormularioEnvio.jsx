@@ -1,63 +1,119 @@
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 
-export default function FormularioEnvio({ cerrar }) {
-  const { cart, totalFinal, clearCart } = useCart();
+export default function FormularioEnvio({ onClose }) {
+  const { cart, clearCart } = useCart();
 
   const [form, setForm] = useState({
     nombre: "",
+    email: "",
     telefono: "",
     direccion: "",
+    departamento: "",
     ciudad: "",
   });
 
-  const enviarPedido = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const enviarPedido = async () => {
+    if (!form.nombre || !form.telefono || !form.direccion || !form.ciudad) {
+      alert("Completa todos los campos");
+      return;
+    }
+
+    if (!cart.length) {
+      alert("Carrito vacío");
+      return;
+    }
+
+    setLoading(true);
+
+    /* ===============================
+       1️⃣ GUARDAR EN LA BD (TU API)
+    =============================== */
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/enviar-formulario`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            carrito: cart.map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              precio: p.precio,
+              quantity: p.cantidad,
+            })),
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error guardando el pedido");
+      setLoading(false);
+      return;
+    }
+
+    /* ===============================
+       2️⃣ WHATSAPP
+    =============================== */
+    const total = cart.reduce((s, i) => s + i.precio * i.cantidad, 0);
+
     const mensaje = `
-🖤 Pedido Punto G
+🖤 *Pedido Punto G*
 
-Nombre: ${form.nombre}
-Teléfono: ${form.telefono}
-Dirección: ${form.direccion}
-Ciudad: ${form.ciudad}
+👤 ${form.nombre}
+📞 ${form.telefono}
 
-Productos:
-${cart.map((p) => `• ${p.nombre} x${p.quantity}`).join("\n")}
+📍 ${form.direccion}
+${form.ciudad}
 
-Total: $${totalFinal.toLocaleString()}
+🛒 Productos:
+${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
+
+💰 Total: $${total.toLocaleString()}
 `;
 
-    const url = `https://wa.me/573147041149?text=${encodeURIComponent(
-      mensaje
-    )}`;
+    const phone = "573147041149"; // 👈 TU NÚMERO REAL
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
 
     window.open(url, "_blank");
+
+    /* ===============================
+       3️⃣ LIMPIAR
+    =============================== */
     clearCart();
-    cerrar();
+    onClose();
+    setLoading(false);
   };
 
   return (
-    <div className="mt-4 space-y-3">
-      <h3 className="text-pink-400 font-semibold mb-2">Datos de entrega</h3>
-
-      {["nombre", "telefono", "direccion", "ciudad"].map((campo) => (
-        <input
-          key={campo}
-          placeholder={campo.toUpperCase()}
-          className="w-full bg-black border border-white/20 p-2 rounded text-white"
-          value={form[campo]}
-          onChange={(e) => setForm({ ...form, [campo]: e.target.value })}
-        />
-      ))}
+    <div className="space-y-3">
+      <input name="nombre" placeholder="Nombre" onChange={handleChange} />
+      <input name="email" placeholder="Email" onChange={handleChange} />
+      <input name="telefono" placeholder="Teléfono" onChange={handleChange} />
+      <input name="direccion" placeholder="Dirección" onChange={handleChange} />
+      <input
+        name="departamento"
+        placeholder="Departamento (ID)"
+        onChange={handleChange}
+      />
+      <input name="ciudad" placeholder="Ciudad (ID)" onChange={handleChange} />
 
       <button
         onClick={enviarPedido}
-        className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold mt-3"
+        disabled={loading}
+        className="w-full bg-green-600 py-3 rounded-xl text-white"
       >
-        Enviar pedido por WhatsApp
-      </button>
-
-      <button onClick={cerrar} className="w-full text-sm text-gray-400 mt-2">
-        ← Volver al carrito
+        {loading ? "Enviando..." : "Confirmar pedido"}
       </button>
     </div>
   );
