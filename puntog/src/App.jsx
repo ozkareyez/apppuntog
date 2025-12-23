@@ -2,40 +2,24 @@
 import { Routes, Route } from "react-router-dom";
 
 import AdminLayout from "./admin/dashboard/AdminLayout";
-
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
+import OrdenServicio from "./admin/OrdenServicio";
 
 import { CartProvider } from "./context/CartContext";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
-import OrdenServicio from "./admin/OrdenServicio";
 
 import PublicLayout from "./componentes/PublicLayout";
 import CartDrawer from "./componentes/CartDrawer";
-import FormularioEnvio from "./componentes/FormularioEnvio";
 import Home from "./pages/Home";
 import Productos from "./pages/Productos";
 import ProductoDetallado from "./pages/ProductoDetallado";
-import Foter from "./componentes/Foter";
-import { useCart } from "./context/CartContext";
 import ContactForm from "./componentes/ContactForm";
+import Foter from "./componentes/Foter";
 
 function AppContent() {
-  const {
-    cart,
-    setCart,
-    showCart,
-    setShowCart,
-    increaseQuantity,
-    decreaseQuantity,
-    removeFromCart,
-    total,
-    mostrarFormulario,
-    setMostrarFormulario,
-  } = useCart();
-
   return (
     <>
       <FloatingWhatsApp
@@ -45,32 +29,15 @@ function AppContent() {
         avatar="/imagenes/logo.png"
       />
 
-      <CartDrawer
-        showCart={showCart}
-        setShowCart={setShowCart}
-        cart={cart}
-        increaseQuantity={increaseQuantity}
-        decreaseQuantity={decreaseQuantity}
-        removeFromCart={removeFromCart}
-        total={total}
-        setMostrarFormulario={setMostrarFormulario}
-      />
-
-      <FormularioEnvio
-        mostrarFormulario={mostrarFormulario}
-        setMostrarFormulario={setMostrarFormulario}
-        cart={cart}
-        setCart={setCart}
-        total={total}
-      />
+      {/* ✅ SOLO EL DRAWER */}
+      <CartDrawer />
 
       <Routes>
+        {/* PUBLIC */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/productos/:id" element={<ProductoDetallado />} />
-
-          {/* ✅ CONTACTO */}
           <Route path="/contacto" element={<ContactForm />} />
         </Route>
 
@@ -90,12 +57,10 @@ function AppContent() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <CartProvider>
       <AppContent />
     </CartProvider>
   );
 }
-
-export default App;
