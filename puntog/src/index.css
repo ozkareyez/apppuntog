@@ -35,3 +35,14 @@ html {
 .beneficio-card svg {
   @apply text-white drop-shadow-md;
 }
+
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+}

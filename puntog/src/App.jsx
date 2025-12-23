@@ -80,6 +80,8 @@ function AppContent() {
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
         </Route>
+
+        <Route path="/admin/orden-servicio/:id" element={<OrdenServicio />} />
       </Routes>
 
       <Foter />
