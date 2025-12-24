@@ -60,18 +60,6 @@ export default function ContactForm() {
           required
         />
 
-        {/* SOLO MOSTRAMOS TOTALES SI EXISTEN */}
-        <div className="text-sm text-white/70 space-y-1">
-          <p>Subtotal: ${Number(subtotal || 0).toLocaleString()}</p>
-          <p>
-            Envío:{" "}
-            {envio === 0 ? "Gratis" : `$${Number(envio).toLocaleString()}`}
-          </p>
-          <p className="font-semibold text-pink-400">
-            Total: ${Number(totalFinal || 0).toLocaleString()}
-          </p>
-        </div>
-
         <button
           type="submit"
           className="w-full bg-pink-500 hover:bg-pink-600 transition py-3 rounded font-semibold"
