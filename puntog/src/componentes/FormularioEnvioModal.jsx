@@ -11,6 +11,7 @@ export default function FormularioEnvioModal() {
     nombre: "",
     telefono: "",
     direccion: "",
+    departamento: "",
     ciudad: "",
   });
 
@@ -58,7 +59,9 @@ Envío: ${costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString()}`}
 TOTAL: $${totalConEnvio.toLocaleString()}
 `;
 
-    const url = `https://wa.me/57TU_NUMERO?text=${encodeURIComponent(mensaje)}`;
+    const phone = "573147041149";
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
 
     window.open(url, "_blank");
 
@@ -110,13 +113,34 @@ TOTAL: $${totalConEnvio.toLocaleString()}
             value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
           />
-
-          <input
+          <select
             className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
-            placeholder="Ciudad"
+            value={form.departamento}
+            onChange={(e) =>
+              setForm({ ...form, departamento: e.target.value, ciudad: "" })
+            }
+          >
+            <option value="">Departamento</option>
+            {departamentos.map((dep) => (
+              <option key={dep.id} value={dep.id}>
+                {dep.nombre}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
             value={form.ciudad}
+            disabled={!form.departamento}
             onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
-          />
+          >
+            <option value="">Ciudad</option>
+            {ciudades.map((ciu) => (
+              <option key={ciu.id} value={ciu.nombre}>
+                {ciu.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* RESUMEN */}

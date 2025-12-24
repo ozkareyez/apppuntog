@@ -14,11 +14,23 @@ export default function CartDrawer() {
     setShowShippingModal,
   } = useCart();
 
-  const getImageSrc = (img) => {
+  const getImageSrc = (item) => {
+    if (!item) return "/imagenes/no-image.png";
+
+    const img =
+      item.imagen || item.imagen_url || item.image || item.foto || null;
+
     if (!img) return "/imagenes/no-image.png";
+
+    // Si ya es URL completa
     if (img.startsWith("http")) return img;
-    if (img.startsWith("/uploads"))
+
+    // Si viene con /uploads
+    if (img.startsWith("/uploads")) {
       return `${import.meta.env.VITE_API_URL}${img}`;
+    }
+
+    // Si solo viene el nombre del archivo
     return `${import.meta.env.VITE_API_URL}/uploads/${img}`;
   };
 
@@ -28,7 +40,7 @@ export default function CartDrawer() {
         <>
           {/* OVERLAY */}
           <motion.div
-            className="fixed inset-0 bg-black/70 z-[60]"
+            className="fixed inset-0 bg-black/70 z-[998]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -37,16 +49,19 @@ export default function CartDrawer() {
 
           {/* DRAWER */}
           <motion.aside
-            className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-black z-[70] p-6 overflow-y-auto"
+            className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-black z-[999] p-6 overflow-y-auto"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween" }}
           >
             {/* HEADER */}
-            <div className="flex justify-between mb-6">
+            <div className="flex justify-between mb-6 sticky top-0 bg-black z-10">
               <h2 className="text-pink-400 font-bold text-xl">Tu carrito</h2>
-              <button onClick={() => setShowCart(false)}>
+              <button
+                onClick={() => setShowCart(false)}
+                className="p-2 rounded-full bg-white/10"
+              >
                 <X />
               </button>
             </div>
@@ -65,7 +80,7 @@ export default function CartDrawer() {
                   className="flex gap-4 bg-white/5 p-3 rounded-xl"
                 >
                   <img
-                    src={getImageSrc(item.imagen || item.imagen_url)}
+                    src={getImageSrc(item)}
                     alt={item.nombre}
                     className="w-20 h-20 object-cover rounded-lg border border-white/10"
                   />
