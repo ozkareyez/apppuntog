@@ -6,7 +6,12 @@ import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { totalItems, setShowCart } = useCart();
+
+  // ✅ USAR CART DIRECTAMENTE
+  const { cart, setShowCart } = useCart();
+
+  // ✅ CALCULAR TOTAL DE ITEMS
+  const totalItems = cart.reduce((sum, item) => sum + item.cantidad, 0);
 
   const navItems = [
     { name: "Inicio", path: "/" },
@@ -38,13 +43,14 @@ export default function Header() {
 
           {/* ICONOS */}
           <div className="flex items-center gap-4">
-            {/* CARRITO */}
+            {/* 🛒 CARRITO */}
             <button
               onClick={() => setShowCart(true)}
               className="relative p-3 rounded-full border border-pink-500/40 hover:border-pink-400 transition"
             >
               <ShoppingCart size={22} className="text-pink-400" />
 
+              {/* ✅ CONTADOR FUNCIONAL */}
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
                   {totalItems}
@@ -52,7 +58,7 @@ export default function Header() {
               )}
             </button>
 
-            {/* MENU MOBILE */}
+            {/* ☰ MENU MOBILE */}
             <button
               onClick={() => setMenuOpen(true)}
               className="md:hidden p-2 text-white"

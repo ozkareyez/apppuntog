@@ -10,7 +10,7 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
 
-  // 👉 NUEVO: modal del formulario de envío
+  // 👉 Modal formulario envío
   const [showShippingModal, setShowShippingModal] = useState(false);
 
   /* ===== FUNCIONES DEL CARRITO ===== */
@@ -54,10 +54,6 @@ export function CartProvider({ children }) {
     [cart]
   );
 
-  const envio = subtotal > 150000 ? 0 : subtotal === 0 ? 0 : 12000;
-
-  const totalFinal = subtotal + envio;
-
   /* ===== CONTEXTO ===== */
   return (
     <CartContext.Provider
@@ -76,14 +72,12 @@ export function CartProvider({ children }) {
         showCart,
         setShowCart,
 
-        // 👉 modal envío
+        // modal envío
         showShippingModal,
         setShowShippingModal,
 
         // totales
         subtotal,
-        envio,
-        totalFinal,
       }}
     >
       {children}

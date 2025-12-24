@@ -1,9 +1,10 @@
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCart } from "@/context/CartContext";
+import { calcularEnvio } from "@/utils/calcularEnvio";
 
 export default function FormularioEnvioModal() {
-  const { cart, totalFinal, setMostrarFormulario, clearCart, setShowCart } =
+  const { cart, subtotal, clearCart, setShowCart, setShowShippingModal } =
     useCart();
 
   const [form, setForm] = useState({
@@ -13,19 +14,48 @@ export default function FormularioEnvioModal() {
     ciudad: "",
   });
 
-  const enviarPedido = () => {
-    const mensaje = `
-🖤 Pedido PuntoG 🖤
+  /* ================= CALCULOS ================= */
 
+  const costoEnvio = useMemo(() => {
+    return calcularEnvio({
+      ciudad: form.ciudad,
+      total: subtotal,
+    });
+  }, [form.ciudad, subtotal]);
+
+  const totalConEnvio = subtotal + costoEnvio;
+
+  /* ================= ENVIAR ================= */
+
+  const enviarPedido = () => {
+    if (!form.nombre || !form.telefono || !form.direccion || !form.ciudad) {
+      alert("Por favor completa todos los datos");
+      return;
+    }
+
+    const mensaje = `
+🖤 *Pedido Punto G* 🖤
+
+👤 *Cliente*
 Nombre: ${form.nombre}
 Teléfono: ${form.telefono}
 Dirección: ${form.direccion}
 Ciudad: ${form.ciudad}
 
-Productos:
-${cart.map((p) => `- ${p.nombre} x${p.quantity}`).join("\n")}
+🛍️ *Productos*
+${cart
+  .map(
+    (p) =>
+      `• ${p.nombre} x${p.cantidad} ($${(
+        p.precio * p.cantidad
+      ).toLocaleString()})`
+  )
+  .join("\n")}
 
-Total: $${totalFinal}
+💰 *Resumen*
+Subtotal: $${subtotal.toLocaleString()}
+Envío: ${costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString()}`}
+TOTAL: $${totalConEnvio.toLocaleString()}
 `;
 
     const url = `https://wa.me/57TU_NUMERO?text=${encodeURIComponent(mensaje)}`;
@@ -33,23 +63,23 @@ Total: $${totalFinal}
     window.open(url, "_blank");
 
     clearCart();
-    setMostrarFormulario(false);
+    setShowShippingModal(false);
     setShowCart(false);
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* FONDO */}
       <div
         className="absolute inset-0 bg-black/80"
-        onClick={() => setMostrarFormulario(false)}
+        onClick={() => setShowShippingModal(false)}
       />
 
       {/* MODAL */}
       <div className="relative bg-[#0f0f0f] text-white w-full max-w-md rounded-xl shadow-2xl p-6">
         <button
           className="absolute top-4 right-4"
-          onClick={() => setMostrarFormulario(false)}
+          onClick={() => setShowShippingModal(false)}
         >
           <X />
         </button>
@@ -58,6 +88,7 @@ Total: $${totalFinal}
           Finalizar pedido
         </h3>
 
+        {/* FORMULARIO */}
         <div className="space-y-3">
           <input
             className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
@@ -86,14 +117,34 @@ Total: $${totalFinal}
             value={form.ciudad}
             onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
           />
-
-          <button
-            onClick={enviarPedido}
-            className="w-full mt-4 py-2 rounded bg-green-600 hover:bg-green-700 transition"
-          >
-            Enviar pedido por WhatsApp
-          </button>
         </div>
+
+        {/* RESUMEN */}
+        <div className="mt-5 text-sm border-t border-white/10 pt-4 space-y-1">
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span>${subtotal.toLocaleString()}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Envío</span>
+            <span>
+              {costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString()}`}
+            </span>
+          </div>
+
+          <div className="flex justify-between font-bold text-pink-400 text-base mt-2">
+            <span>Total</span>
+            <span>${totalConEnvio.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <button
+          onClick={enviarPedido}
+          className="w-full mt-5 py-2 rounded bg-green-600 hover:bg-green-700 transition font-semibold"
+        >
+          Enviar pedido por WhatsApp
+        </button>
       </div>
     </div>
   );
