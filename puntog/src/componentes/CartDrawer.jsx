@@ -14,33 +14,19 @@ export default function CartDrawer() {
     setShowShippingModal,
   } = useCart();
 
-  const getImageSrc = (item) => {
-    if (!item) return "/imagenes/no-image.png";
-
-    const img =
-      item.imagen || item.imagen_url || item.image || item.foto || null;
-
+  const getImageSrc = (img) => {
     if (!img) return "/imagenes/no-image.png";
-
-    // Si ya es URL completa
     if (img.startsWith("http")) return img;
-
-    // Si viene con /uploads
-    if (img.startsWith("/uploads")) {
-      return `${import.meta.env.VITE_API_URL}${img}`;
-    }
-
-    // Si solo viene el nombre del archivo
-    return `${import.meta.env.VITE_API_URL}/uploads/${img}`;
+    return `${import.meta.env.VITE_API_URL}/images/${img}`;
   };
 
   return (
     <AnimatePresence>
       {showCart && (
-        <>
+        <div className="fixed inset-0 z-[9999]">
           {/* OVERLAY */}
           <motion.div
-            className="fixed inset-0 bg-black/70 z-[998]"
+            className="absolute inset-0 bg-black/70"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -49,20 +35,17 @@ export default function CartDrawer() {
 
           {/* DRAWER */}
           <motion.aside
-            className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-black z-[999] p-6 overflow-y-auto"
+            className="absolute top-0 right-0 h-full w-full sm:w-[420px] bg-black p-6 overflow-y-auto"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween" }}
           >
             {/* HEADER */}
-            <div className="flex justify-between mb-6 sticky top-0 bg-black z-10">
+            <div className="flex justify-between items-center mb-6">
               <h2 className="text-pink-400 font-bold text-xl">Tu carrito</h2>
-              <button
-                onClick={() => setShowCart(false)}
-                className="p-2 rounded-full bg-white/10"
-              >
-                <X />
+              <button onClick={() => setShowCart(false)}>
+                <X className="text-white" />
               </button>
             </div>
 
@@ -80,9 +63,9 @@ export default function CartDrawer() {
                   className="flex gap-4 bg-white/5 p-3 rounded-xl"
                 >
                   <img
-                    src={getImageSrc(item)}
+                    src={getImageSrc(item.imagen || item.imagen_url)}
                     alt={item.nombre}
-                    className="w-20 h-20 object-cover rounded-lg border border-white/10"
+                    className="w-16 h-16 object-cover rounded-lg border border-white/10"
                   />
 
                   <div className="flex-1">
@@ -137,7 +120,7 @@ export default function CartDrawer() {
               </div>
             )}
           </motion.aside>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

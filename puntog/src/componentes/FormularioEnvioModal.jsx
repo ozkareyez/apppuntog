@@ -1,11 +1,14 @@
 import { X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { calcularEnvio } from "@/utils/calcularEnvio";
 
 export default function FormularioEnvioModal() {
-  const { cart, subtotal, clearCart, setShowCart, setShowShippingModal } =
+  const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
     useCart();
+
+  const [departamentos, setDepartamentos] = useState([]);
+  const [ciudades, setCiudades] = useState([]);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -15,8 +18,25 @@ export default function FormularioEnvioModal() {
     ciudad: "",
   });
 
-  /* ================= CALCULOS ================= */
+  /* ================= CARGAR DEPARTAMENTOS ================= */
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/departamentos`)
+      .then((res) => res.json())
+      .then(setDepartamentos)
+      .catch(console.error);
+  }, []);
 
+  /* ================= CARGAR CIUDADES ================= */
+  useEffect(() => {
+    if (!form.departamento) return;
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/ciudades/${form.departamento}`)
+      .then((res) => res.json())
+      .then(setCiudades)
+      .catch(console.error);
+  }, [form.departamento]);
+
+  /* ================= ENVÍO ================= */
   const costoEnvio = useMemo(() => {
     return calcularEnvio({
       ciudad: form.ciudad,
@@ -24,43 +44,38 @@ export default function FormularioEnvioModal() {
     });
   }, [form.ciudad, subtotal]);
 
-  const totalConEnvio = subtotal + costoEnvio;
+  const totalFinal = subtotal + costoEnvio;
 
   /* ================= ENVIAR ================= */
-
   const enviarPedido = () => {
-    if (!form.nombre || !form.telefono || !form.direccion || !form.ciudad) {
-      alert("Por favor completa todos los datos");
+    if (
+      !form.nombre ||
+      !form.telefono ||
+      !form.direccion ||
+      !form.departamento ||
+      !form.ciudad
+    ) {
+      alert("Completa todos los datos");
       return;
     }
 
     const mensaje = `
-🖤 *Pedido Punto G* 🖤
+🖤 Pedido Punto G 🖤
 
-👤 *Cliente*
-Nombre: ${form.nombre}
-Teléfono: ${form.telefono}
-Dirección: ${form.direccion}
-Ciudad: ${form.ciudad}
+👤 ${form.nombre}
+📞 ${form.telefono}
+📍 ${form.direccion}
+🏙️ ${form.ciudad}
 
-🛍️ *Productos*
-${cart
-  .map(
-    (p) =>
-      `• ${p.nombre} x${p.cantidad} ($${(
-        p.precio * p.cantidad
-      ).toLocaleString()})`
-  )
-  .join("\n")}
+🛒 Productos:
+${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
 
-💰 *Resumen*
-Subtotal: $${subtotal.toLocaleString()}
-Envío: ${costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString()}`}
-TOTAL: $${totalConEnvio.toLocaleString()}
+💰 Subtotal: $${subtotal.toLocaleString()}
+🚚 Envío: $${costoEnvio.toLocaleString()}
+✅ Total: $${totalFinal.toLocaleString()}
 `;
 
     const phone = "573147041149";
-
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`;
 
     window.open(url, "_blank");
@@ -71,15 +86,13 @@ TOTAL: $${totalConEnvio.toLocaleString()}
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* FONDO */}
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/80"
         onClick={() => setShowShippingModal(false)}
       />
 
-      {/* MODAL */}
-      <div className="relative bg-[#0f0f0f] text-white w-full max-w-md rounded-xl shadow-2xl p-6">
+      <div className="relative bg-[#0f0f0f] w-full max-w-md p-6 rounded-xl">
         <button
           className="absolute top-4 right-4"
           onClick={() => setShowShippingModal(false)}
@@ -87,85 +100,72 @@ TOTAL: $${totalConEnvio.toLocaleString()}
           <X />
         </button>
 
-        <h3 className="text-xl font-semibold mb-4 text-center">
-          Finalizar pedido
-        </h3>
+        <h3 className="text-center text-xl mb-4">Finalizar pedido</h3>
 
-        {/* FORMULARIO */}
         <div className="space-y-3">
           <input
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
-            placeholder="Nombre completo"
-            value={form.nombre}
+            placeholder="Nombre"
+            className="input"
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
 
           <input
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
             placeholder="Teléfono"
-            value={form.telefono}
+            className="input"
             onChange={(e) => setForm({ ...form, telefono: e.target.value })}
           />
 
           <input
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
             placeholder="Dirección"
-            value={form.direccion}
+            className="input"
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
           />
+
           <select
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
+            className="input"
             value={form.departamento}
             onChange={(e) =>
-              setForm({ ...form, departamento: e.target.value, ciudad: "" })
+              setForm({
+                ...form,
+                departamento: e.target.value,
+                ciudad: "",
+              })
             }
           >
             <option value="">Departamento</option>
-            {departamentos.map((dep) => (
-              <option key={dep.id} value={dep.id}>
-                {dep.nombre}
+            {departamentos.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombre}
               </option>
             ))}
           </select>
 
           <select
-            className="w-full bg-black/40 border border-white/10 rounded px-3 py-2"
-            value={form.ciudad}
+            className="input"
             disabled={!form.departamento}
+            value={form.ciudad}
             onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
           >
             <option value="">Ciudad</option>
-            {ciudades.map((ciu) => (
-              <option key={ciu.id} value={ciu.nombre}>
-                {ciu.nombre}
+            {ciudades.map((c) => (
+              <option key={c.id} value={c.nombre}>
+                {c.nombre}
               </option>
             ))}
           </select>
         </div>
 
-        {/* RESUMEN */}
-        <div className="mt-5 text-sm border-t border-white/10 pt-4 space-y-1">
-          <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span>${subtotal.toLocaleString()}</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span>Envío</span>
-            <span>
-              {costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString()}`}
-            </span>
-          </div>
-
-          <div className="flex justify-between font-bold text-pink-400 text-base mt-2">
-            <span>Total</span>
-            <span>${totalConEnvio.toLocaleString()}</span>
-          </div>
+        <div className="mt-4 text-sm border-t border-white/10 pt-4">
+          <p>Subtotal: ${subtotal.toLocaleString()}</p>
+          <p>Envío: ${costoEnvio.toLocaleString()}</p>
+          <p className="text-pink-400 font-bold">
+            Total: ${totalFinal.toLocaleString()}
+          </p>
         </div>
 
         <button
           onClick={enviarPedido}
-          className="w-full mt-5 py-2 rounded bg-green-600 hover:bg-green-700 transition font-semibold"
+          className="w-full mt-4 bg-green-600 py-2 rounded"
         >
           Enviar pedido por WhatsApp
         </button>

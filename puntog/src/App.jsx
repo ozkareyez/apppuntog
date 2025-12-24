@@ -7,6 +7,7 @@ import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import OrdenServicio from "./admin/OrdenServicio";
+import ShippingModal from "./componentes/ShippingModal";
 
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 
@@ -31,6 +32,7 @@ export default function App() {
 
       {/* 🛒 Drawer del carrito (SIEMPRE MONTADO) */}
       <CartDrawer />
+      <ShippingModal />
 
       <Routes>
         {/* PUBLIC */}
