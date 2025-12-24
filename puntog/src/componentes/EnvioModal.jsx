@@ -1,34 +1,35 @@
+import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import FormularioEnvio from "./FormularioEnvio";
 
 export default function EnvioModal({ cerrar }) {
   const { setCiudad } = useCart();
 
+  const { showShippingModal, setShowShippingModal } = useCart();
+
+  if (!showShippingModal) return null;
+
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
-      <div className="bg-white rounded-xl w-full max-w-lg p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold">Datos de envío</h3>
-          <button onClick={cerrar}>
-            <X />
-          </button>
-        </div>
-
-        <select
-          className="w-full border p-3 rounded"
-          onChange={(e) => setCiudad(e.target.value)}
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+        onClick={() => setShowShippingModal(false)}
+      >
+        <motion.div
+          className="bg-black p-6 rounded-2xl w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
         >
-          <option value="Cali">Cali</option>
-          <option value="Otra">Otra ciudad</option>
-        </select>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-pink-400 font-bold text-lg">Datos de envío</h2>
+            <button onClick={() => setShowShippingModal(false)}>
+              <X />
+            </button>
+          </div>
 
-        <button
-          className="w-full bg-green-600 text-white py-3 rounded font-semibold"
-          onClick={() => alert("Aquí va WhatsApp + BD")}
-        >
-          Enviar pedido
-        </button>
-      </div>
-    </div>
+          <FormularioEnvio onClose={() => setShowShippingModal(false)} />
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -1,124 +1,103 @@
 import { createContext, useContext, useMemo, useState } from "react";
 
-/* =========================
-   CONTEXT
-========================= */
-const CartContext = createContext(null);
-
-/* =========================
-   HOOK
-========================= */
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart debe usarse dentro de CartProvider");
-  }
-  return context;
-};
+const CartContext = createContext();
 
 /* =========================
    PROVIDER
 ========================= */
-export const CartProvider = ({ children }) => {
+export function CartProvider({ children }) {
+  /* ===== ESTADOS ===== */
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  // 📍 Ubicación
-  const [departamento, setDepartamento] = useState("");
-  const [ciudad, setCiudad] = useState("");
+  // 👉 NUEVO: modal del formulario de envío
+  const [showShippingModal, setShowShippingModal] = useState(false);
 
-  /* =========================
-     CARRITO
-  ========================= */
-  const addToCart = (producto) => {
+  /* ===== FUNCIONES DEL CARRITO ===== */
+  const addToCart = (product) => {
     setCart((prev) => {
-      const existe = prev.find((p) => p.id === producto.id);
-      if (existe) {
+      const exists = prev.find((p) => p.id === product.id);
+
+      if (exists) {
         return prev.map((p) =>
-          p.id === producto.id ? { ...p, cantidad: p.cantidad + 1 } : p
+          p.id === product.id ? { ...p, cantidad: p.cantidad + 1 } : p
         );
       }
-      return [...prev, { ...producto, cantidad: 1 }];
+
+      return [...prev, { ...product, cantidad: 1 }];
     });
   };
 
-  const increaseQuantity = (id) =>
+  const increaseQuantity = (id) => {
     setCart((prev) =>
       prev.map((p) => (p.id === id ? { ...p, cantidad: p.cantidad + 1 } : p))
     );
+  };
 
-  const decreaseQuantity = (id) =>
+  const decreaseQuantity = (id) => {
     setCart((prev) =>
       prev.map((p) =>
         p.id === id && p.cantidad > 1 ? { ...p, cantidad: p.cantidad - 1 } : p
       )
     );
+  };
 
-  const removeFromCart = (id) =>
+  const removeFromCart = (id) => {
     setCart((prev) => prev.filter((p) => p.id !== id));
+  };
 
   const clearCart = () => setCart([]);
 
-  /* =========================
-     TOTALES
-  ========================= */
+  /* ===== TOTALES ===== */
+  const subtotal = useMemo(
+    () => cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0),
+    [cart]
+  );
 
-  // 🧾 Subtotal
-  const subtotal = useMemo(() => {
-    return cart.reduce((sum, p) => sum + Number(p.precio) * p.cantidad, 0);
-  }, [cart]);
+  const envio = subtotal > 150000 ? 0 : subtotal === 0 ? 0 : 12000;
 
-  // 🚚 Envío
-  const envio = useMemo(() => {
-    if (subtotal >= 250000) return 0;
-    if (!ciudad) return 0;
-    return ciudad.toLowerCase() === "cali" ? 5000 : 16000;
-  }, [subtotal, ciudad]);
-
-  // 💰 Total final
   const totalFinal = subtotal + envio;
 
-  // 🔢 Contador header
-  const totalItems = useMemo(() => {
-    return cart.reduce((sum, p) => sum + p.cantidad, 0);
-  }, [cart]);
-
-  /* =========================
-     PROVIDER
-  ========================= */
+  /* ===== CONTEXTO ===== */
   return (
     <CartContext.Provider
       value={{
         // carrito
         cart,
-        setCart,
         addToCart,
-        increaseQuantity,
-        decreaseQuantity,
         removeFromCart,
         clearCart,
+
+        // cantidades
+        increaseQuantity,
+        decreaseQuantity,
+
+        // drawer carrito
+        showCart,
+        setShowCart,
+
+        // 👉 modal envío
+        showShippingModal,
+        setShowShippingModal,
 
         // totales
         subtotal,
         envio,
         totalFinal,
-        totalItems,
-
-        // ubicación
-        departamento,
-        setDepartamento,
-        ciudad,
-        setCiudad,
-
-        // UI
-        showCart,
-        setShowCart,
-        mostrarFormulario,
-        setMostrarFormulario,
       }}
     >
       {children}
     </CartContext.Provider>
   );
-};
+}
+
+/* =========================
+   HOOK
+========================= */
+export function useCart() {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error("useCart debe usarse dentro de CartProvider");
+  }
+  return context;
+}
