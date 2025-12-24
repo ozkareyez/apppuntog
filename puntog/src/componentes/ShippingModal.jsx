@@ -1,156 +1,131 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Plus, Minus, Trash } from "lucide-react";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import ShippingModal from "./ShippingModal";
+import { API_URL } from "@/config";
 
-export default function ShippingModal() {
-  const { showShippingModal, setShowShippingModal, cart, clearCart } =
-    useCart();
+const CartDrawer = () => {
+  const {
+    cart = [],
+    showCart,
+    setShowCart,
+    increaseQuantity,
+    decreaseQuantity,
+    removeFromCart,
+    total = 0,
+  } = useCart();
 
-  const [departamentos, setDepartamentos] = useState([]);
-  const [ciudades, setCiudades] = useState([]);
+  const [showShipping, setShowShipping] = useState(false);
 
-  const [form, setForm] = useState({
-    nombre: "",
-    email: "",
-    telefono: "",
-    direccion: "",
-    departamento: "",
-    ciudad: "",
-  });
+  if (!showCart) return null;
 
-  /* ===== CARGAR DEPARTAMENTOS ===== */
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/departamentos`)
-      .then((r) => r.json())
-      .then(setDepartamentos)
-      .catch(console.error);
-  }, []);
-
-  /* ===== CARGAR CIUDADES ===== */
-  useEffect(() => {
-    if (!form.departamento) {
-      setCiudades([]);
-      return;
-    }
-
-    fetch(
-      `${import.meta.env.VITE_API_URL}/api/ciudades?departamento_id=${
-        form.departamento
-      }`
-    )
-      .then((r) => r.json())
-      .then(setCiudades)
-      .catch(console.error);
-  }, [form.departamento]);
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const enviarPedido = async () => {
-    if (!cart.length) return;
-
-    await fetch(`${import.meta.env.VITE_API_URL}/api/enviar-formulario`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, carrito: cart }),
-    });
-
-    clearCart();
-    setShowShippingModal(false);
+  const getImageSrc = (img) => {
+    if (!img) return "/imagenes/no-image.png";
+    if (img.startsWith("http")) return img;
+    return `${API_URL}/uploads/${img}`;
   };
 
   return (
-    <AnimatePresence>
-      {showShippingModal && (
-        <motion.div
-          className="fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center px-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div
-            className="bg-black w-full max-w-md rounded-xl p-6 relative"
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-          >
-            <button
-              onClick={() => setShowShippingModal(false)}
-              className="absolute top-4 right-4 text-white"
+    <>
+      {/* OVERLAY */}
+      <div
+        className="fixed inset-0 bg-black/50 z-40"
+        onClick={() => setShowCart(false)}
+      />
+
+      {/* DRAWER */}
+      <aside className="fixed right-0 top-0 h-full w-full sm:w-[420px] bg-white z-50 flex flex-col">
+        {/* HEADER */}
+        <header className="p-4 border-b flex justify-between items-center">
+          <h2 className="text-lg font-bold">Tu carrito</h2>
+          <button onClick={() => setShowCart(false)}>
+            <X />
+          </button>
+        </header>
+
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {cart.length === 0 && (
+            <p className="text-center text-gray-500">Tu carrito está vacío</p>
+          )}
+
+          {cart.map((item) => (
+            <div
+              key={item.id}
+              className="flex gap-3 items-center border rounded-lg p-2"
             >
-              <X />
-            </button>
-
-            <h2 className="text-pink-400 text-xl font-bold mb-4">
-              Datos de envío
-            </h2>
-
-            <div className="space-y-3">
-              <input
-                name="nombre"
-                placeholder="Nombre"
-                onChange={handleChange}
-                className="w-full p-3 bg-white/10 text-white rounded"
+              {/* IMAGEN MINI */}
+              <img
+                src={getImageSrc(item.imagen)}
+                alt={item.nombre}
+                className="w-16 h-16 object-cover rounded"
               />
 
-              <input
-                name="email"
-                placeholder="Email"
-                onChange={handleChange}
-                className="w-full p-3 bg-white/10 text-white rounded"
-              />
+              {/* INFO */}
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm">{item.nombre}</h3>
+                <p className="text-sm text-gray-500">${item.precio}</p>
 
-              <input
-                name="telefono"
-                placeholder="Teléfono"
-                onChange={handleChange}
-                className="w-full p-3 bg-white/10 text-white rounded"
-              />
+                {/* CONTROLES */}
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={() => decreaseQuantity(item.id)}
+                    className="p-1 border rounded"
+                  >
+                    <Minus size={14} />
+                  </button>
 
-              <input
-                name="direccion"
-                placeholder="Dirección"
-                onChange={handleChange}
-                className="w-full p-3 bg-white/10 text-white rounded"
-              />
+                  <span className="text-sm">{item.cantidad}</span>
 
-              <select
-                name="departamento"
-                onChange={handleChange}
-                className="w-full p-3 bg-white/10 text-white rounded"
+                  <button
+                    onClick={() => increaseQuantity(item.id)}
+                    className="p-1 border rounded"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* ELIMINAR */}
+              <button
+                onClick={() => removeFromCart(item.id)}
+                className="text-red-500"
               >
-                <option value="">Departamento</option>
-                {departamentos.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                name="ciudad"
-                onChange={handleChange}
-                disabled={!ciudades.length}
-                className="w-full p-3 bg-white/10 text-white rounded"
-              >
-                <option value="">Ciudad</option>
-                {ciudades.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
+                <Trash size={18} />
+              </button>
             </div>
+          ))}
+        </div>
 
-            <button
-              onClick={enviarPedido}
-              className="w-full mt-5 bg-pink-500 py-3 rounded-xl font-semibold"
-            >
-              Enviar pedido
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        {/* FOOTER */}
+        <footer className="p-4 border-t">
+          <div className="flex justify-between font-bold mb-4">
+            <span>Total</span>
+            <span>${total}</span>
+          </div>
+
+          <button
+            className="w-full bg-pink-600 text-white py-2 rounded"
+            onClick={() => setShowShipping(true)}
+            disabled={cart.length === 0}
+          >
+            Confirmar pedido
+          </button>
+        </footer>
+      </aside>
+
+      {/* MODAL ENVÍO */}
+      <ShippingModal
+        isOpen={showShipping}
+        onClose={() => setShowShipping(false)}
+        onConfirm={(data) => {
+          console.log("Datos de envío:", data);
+          setShowShipping(false);
+          setShowCart(false);
+        }}
+      />
+    </>
   );
-}
+};
+
+export default CartDrawer;
