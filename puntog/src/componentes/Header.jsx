@@ -6,11 +6,8 @@ import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // ✅ USAR CART DIRECTAMENTE
   const { cart, setShowCart } = useCart();
 
-  // ✅ CALCULAR TOTAL DE ITEMS
   const totalItems = cart.reduce((sum, item) => sum + item.cantidad, 0);
 
   const navItems = [
@@ -23,7 +20,7 @@ export default function Header() {
   return (
     <>
       {/* ================= HEADER ================= */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10">
+      <header className="fixed top-0 left-0 w-full z-40 bg-black/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
           {/* LOGO */}
           <Link to="/" className="flex items-center gap-2">
@@ -50,7 +47,6 @@ export default function Header() {
             >
               <ShoppingCart size={22} className="text-pink-400" />
 
-              {/* ✅ CONTADOR FUNCIONAL */}
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
                   {totalItems}
@@ -69,12 +65,15 @@ export default function Header() {
         </div>
       </header>
 
+      {/* ESPACIADOR PARA QUE EL CONTENIDO NO QUEDE DEBAJO */}
+      <div className="h-[96px]" />
+
       {/* ================= MENU MOBILE ================= */}
       <AnimatePresence>
         {menuOpen && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/70 z-40"
+              className="fixed inset-0 bg-black/70 z-50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -82,7 +81,7 @@ export default function Header() {
             />
 
             <motion.aside
-              className="fixed top-0 left-0 h-full w-80 bg-black z-50 p-6"
+              className="fixed top-0 left-0 h-full w-80 bg-black z-60 p-6"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}

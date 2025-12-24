@@ -1,21 +1,13 @@
+// src/pages/Home.jsx
 import { motion } from "framer-motion";
+import Productos from "./Productos";
 import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
-
-import Productos from "./Productos";
-import Header from "../componentes/Header";
-import { FloatingWhatsApp } from "react-floating-whatsapp";
-import { useCart } from "@/context/CartContext";
 import MainCTA from "../componentes/MainCTA";
 
 const Home = () => {
-  const { setShowCart, totalItems } = useCart();
-
-  <button onClick={() => setShowCart(true)}>🛒 {totalItems}</button>;
-
   return (
     <div className="w-full">
-      <Header totalItems={totalItems} onCartClick={() => setShowCart(true)} />
       <MainCTA />
 
       <Productos />
@@ -30,13 +22,6 @@ const Home = () => {
       <section className="max-w-7xl mx-auto px-4 pb-10">
         <MainEnterga />
         <ContactForm />
-
-        <FloatingWhatsApp
-          phoneNumber="+573147041149"
-          accountName="Punto G"
-          chatMessage="Hola 👋 ¿en qué te ayudamos?"
-          avatar="/imagenes/logo.png"
-        />
       </section>
     </div>
   );

@@ -17,6 +17,8 @@ export default function CartDrawer() {
   const getImageSrc = (img) => {
     if (!img) return "/imagenes/no-image.png";
     if (img.startsWith("http")) return img;
+    if (img.startsWith("/uploads"))
+      return `${import.meta.env.VITE_API_URL}${img}`;
     return `${import.meta.env.VITE_API_URL}/uploads/${img}`;
   };
 
@@ -26,7 +28,7 @@ export default function CartDrawer() {
         <>
           {/* OVERLAY */}
           <motion.div
-            className="fixed inset-0 bg-black/70 z-40"
+            className="fixed inset-0 bg-black/70 z-[60]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -35,7 +37,7 @@ export default function CartDrawer() {
 
           {/* DRAWER */}
           <motion.aside
-            className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-black z-50 p-6 overflow-y-auto"
+            className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-black z-[70] p-6 overflow-y-auto"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -62,9 +64,8 @@ export default function CartDrawer() {
                   key={item.id}
                   className="flex gap-4 bg-white/5 p-3 rounded-xl"
                 >
-                  {/* MINIATURA */}
                   <img
-                    src={getImageSrc(item.imagen)}
+                    src={getImageSrc(item.imagen || item.imagen_url)}
                     alt={item.nombre}
                     className="w-20 h-20 object-cover rounded-lg border border-white/10"
                   />
