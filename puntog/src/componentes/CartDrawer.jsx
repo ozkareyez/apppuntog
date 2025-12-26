@@ -15,18 +15,12 @@ export default function CartDrawer() {
 
   if (!showCart) return null;
 
-  const getImageSrc = (item) => {
-    if (!item) return "/imagenes/no-image.png";
-
-    if (item.imagen_url && item.imagen_url.startsWith("http")) {
-      return item.imagen_url;
-    }
-
-    if (item.imagen && item.imagen !== "") {
-      return `${import.meta.env.VITE_API_URL}/uploads/${item.imagen}`;
-    }
-
-    return "/imagenes/no-image.png";
+  const getImageSrc = (imagen) => {
+    if (!imagen) return "/imagenes/no-image.png";
+    if (imagen.startsWith("http://"))
+      return imagen.replace("http://", "https://");
+    if (imagen.startsWith("https://")) return imagen;
+    return `${API_URL}/images/${imagen}`;
   };
 
   return (
@@ -58,12 +52,9 @@ export default function CartDrawer() {
             className="flex gap-3 mb-4 border-b border-white/10 pb-3"
           >
             <img
-              src={getImageSrc(item)}
-              alt={item.nombre}
-              onError={(e) => {
-                e.currentTarget.src = "/imagenes/no-image.png";
-              }}
-              className="w-16 h-16 min-w-16 object-cover rounded-lg bg-white"
+              src={getImageSrc(producto.imagen)}
+              alt={producto.nombre}
+              className="h-16 w-16 object-contain transition-transform duration-300 group"
             />
 
             <div className="flex-1">
