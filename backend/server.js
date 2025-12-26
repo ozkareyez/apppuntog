@@ -144,93 +144,20 @@ app.get("/api/productos/:id", (req, res) => {
 });
 
 /* ================= DEPARTAMENTOS ================= */
-app.get("/api/departamentos", (req, res) => {
-  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
-    if (err) {
-      console.error("ERROR departamentos:", err);
-      return res.status(500).json(err);
-    }
-    res.json(rows);
-  });
-});
-
-/* ================= CIUDADES ================= */
-app.get("/api/ciudades", (req, res) => {
-  const { departamento_id } = req.query;
-
-  if (!departamento_id) {
-    return res.status(400).json({ error: "departamento_id requerido" });
-  }
-
-  DB.query(
-    "SELECT id, nombre FROM ciudades WHERE departamento_id = ?",
-    [departamento_id],
-    (err, rows) => {
-      if (err) {
-        console.error("ERROR ciudades:", err);
-        return res.status(500).json(err);
-      }
-      res.json(rows);
-    }
-  );
-});
-
-/* ================= CONTACTO ================= */
-app.post("/api/contacto", async (req, res) => {
-  const { nombre, email, mensaje } = req.body;
-
-  if (!nombre || !email || !mensaje) {
-    return res.status(400).json({ error: "Datos incompletos" });
-  }
-
-  try {
-    const [result] = await DB.promise().query(
-      "INSERT INTO contacto (nombre, email, mensaje) VALUES (?, ?, ?)",
-      [nombre, email, mensaje]
-    );
-
-    res.json({ ok: true, id: result.insertId });
-  } catch (error) {
-    console.error("Error guardando contacto:", error);
-    res.status(500).json({ error: "Error del servidor" });
-  }
-});
-
-/* ================= ADMIN CONTACTOS ================= */
-app.get("/api/admin/contacto", async (_, res) => {
-  try {
-    const [rows] = await DB.promise().query(
-      "SELECT * FROM contacto ORDER BY id DESC"
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error("Error obteniendo contactos:", error);
-    res.status(500).json({ error: "Error del servidor" });
-  }
-});
-
-app.delete("/api/admin/contacto/:id", async (req, res) => {
-  try {
-    await DB.promise().query("DELETE FROM contacto WHERE id = ?", [
-      req.params.id,
-    ]);
-    res.json({ ok: true });
-  } catch (error) {
-    console.error("Error eliminando contacto:", error);
-    res.status(500).json({ error: "Error del servidor" });
-  }
-});
-
-/* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, telefono, direccion, departamento_id, ciudad, carrito } =
-    req.body;
+  const {
+    nombre,
+    telefono,
+    direccion,
+    departamento, // 👈 NOMBRE, no ID
+    ciudad,
+    carrito,
+  } = req.body;
 
   if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
     return res.status(400).json({ ok: false, error: "Carrito vacío" });
   }
 
-  // ✅ CALCULAR TOTAL EN EL BACKEND
   const total = carrito.reduce(
     (sum, item) => sum + Number(item.precio) * Number(item.cantidad),
     0
@@ -242,11 +169,11 @@ app.post("/api/enviar-formulario", (req, res) => {
     (nombre, telefono, direccion, departamento, ciudad, total, estado)
     VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
     `,
-    [nombre, telefono, direccion, departamento_id, ciudad, total],
+    [nombre, telefono, direccion, departamento, ciudad, total],
     (err, result) => {
       if (err) {
-        console.error("❌ Error creando pedido:", err);
-        return res.status(500).json({ ok: false, error: "Error pedido" });
+        console.error("❌ Error MySQL pedido:", err);
+        return res.status(500).json({ ok: false, error: err.message });
       }
 
       const pedidoId = result.insertId;
@@ -269,8 +196,8 @@ app.post("/api/enviar-formulario", (req, res) => {
         [detalles],
         (err2) => {
           if (err2) {
-            console.error("❌ Error detalles:", err2);
-            return res.status(500).json({ ok: false, error: "Error detalles" });
+            console.error("❌ Error MySQL detalles:", err2);
+            return res.status(500).json({ ok: false, error: err2.message });
           }
 
           res.json({ ok: true, pedidoId });
