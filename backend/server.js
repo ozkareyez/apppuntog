@@ -154,19 +154,23 @@ app.get("/api/departamentos", (req, res) => {
   });
 });
 /* ================= CIUDADES ================= */
-app.get("/api/ciudades/:departamento_id", (req, res) => {
-  const { departamento_id } = req.params;
-  DB.query(
-    "SELECT id, nombre FROM ciudades WHERE departamento_id = ?",
-    [departamento_id],
+app.get("/api/ciudades", (req, res) => {
+  const { departamento_id } = req.query;
 
-    (err, rows) => {
+  if (!departamento_id) {
+    return res.status(400).json([]);
+  }
+
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
+    [departamento_id],
+    (err, results) => {
       if (err) {
-        console.error("ERROR ciudades:", err);
-        return res.status(500).json(err);
+        console.error("❌ Error obteniendo ciudades:", err);
+        return res.status(500).json([]);
       }
 
-      res.json(rows);
+      res.json(results);
     }
   );
 });
