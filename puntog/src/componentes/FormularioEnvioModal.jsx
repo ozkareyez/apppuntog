@@ -2,9 +2,8 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { calcularEnvio } from "@/utils/calcularEnvio";
-import { Config } from "../config";
 
-//const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function FormularioEnvioModal() {
   const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
