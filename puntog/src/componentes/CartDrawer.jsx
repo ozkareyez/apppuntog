@@ -21,7 +21,7 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!showCart) return; // ⬅️ solo cuando se abre el carrito
 
-    fetch(`${API_URL}/departamentos`)
+    fetch(`${API_URL}api/departamentos`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

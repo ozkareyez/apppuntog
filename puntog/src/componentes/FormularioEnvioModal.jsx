@@ -20,17 +20,23 @@ export default function FormularioEnvioModal() {
 
   /* ================= CARGAR DEPARTAMENTOS ================= */
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/departamentos`)
-      .then((res) => res.json())
+    fetch(`${API_URL}/api/departamentos`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar departamentos");
+        return res.json();
+      })
       .then(setDepartamentos)
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setDepartamentos([]);
+      });
   }, []);
 
   /* ================= CARGAR CIUDADES ================= */
   useEffect(() => {
     if (!form.departamento) return;
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/ciudades/${form.departamento}`)
+    fetch(`${API_URL}/api/ciudades/${form.departamento}`)
       .then((res) => res.json())
       .then(setCiudades)
       .catch(console.error);

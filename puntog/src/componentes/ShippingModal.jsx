@@ -1,7 +1,7 @@
 import { X, Plus, Minus, Trash } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import ShippingModal from "./ShippingModal";
+
 import { API_URL } from "@/config";
 
 const CartDrawer = () => {
