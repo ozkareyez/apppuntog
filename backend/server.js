@@ -223,26 +223,31 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  const { nombre, email, telefono, direccion, departamento, ciudad, carrito } =
-    req.body;
+  const {
+    nombre,
+    telefono,
+    direccion,
+    departamento_id,
+    ciudad,
+    carrito,
+    total,
+  } = req.body;
 
   if (!carrito || !carrito.length) {
-    return res.status(400).json({ error: "Carrito vacío" });
+    return res.status(400).json({ ok: false, error: "Carrito vacío" });
   }
-
-  const total = carrito.reduce((s, i) => s + i.precio * (i.quantity || 1), 0);
 
   DB.query(
     `
     INSERT INTO pedidos 
-    (nombre,email,telefono,direccion,departamento,ciudad,total,estado)
-    VALUES (?,?,?,?,?,?,?,'pendiente')
+    (nombre,telefono,direccion,departamento,ciudad,total,estado)
+    VALUES (?,?,?,?,?,?,'pendiente')
     `,
-    [nombre, email, telefono, direccion, departamento, ciudad, total],
+    [nombre, telefono, direccion, departamento_id, ciudad, total],
     (err, r) => {
       if (err) {
-        console.error("Error creando pedido:", err);
-        return res.status(500).json({ error: "Error creando pedido" });
+        console.error("❌ Error creando pedido:", err);
+        return res.status(500).json({ ok: false });
       }
 
       const detalles = carrito.map((i) => [
@@ -250,8 +255,8 @@ app.post("/api/enviar-formulario", (req, res) => {
         i.id,
         i.nombre,
         i.precio,
-        i.quantity || 1,
-        i.precio * (i.quantity || 1),
+        i.cantidad,
+        i.precio * i.cantidad,
       ]);
 
       DB.query(
@@ -263,10 +268,8 @@ app.post("/api/enviar-formulario", (req, res) => {
         [detalles],
         (err2) => {
           if (err2) {
-            console.error("Error creando detalles:", err2);
-            return res
-              .status(500)
-              .json({ error: "Error creando detalles del pedido" });
+            console.error("❌ Error detalles:", err2);
+            return res.status(500).json({ ok: false });
           }
 
           res.json({ ok: true });
