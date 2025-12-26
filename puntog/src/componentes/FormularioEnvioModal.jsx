@@ -155,7 +155,9 @@ ${cart
           <X />
         </button>
 
-        <h3 className="text-center text-xl mb-4">Finalizar pedido</h3>
+        <h3 className="text-center text-xl mb-4 text-white">
+          Finalizar pedido
+        </h3>
 
         <div className="space-y-3">
           <input
