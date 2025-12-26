@@ -223,86 +223,87 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  try {
-    const {
+  const {
+    nombre = "",
+    telefono = "",
+    direccion = "",
+    departamento_id = "",
+    ciudad = "",
+    carrito = [],
+    total = 0,
+    costo_envio = 0,
+  } = req.body;
+
+  // 🛑 Validación mínima (sin romper flujo)
+  if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
+    return res.status(400).json({
+      ok: false,
+      error: "Carrito vacío",
+    });
+  }
+
+  // 🔐 Sanitizar números
+  const totalSeguro = Number(total) || 0;
+  const envioSeguro = Number(costo_envio) || 0;
+
+  DB.query(
+    `
+    INSERT INTO pedidos
+    (nombre, telefono, direccion, departamento, ciudad, total, estado)
+    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
+    `,
+    [
       nombre,
       telefono,
       direccion,
-      departamento_id,
+      String(departamento_id),
       ciudad,
-      carrito,
-      costo_envio = 0, // 👈 viene del frontend / WhatsApp
-    } = req.body;
+      totalSeguro + envioSeguro,
+    ],
+    (err, result) => {
+      if (err) {
+        console.error("❌ Error creando pedido:", err);
+        return res.status(500).json({
+          ok: false,
+          error: "Error creando pedido",
+        });
+      }
 
-    if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
-      return res.status(400).json({ ok: false, error: "Carrito vacío" });
-    }
+      const pedidoId = result.insertId;
 
-    // 🔹 calcular subtotal real desde backend
-    const subtotal = carrito.reduce(
-      (acc, i) => acc + Number(i.precio) * Number(i.cantidad),
-      0
-    );
+      const detalles = carrito.map((item) => [
+        pedidoId,
+        item.id,
+        item.nombre,
+        Number(item.precio) || 0,
+        Number(item.cantidad) || 1,
+        (Number(item.precio) || 0) * (Number(item.cantidad) || 1),
+      ]);
 
-    const total = subtotal + Number(costo_envio);
-
-    DB.query(
-      `
-      INSERT INTO pedidos 
-      (nombre, telefono, direccion, departamento, ciudad, total, costo_envio, estado)
-      VALUES (?,?,?,?,?,?,?,'pendiente')
-      `,
-      [
-        nombre,
-        telefono,
-        direccion,
-        departamento_id,
-        ciudad,
-        total,
-        costo_envio,
-      ],
-      (err, r) => {
-        if (err) {
-          console.error("❌ Error creando pedido:", err);
-          return res.status(500).json({ ok: false });
-        }
-
-        const pedidoId = r.insertId;
-
-        const detalles = carrito.map((i) => [
-          pedidoId,
-          i.id,
-          i.nombre,
-          i.precio,
-          i.cantidad,
-          i.precio * i.cantidad,
-        ]);
-
-        DB.query(
-          `
-          INSERT INTO pedido_detalles
-          (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
-          VALUES ?
-          `,
-          [detalles],
-          (err2) => {
-            if (err2) {
-              console.error("❌ Error creando detalles:", err2);
-              return res.status(500).json({ ok: false });
-            }
-
-            res.json({
-              ok: true,
-              pedidoId,
+      DB.query(
+        `
+        INSERT INTO pedido_detalles
+        (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
+        VALUES ?
+        `,
+        [detalles],
+        (err2) => {
+          if (err2) {
+            console.error("❌ Error guardando detalles:", err2);
+            return res.status(500).json({
+              ok: false,
+              error: "Error guardando detalles",
             });
           }
-        );
-      }
-    );
-  } catch (e) {
-    console.error("❌ Error general:", e);
-    res.status(500).json({ ok: false });
-  }
+
+          res.json({
+            ok: true,
+            pedido_id: pedidoId,
+          });
+        }
+      );
+    }
+  );
 });
 
 /* ================= ADMIN PEDIDOS ================= */
