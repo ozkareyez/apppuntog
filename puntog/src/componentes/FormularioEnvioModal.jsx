@@ -1,8 +1,8 @@
 import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { calcularEnvio } from "@/utils/calcularEnvio";
+import { API_URL } from "@/config";
 
 export default function FormularioEnvioModal() {
   const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
@@ -16,17 +16,23 @@ export default function FormularioEnvioModal() {
     telefono: "",
     direccion: "",
     departamento_id: "",
-    ciudad_id: "",
+    ciudad: "",
   });
 
   /* ================= DEPARTAMENTOS ================= */
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Error departamentos");
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data)) setDepartamentos(data);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Departamentos:", err);
+        setDepartamentos([]);
+      });
   }, []);
 
   /* ================= CIUDADES ================= */
@@ -38,7 +44,7 @@ export default function FormularioEnvioModal() {
 
     fetch(`${API_URL}/api/ciudades?departamento_id=${form.departamento_id}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Error cargando ciudades");
+        if (!res.ok) throw new Error("Error ciudades");
         return res.json();
       })
       .then((data) => {
@@ -50,28 +56,29 @@ export default function FormularioEnvioModal() {
       });
   }, [form.departamento_id]);
 
-  const totalFinal = subtotal;
+  /* ================= ENVÍO ================= */
+  const costoEnvio = useMemo(
+    () =>
+      calcularEnvio({
+        ciudad: form.ciudad,
+        total: subtotal,
+      }),
+    [form.ciudad, subtotal]
+  );
 
-  /* ================= ENVIAR ================= */
+  const totalFinal = subtotal + costoEnvio;
+
   const enviarPedido = () => {
     if (
       !form.nombre ||
       !form.telefono ||
       !form.direccion ||
       !form.departamento_id ||
-      !form.ciudad_id
+      !form.ciudad
     ) {
       alert("Completa todos los datos");
       return;
     }
-
-    const departamento = departamentos.find(
-      (d) => d.id === Number(form.departamento_id)
-    )?.nombre;
-
-    const ciudad = ciudades.find(
-      (c) => c.id === Number(form.ciudad_id)
-    )?.nombre;
 
     const mensaje = `
 🖤 Pedido Punto G 🖤
@@ -79,19 +86,21 @@ export default function FormularioEnvioModal() {
 👤 ${form.nombre}
 📞 ${form.telefono}
 📍 ${form.direccion}
-🏙️ ${ciudad}, ${departamento}
+🏙️ ${form.ciudad}
 
 🛒 Productos:
 ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
 
-💰 Total: $${totalFinal.toLocaleString()}
+💰 Subtotal: $${subtotal.toLocaleString()}
+🚚 Envío: $${costoEnvio.toLocaleString()}
+✅ Total: $${totalFinal.toLocaleString()}
 `;
 
-    const url = `https://wa.me/573147041149?text=${encodeURIComponent(
-      mensaje
-    )}`;
-
-    window.open(url, "_blank");
+    const phone = "573147041149";
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`,
+      "_blank"
+    );
 
     clearCart();
     setShowShippingModal(false);
@@ -99,13 +108,13 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/80"
         onClick={() => setShowShippingModal(false)}
       />
 
-      <div className="relative bg-black w-full max-w-md p-6 rounded-xl text-white">
+      <div className="relative bg-[#0f0f0f] w-full max-w-md p-6 rounded-xl">
         <button
           className="absolute top-4 right-4"
           onClick={() => setShowShippingModal(false)}
@@ -113,33 +122,30 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
           <X />
         </button>
 
-        <h3 className="text-center text-xl mb-4 font-semibold">
-          Finalizar pedido
-        </h3>
+        <h3 className="text-center text-xl mb-4">Finalizar pedido</h3>
 
         <div className="space-y-3">
           <input
-            placeholder="Nombre"
             className="input"
+            placeholder="Nombre"
             value={form.nombre}
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
 
           <input
-            placeholder="Teléfono"
             className="input"
+            placeholder="Teléfono"
             value={form.telefono}
             onChange={(e) => setForm({ ...form, telefono: e.target.value })}
           />
 
           <input
-            placeholder="Dirección"
             className="input"
+            placeholder="Dirección"
             value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
           />
 
-          {/* DEPARTAMENTO */}
           <select
             className="input"
             value={form.departamento_id}
@@ -147,7 +153,7 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
               setForm({
                 ...form,
                 departamento_id: e.target.value,
-                ciudad_id: "",
+                ciudad: "",
               })
             }
           >
@@ -159,16 +165,15 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
             ))}
           </select>
 
-          {/* CIUDAD */}
           <select
             className="input"
             disabled={!form.departamento_id}
-            value={form.ciudad_id}
-            onChange={(e) => setForm({ ...form, ciudad_id: e.target.value })}
+            value={form.ciudad}
+            onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
           >
             <option value="">Ciudad</option>
             {ciudades.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.nombre}>
                 {c.nombre}
               </option>
             ))}
@@ -177,7 +182,7 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
 
         <button
           onClick={enviarPedido}
-          className="w-full mt-4 bg-green-600 py-3 rounded-xl font-semibold"
+          className="w-full mt-4 bg-green-600 py-2 rounded"
         >
           Enviar pedido por WhatsApp
         </button>
