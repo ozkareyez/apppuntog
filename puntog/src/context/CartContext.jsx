@@ -1,29 +1,20 @@
 import { createContext, useContext, useMemo, useState } from "react";
 
-const CartContext = createContext();
+const CartContext = createContext(null);
 
-/* =========================
-   PROVIDER
-========================= */
 export function CartProvider({ children }) {
-  /* ===== ESTADOS ===== */
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
-
-  // 👉 Modal formulario envío
   const [showShippingModal, setShowShippingModal] = useState(false);
 
-  /* ===== FUNCIONES DEL CARRITO ===== */
   const addToCart = (product) => {
     setCart((prev) => {
-      const exists = prev.find((p) => p.id === product.id);
-
-      if (exists) {
+      const found = prev.find((p) => p.id === product.id);
+      if (found) {
         return prev.map((p) =>
           p.id === product.id ? { ...p, cantidad: p.cantidad + 1 } : p
         );
       }
-
       return [...prev, { ...product, cantidad: 1 }];
     });
   };
@@ -46,37 +37,22 @@ export function CartProvider({ children }) {
     setCart((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const clearCart = () => setCart([]);
+  const subtotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  }, [cart]);
 
-  /* ===== TOTALES ===== */
-  const subtotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0),
-    [cart]
-  );
-
-  /* ===== CONTEXTO ===== */
   return (
     <CartContext.Provider
       value={{
-        // carrito
         cart,
         addToCart,
-        removeFromCart,
-        clearCart,
-
-        // cantidades
         increaseQuantity,
         decreaseQuantity,
-
-        // drawer carrito
+        removeFromCart,
         showCart,
         setShowCart,
-
-        // modal envío
         showShippingModal,
         setShowShippingModal,
-
-        // totales
         subtotal,
       }}
     >
@@ -85,9 +61,6 @@ export function CartProvider({ children }) {
   );
 }
 
-/* =========================
-   HOOK
-========================= */
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {
