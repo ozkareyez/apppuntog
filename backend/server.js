@@ -144,6 +144,35 @@ app.get("/api/productos/:id", (req, res) => {
 });
 
 /* ================= DEPARTAMENTOS ================= */
+app.get("/api/departamentos", (req, res) => {
+  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
+    if (err) {
+      console.error("ERROR departamentos:", err);
+      return res.status(500).json(err);
+    }
+    res.json(rows);
+  });
+});
+/* ================= CIUDADES ================= */
+app.get("/api/ciudades/:departamento_id", (req, res) => {
+  const { departamento_id } = req.params;
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ?",
+    [departamento_id],
+
+    (err, rows) => {
+      if (err) {
+        console.error("ERROR ciudades:", err);
+        return res.status(500).json(err);
+      }
+
+      res.json(rows);
+    }
+  );
+});
+
+/* ================= ENVIAR FORMULARIO ================= */
+
 app.post("/api/enviar-formulario", (req, res) => {
   const {
     nombre,
