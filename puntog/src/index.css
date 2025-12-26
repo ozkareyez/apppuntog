@@ -1,27 +1,97 @@
 @import "tailwindcss";
 
-
-body{
-    background: #0e0d0d;
-/* background: radial-gradient(circle,rgb(230, 231, 233) 0%, rgba(252, 70, 107, 1) 100%); */
-    font-family: "Montserrat", sans-serif;
-}
+/* =======================
+   CONFIGURACIÓN GLOBAL
+======================= */
 html {
   scroll-behavior: smooth;
 }
 
+body {
+  background: #0e0d0d;
+  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+}
 
+/* =======================
+   SCROLLBAR (WEBKIT)
+======================= */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0e0d0d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #ec4899, #a855f7);
+  border-radius: 999px;
+}
+
+/* =======================
+   UTILIDADES GENERALES
+======================= */
+.container-max {
+  @apply max-w-7xl mx-auto px-5;
+}
+
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+}
+
+.card {
+  @apply rounded-2xl shadow-xl bg-[#1f1f1f] border border-white/10;
+}
+
+/* =======================
+   INPUTS / FORMULARIOS
+======================= */
+.input {
+  @apply w-full bg-neutral-800 text-white px-4 py-3 rounded-xl
+    outline-none border border-white/10
+    focus:border-pink-500 focus:ring-2 focus:ring-pink-500/30
+    transition;
+}
+
+.select {
+  @apply w-full bg-neutral-800 text-white px-4 py-3 rounded-xl
+    outline-none border border-white/10
+    focus:border-pink-500 focus:ring-2 focus:ring-pink-500/30
+    transition;
+}
+
+.btn-primary {
+  @apply w-full py-3 rounded-xl font-semibold text-white
+    bg-gradient-to-r from-pink-500 to-pink-600
+    hover:from-pink-600 hover:to-pink-700
+    transition shadow-lg shadow-pink-500/40;
+}
+
+.btn-outline {
+  @apply w-full py-3 rounded-xl font-semibold text-white
+    border border-white/20
+    hover:bg-white hover:text-black transition;
+}
+
+/* =======================
+   BENEFICIOS / FEATURES
+======================= */
 .beneficio-card {
   @apply
-    bg-white/10 backdrop-blur-md
-    border border-white/20
+    bg-white/5
+    backdrop-blur-lg
+    border border-white/10
     rounded-2xl
     p-6
-    text-center text-white
+    text-center
+    text-white
     flex flex-col items-center gap-3
-    shadow-lg shadow-black/30
+    shadow-xl
     transition-all duration-300
-    hover:scale-105 hover:bg-white/20;
+    hover:-translate-y-1 hover:shadow-pink-500/30;
 }
 
 .beneficio-card h3 {
@@ -29,51 +99,109 @@ html {
 }
 
 .beneficio-card p {
-  @apply text-sm text-white/90;
+  @apply text-sm text-gray-300 leading-relaxed;
 }
 
 .beneficio-card svg {
-  @apply text-white drop-shadow-md;
+  @apply text-pink-500 drop-shadow;
 }
 
+/* =======================
+   BADGES / LABELS
+======================= */
+.badge-pink {
+  @apply inline-flex items-center gap-1 px-3 py-1
+    rounded-full text-xs font-bold
+    bg-pink-500/20 text-pink-400 border border-pink-500/30;
+}
 
+/* =======================
+   MODALES / DRAWERS
+======================= */
+.overlay {
+  @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-40;
+}
+
+.drawer {
+  @apply fixed top-0 right-0 h-full w-full sm:w-[420px]
+    bg-black z-50 flex flex-col shadow-2xl;
+}
+
+.modal {
+  @apply relative w-full max-w-md rounded-2xl bg-white
+    p-6 shadow-2xl;
+}
+
+/* =======================
+   TABLAS ADMIN
+======================= */
+.table-wrapper {
+  @apply overflow-x-auto rounded-xl border border-white/10 bg-black/40;
+}
+
+.table {
+  @apply w-full text-sm text-white;
+}
+
+.table th {
+  @apply p-3 text-left bg-white/10 text-gray-300;
+}
+
+.table td {
+  @apply p-3 border-t border-white/10;
+}
+
+/* =======================
+   ANIMACIONES SUAVES
+======================= */
+.fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =======================
+   PRINT (ORDEN SERVICIO)
+======================= */
 @media print {
   html,
   body {
     margin: 0;
     padding: 0;
     background: white !important;
+    color: black !important;
   }
 
-  /* Ocultar todo */
   body * {
     visibility: hidden;
   }
 
-  /* Mostrar SOLO el área de impresión */
   .print-area,
   .print-area * {
     visibility: visible;
   }
 
-  /* Asegurar fondo blanco */
   .print-area {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    padding: 24px;
     background: white !important;
     color: black !important;
-    padding: 24px;
   }
 
-  /* Quitar sombras y fondos oscuros */
   .print-area * {
     box-shadow: none !important;
     background: transparent !important;
   }
-}
-
-.input {
-  @apply bg-neutral-800 text-white px-4 py-3 rounded-xl outline-none border border-white/10 focus:border-pink-500 transition;
 }

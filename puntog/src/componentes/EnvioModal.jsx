@@ -1,34 +1,87 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import FormularioEnvioModal from "@/componentes/FormularioEnvioModal";
 
-export default function EnvioModal({ cerrar }) {
-  const { setCiudad } = useCart();
-
+export default function EnvioModal() {
   const { showShippingModal, setShowShippingModal } = useCart();
-
-  if (!showShippingModal) return null;
 
   return (
     <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
-        onClick={() => setShowShippingModal(false)}
-      >
+      {showShippingModal && (
         <motion.div
-          className="bg-black p-6 rounded-2xl w-full max-w-md"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
-          <div className="flex justify-between mb-4">
-            <h2 className="text-pink-400 font-bold text-lg">Datos de envío</h2>
-            <button onClick={() => setShowShippingModal(false)}>
-              <X />
-            </button>
-          </div>
+          {/* OVERLAY */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowShippingModal(false)}
+          />
 
-          <FormularioEnvio onClose={() => setShowShippingModal(false)} />
+          {/* MODAL */}
+          <motion.div
+            className="relative w-full max-w-md rounded-2xl bg-black p-6 shadow-2xl"
+            initial={{ scale: 0.9, y: 40, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 40, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-red-600 font-bold text-lg">Datos de envío</h2>
+
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="text-white/60 hover:text-white transition"
+              >
+                <X />
+              </button>
+            </div>
+
+            {/* FORMULARIO */}
+            <FormularioEnvioModal />
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 }
+
+// import { motion, AnimatePresence } from "framer-motion";
+// import { X } from "lucide-react";
+// import { useCart } from "@/context/CartContext";
+
+// export default function EnvioModal({ cerrar }) {
+//   const { setCiudad } = useCart();
+
+//   const { showShippingModal, setShowShippingModal } = useCart();
+
+//   if (!showShippingModal) return null;
+
+//   return (
+//     <AnimatePresence>
+//       <motion.div
+//         className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+//         onClick={() => setShowShippingModal(false)}
+//       >
+//         <motion.div
+//           className="bg-black p-6 rounded-2xl w-full max-w-md"
+//           onClick={(e) => e.stopPropagation()}
+//         >
+//           <div className="flex justify-between mb-4">
+//             <h2 className="text-pink-400 font-bold text-lg">Datos de envío</h2>
+//             <button onClick={() => setShowShippingModal(false)}>
+//               <X />
+//             </button>
+//           </div>
+
+//           <FormularioEnvio onClose={() => setShowShippingModal(false)} />
+//         </motion.div>
+//       </motion.div>
+//     </AnimatePresence>
+//   );
+// }
