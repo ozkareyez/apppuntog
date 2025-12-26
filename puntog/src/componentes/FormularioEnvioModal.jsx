@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { calcularEnvio } from "@/utils/calcularEnvio";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function FormularioEnvioModal() {
   const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
     useCart();
@@ -27,7 +29,7 @@ export default function FormularioEnvioModal() {
       })
       .then(setDepartamentos)
       .catch((err) => {
-        console.error(err);
+        console.error("Departamentos:", err);
         setDepartamentos([]);
       });
   }, []);
@@ -39,7 +41,10 @@ export default function FormularioEnvioModal() {
     fetch(`${API_URL}/api/ciudades/${form.departamento}`)
       .then((res) => res.json())
       .then(setCiudades)
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Ciudades:", err);
+        setCiudades([]);
+      });
   }, [form.departamento]);
 
   /* ================= ENVÍO ================= */
