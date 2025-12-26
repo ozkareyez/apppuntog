@@ -76,14 +76,26 @@ export default function FormularioEnvioModal() {
           nombre: form.nombre,
           telefono: form.telefono,
           direccion: form.direccion,
-          departamento: form.departamento_id,
+
+          // ✅ ENVIAR AMBOS
+          departamento:
+            departamentos.find((d) => d.id == form.departamento_id)?.nombre ||
+            "",
+
+          departamento_id: form.departamento_id,
+
           ciudad: form.ciudad,
-          envio: costoEnvio, // 🔥 MISMO ENVÍO
+          ciudad_id: ciudades.find((c) => c.nombre === form.ciudad)?.id || null,
+
+          // ✅ NOMBRE CORRECTO
+          costo_envio: costoEnvio,
+
+          // ✅ CAMPOS CORRECTOS
           carrito: cart.map((p) => ({
             id: p.id,
             nombre: p.nombre,
-            precio: p.precio,
-            quantity: p.cantidad,
+            precio: Number(p.precio),
+            cantidad: Number(p.cantidad),
           })),
         }),
       });
