@@ -7,7 +7,6 @@ import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
 import ContactosAdmin from "./admin/ContactosAdmin";
 import OrdenServicio from "./admin/OrdenServicio";
-import ShippingModal from "./componentes/ShippingModal";
 
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 
@@ -19,10 +18,9 @@ import ProductoDetallado from "./pages/ProductoDetallado";
 import ContactForm from "./componentes/ContactForm";
 import Foter from "./componentes/Foter";
 
-export default function App() {
+function App() {
   return (
     <>
-      {/* WhatsApp flotante */}
       <FloatingWhatsApp
         phoneNumber="+573147041149"
         accountName="Punto G"
@@ -30,17 +28,7 @@ export default function App() {
         avatar="/imagenes/logo.png"
       />
 
-      {/* 🛒 Drawer del carrito (SIEMPRE MONTADO) */}
       <CartDrawer />
-      <ShippingModal
-        isOpen={showShipping}
-        onClose={() => setShowShipping(false)}
-        onConfirm={(data) => {
-          console.log("Datos de envío:", data);
-          setShowShipping(false);
-          setShowCart(false);
-        }}
-      />
 
       <Routes>
         {/* PUBLIC */}
@@ -66,3 +54,5 @@ export default function App() {
     </>
   );
 }
+
+export default App;
