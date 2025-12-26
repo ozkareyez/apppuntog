@@ -1,7 +1,7 @@
 import { X, Plus, Minus, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { API_URL } from "@/config";
+//import { API_URL } from "@/config";
 
 export default function CartDrawer() {
   const {
@@ -21,7 +21,9 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!showCart) return; // ⬅️ solo cuando se abre el carrito
 
-    fetch(`${API_URL}api/departamentos`)
+    fetch(
+      `https://gleaming-motivation-production-4018.up.railway.app/api/departamentos`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
