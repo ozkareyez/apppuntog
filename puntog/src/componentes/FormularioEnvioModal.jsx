@@ -86,6 +86,7 @@ export default function FormularioEnvioModal() {
 👤 ${form.nombre}
 📞 ${form.telefono}
 📍 ${form.direccion}
+🏙️ ${form.departamento_id}
 🏙️ ${form.ciudad}
 
 🛒 Productos:
