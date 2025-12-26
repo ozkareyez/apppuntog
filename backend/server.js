@@ -310,7 +310,7 @@ app.get("/api/pedidos-completo", (req, res) => {
     let where = "WHERE 1=1";
     const params = [];
 
-    // 🔍 BUSCADOR SEGURO
+    // 🔍 BUSCADOR
     if (search) {
       where += `
         AND (
@@ -321,43 +321,49 @@ app.get("/api/pedidos-completo", (req, res) => {
       params.push(`%${search}%`, `%${search}%`);
     }
 
-    // 📅 FECHA INICIO
+    // 📅 FECHAS
     if (inicio) {
       where += " AND DATE(p.fecha) >= ?";
       params.push(inicio);
     }
 
-    // 📅 FECHA FIN
     if (fin) {
       where += " AND DATE(p.fecha) <= ?";
       params.push(fin);
     }
 
-    // 🔢 TOTAL DE REGISTROS
+    // 🔢 TOTAL
     DB.query(
       `SELECT COUNT(*) AS total FROM pedidos p ${where}`,
       params,
       (errCount, countRows) => {
         if (errCount) {
-          console.error("❌ Error COUNT pedidos:", errCount);
-          return res.status(500).json({
-            ok: false,
-            error: "Error contando pedidos",
-          });
+          console.error("❌ Error COUNT:", errCount);
+          return res.status(500).json({ ok: false });
         }
 
         const total = countRows[0].total;
 
-        // 📦 LISTADO COMPLETO
+        // 📦 LISTADO
         DB.query(
           `
           SELECT 
-            p.*,
+            p.id,
+            p.nombre,
+            p.telefono,
+            p.direccion,
+
+            -- 🔥 USAR IDS CORRECTOS
             d.nombre AS departamento_nombre,
-            c.nombre AS ciudad_nombre
+            c.nombre AS ciudad_nombre,
+
+            p.total,
+            p.costo_envio,
+            p.estado,
+            p.fecha
           FROM pedidos p
-          LEFT JOIN departamentos d ON p.departamento = d.id
-          LEFT JOIN ciudades c ON p.ciudad = c.id
+          LEFT JOIN departamentos d ON p.departamento_id = d.id
+          LEFT JOIN ciudades c ON p.ciudad_id = c.id
           ${where}
           ORDER BY p.id DESC
           LIMIT ? OFFSET ?
@@ -365,11 +371,8 @@ app.get("/api/pedidos-completo", (req, res) => {
           [...params, limit, offset],
           (errRows, rows) => {
             if (errRows) {
-              console.error("❌ Error obteniendo pedidos:", errRows);
-              return res.status(500).json({
-                ok: false,
-                error: "Error obteniendo pedidos",
-              });
+              console.error("❌ Error pedidos:", errRows);
+              return res.status(500).json({ ok: false });
             }
 
             res.json({
@@ -384,11 +387,8 @@ app.get("/api/pedidos-completo", (req, res) => {
       }
     );
   } catch (error) {
-    console.error("🔥 Error general pedidos:", error);
-    res.status(500).json({
-      ok: false,
-      error: "Error interno del servidor",
-    });
+    console.error("🔥 Error general:", error);
+    res.status(500).json({ ok: false });
   }
 });
 
