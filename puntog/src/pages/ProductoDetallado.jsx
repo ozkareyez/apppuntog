@@ -242,7 +242,7 @@ const ProductoDetallado = () => {
 
         {/* DESCRIPCIÓN */}
         {producto.descripcion && (
-          <div className="mt-12 bg-[#1f1f1f] rounded-2xl p-8 border border-white/10">
+          <div className="mt-12 bg-[#1f1f1f] rounded-2xl p-8 border border-white/10 sm:text-[10px]">
             <h2 className="text-2xl text-white font-bold mb-6">
               Descripción del producto
             </h2>
