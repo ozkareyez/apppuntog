@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import FormularioEnvio from "./FormularioEnvio";
 
 export default function EnvioModal({ cerrar }) {
   const { setCiudad } = useCart();

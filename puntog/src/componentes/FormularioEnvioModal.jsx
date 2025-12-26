@@ -8,6 +8,7 @@ export default function FormularioEnvioModal() {
   const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
     useCart();
 
+  const [loading, setLoading] = useState(false);
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
 
@@ -22,17 +23,9 @@ export default function FormularioEnvioModal() {
   /* ================= DEPARTAMENTOS ================= */
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error departamentos");
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) setDepartamentos(data);
-      })
-      .catch((err) => {
-        console.error("Departamentos:", err);
-        setDepartamentos([]);
-      });
+      .then((res) => res.json())
+      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
+      .catch(() => setDepartamentos([]));
   }, []);
 
   /* ================= CIUDADES ================= */
@@ -43,32 +36,21 @@ export default function FormularioEnvioModal() {
     }
 
     fetch(`${API_URL}/api/ciudades?departamento_id=${form.departamento_id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error ciudades");
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) setCiudades(data);
-      })
-      .catch((err) => {
-        console.error("Ciudades:", err);
-        setCiudades([]);
-      });
+      .then((res) => res.json())
+      .then((data) => setCiudades(Array.isArray(data) ? data : []))
+      .catch(() => setCiudades([]));
   }, [form.departamento_id]);
 
   /* ================= ENVÍO ================= */
   const costoEnvio = useMemo(
-    () =>
-      calcularEnvio({
-        ciudad: form.ciudad,
-        total: subtotal,
-      }),
+    () => calcularEnvio({ ciudad: form.ciudad, total: subtotal }),
     [form.ciudad, subtotal]
   );
 
   const totalFinal = subtotal + costoEnvio;
 
-  const enviarPedido = () => {
+  /* ================= ENVIAR PEDIDO ================= */
+  const enviarPedido = async () => {
     if (
       !form.nombre ||
       !form.telefono ||
@@ -80,13 +62,45 @@ export default function FormularioEnvioModal() {
       return;
     }
 
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/enviar-formulario`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          telefono: form.telefono,
+          direccion: form.direccion,
+          departamento_id: form.departamento_id,
+          ciudad: form.ciudad,
+          subtotal,
+          envio: costoEnvio,
+          total: totalFinal,
+          carrito: cart.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: p.precio,
+            cantidad: p.cantidad,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) throw new Error();
+    } catch {
+      alert("❌ Error guardando el pedido");
+      setLoading(false);
+      return;
+    }
+
+    /* ================= WHATSAPP ================= */
     const mensaje = `
 🖤 Pedido Punto G 🖤
 
 👤 ${form.nombre}
 📞 ${form.telefono}
 📍 ${form.direccion}
-🏙️ ${form.departamento}
 🏙️ ${form.ciudad}
 
 🛒 Productos:
@@ -97,17 +111,18 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
 ✅ Total: $${totalFinal.toLocaleString()}
 `;
 
-    const phone = "573147041149";
     window.open(
-      `https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`,
+      `https://wa.me/573147041149?text=${encodeURIComponent(mensaje)}`,
       "_blank"
     );
 
     clearCart();
     setShowShippingModal(false);
     setShowCart(false);
+    setLoading(false);
   };
 
+  /* ================= UI ================= */
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       <div
@@ -179,13 +194,18 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
               </option>
             ))}
           </select>
+
+          <div className="text-sm text-right opacity-80">
+            Total: ${totalFinal.toLocaleString()}
+          </div>
         </div>
 
         <button
           onClick={enviarPedido}
-          className="w-full mt-4 bg-green-600 py-2 rounded"
+          disabled={loading}
+          className="w-full mt-4 bg-green-600 py-3 rounded-xl"
         >
-          Enviar pedido por WhatsApp
+          {loading ? "Enviando..." : "Enviar pedido"}
         </button>
       </div>
     </div>
