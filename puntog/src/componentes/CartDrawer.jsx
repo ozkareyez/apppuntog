@@ -1,7 +1,5 @@
 import { X, Plus, Minus, Trash } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
-//import { API_URL } from "@/config";
 
 export default function CartDrawer() {
   const {
@@ -15,30 +13,23 @@ export default function CartDrawer() {
     setShowShippingModal,
   } = useCart();
 
-  const [departamentos, setDepartamentos] = useState([]);
-
-  /* ================== FETCH SOLO UNA VEZ ================== */
-  useEffect(() => {
-    if (!showCart) return; // ⬅️ solo cuando se abre el carrito
-
-    fetch(
-      `https://gleaming-motivation-production-4018.up.railway.app/api/departamentos`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setDepartamentos(data);
-        }
-      })
-      .catch(console.error);
-  }, [showCart]); // ⬅️ DEPENDENCIA CLAVE
-
-  /* ================== GUARDIA ================== */
   if (!showCart) return null;
 
+  const getImageSrc = (item) => {
+    if (item.imagen?.startsWith("http")) return item.imagen;
+    if (item.imagen)
+      return `${import.meta.env.VITE_API_URL}/uploads/${item.imagen}`;
+    if (item.imagen_url) return item.imagen_url;
+    return "/imagenes/no-image.png";
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex justify-end">
-      <div className="w-full max-w-md bg-black text-white p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70">
+      {/* OVERLAY */}
+      <div className="absolute inset-0" onClick={() => setShowCart(false)} />
+
+      {/* DRAWER */}
+      <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-black text-white p-4 overflow-y-auto">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Tu carrito</h2>
@@ -47,9 +38,11 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* CARRITO VACÍO */}
+        {/* VACÍO */}
         {cart.length === 0 && (
-          <p className="text-center text-gray-400">Tu carrito está vacío</p>
+          <p className="text-center text-white/60 mt-10">
+            Tu carrito está vacío
+          </p>
         )}
 
         {/* ITEMS */}
@@ -59,20 +52,24 @@ export default function CartDrawer() {
             className="flex gap-3 mb-4 border-b border-white/10 pb-3"
           >
             <img
-              src={item.imagen}
+              src={getImageSrc(item)}
               alt={item.nombre}
               className="w-16 h-16 object-cover rounded"
             />
 
             <div className="flex-1">
               <p className="text-sm">{item.nombre}</p>
-              <p className="text-pink-400 font-semibold">${item.precio}</p>
+              <p className="text-pink-400 font-semibold">
+                ${Number(item.precio).toLocaleString()}
+              </p>
 
               <div className="flex items-center gap-2 mt-2">
                 <button onClick={() => decreaseQuantity(item.id)}>
                   <Minus size={14} />
                 </button>
-                <span>{item.quantity}</span>
+
+                <span>{item.cantidad}</span>
+
                 <button onClick={() => increaseQuantity(item.id)}>
                   <Plus size={14} />
                 </button>
@@ -93,7 +90,9 @@ export default function CartDrawer() {
           <>
             <div className="flex justify-between mt-4 text-lg">
               <span>Total</span>
-              <span className="text-pink-400">${subtotal}</span>
+              <span className="text-pink-400">
+                ${subtotal.toLocaleString()}
+              </span>
             </div>
 
             <button
@@ -101,13 +100,13 @@ export default function CartDrawer() {
                 setShowCart(false);
                 setShowShippingModal(true);
               }}
-              className="w-full mt-4 bg-pink-500 py-3 rounded-xl font-semibold"
+              className="w-full mt-4 bg-pink-500 py-3 rounded-xl font-semibold hover:bg-pink-600 transition"
             >
               Confirmar pedido
             </button>
           </>
         )}
-      </div>
+      </aside>
     </div>
   );
 }
