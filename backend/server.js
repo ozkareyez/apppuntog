@@ -223,61 +223,41 @@ app.delete("/api/admin/contacto/:id", async (req, res) => {
 
 /* ================= PEDIDOS ================= */
 app.post("/api/enviar-formulario", (req, res) => {
-  const {
-    nombre = "",
-    telefono = "",
-    direccion = "",
-    departamento_id = "",
-    ciudad = "",
-    carrito = [],
-    total = 0,
-    costo_envio = 0,
-  } = req.body;
+  const { nombre, telefono, direccion, departamento_id, ciudad, carrito } =
+    req.body;
 
-  // 🛑 Validación mínima (sin romper flujo)
   if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
-    return res.status(400).json({
-      ok: false,
-      error: "Carrito vacío",
-    });
+    return res.status(400).json({ ok: false, error: "Carrito vacío" });
   }
 
-  // 🔐 Sanitizar números
-  const totalSeguro = Number(total) || 0;
-  const envioSeguro = Number(costo_envio) || 0;
+  // ✅ CALCULAR TOTAL EN EL BACKEND
+  const total = carrito.reduce(
+    (sum, item) => sum + Number(item.precio) * Number(item.cantidad),
+    0
+  );
 
   DB.query(
     `
-    INSERT INTO pedidos
+    INSERT INTO pedidos 
     (nombre, telefono, direccion, departamento, ciudad, total, estado)
     VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
     `,
-    [
-      nombre,
-      telefono,
-      direccion,
-      String(departamento_id),
-      ciudad,
-      totalSeguro + envioSeguro,
-    ],
+    [nombre, telefono, direccion, departamento_id, ciudad, total],
     (err, result) => {
       if (err) {
         console.error("❌ Error creando pedido:", err);
-        return res.status(500).json({
-          ok: false,
-          error: "Error creando pedido",
-        });
+        return res.status(500).json({ ok: false, error: "Error pedido" });
       }
 
       const pedidoId = result.insertId;
 
-      const detalles = carrito.map((item) => [
+      const detalles = carrito.map((i) => [
         pedidoId,
-        item.id,
-        item.nombre,
-        Number(item.precio) || 0,
-        Number(item.cantidad) || 1,
-        (Number(item.precio) || 0) * (Number(item.cantidad) || 1),
+        i.id,
+        i.nombre,
+        i.precio,
+        i.cantidad,
+        i.precio * i.cantidad,
       ]);
 
       DB.query(
@@ -289,17 +269,11 @@ app.post("/api/enviar-formulario", (req, res) => {
         [detalles],
         (err2) => {
           if (err2) {
-            console.error("❌ Error guardando detalles:", err2);
-            return res.status(500).json({
-              ok: false,
-              error: "Error guardando detalles",
-            });
+            console.error("❌ Error detalles:", err2);
+            return res.status(500).json({ ok: false, error: "Error detalles" });
           }
 
-          res.json({
-            ok: true,
-            pedido_id: pedidoId,
-          });
+          res.json({ ok: true, pedidoId });
         }
       );
     }
