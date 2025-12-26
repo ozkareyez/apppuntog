@@ -11,12 +11,17 @@ export default function PedidosAdmin() {
   const cargarPedidos = async () => {
     try {
       const res = await fetch(`${API}/api/pedidos-completo`);
+
+      if (!res.ok) throw new Error("Error HTTP");
+
       const data = await res.json();
 
-      if (!data.ok) throw new Error();
+      // 🔒 SOPORTA AMBOS FORMATOS
+      const pedidosData = Array.isArray(data) ? data : data.results || [];
 
-      setPedidos(data.results);
+      setPedidos(pedidosData);
     } catch (err) {
+      console.error(err);
       setError("No se pudieron cargar los pedidos");
     } finally {
       setLoading(false);
@@ -33,8 +38,7 @@ export default function PedidosAdmin() {
         method: "PUT",
       });
 
-      const data = await res.json();
-      if (!data.ok) throw new Error();
+      if (!res.ok) throw new Error();
 
       setPedidos((prev) =>
         prev.map((p) =>
@@ -51,8 +55,8 @@ export default function PedidosAdmin() {
     }
   };
 
-  if (loading) return <p>Cargando pedidos...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (loading) return <p className="p-6">Cargando pedidos…</p>;
+  if (error) return <p className="p-6 text-red-500">{error}</p>;
 
   return (
     <div className="p-6">
@@ -129,6 +133,12 @@ export default function PedidosAdmin() {
             ))}
           </tbody>
         </table>
+
+        {pedidos.length === 0 && (
+          <p className="p-6 text-center text-gray-400">
+            No hay pedidos registrados
+          </p>
+        )}
       </div>
     </div>
   );
