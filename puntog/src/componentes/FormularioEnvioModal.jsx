@@ -8,9 +8,9 @@ export default function FormularioEnvioModal() {
   const { cart, subtotal, clearCart, setShowShippingModal, setShowCart } =
     useCart();
 
-  const [loading, setLoading] = useState(false);
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -23,8 +23,8 @@ export default function FormularioEnvioModal() {
   /* ================= DEPARTAMENTOS ================= */
   useEffect(() => {
     fetch(`${API_URL}/api/departamentos`)
-      .then((res) => res.json())
-      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
+      .then((r) => r.json())
+      .then((d) => setDepartamentos(Array.isArray(d) ? d : []))
       .catch(() => setDepartamentos([]));
   }, []);
 
@@ -36,20 +36,24 @@ export default function FormularioEnvioModal() {
     }
 
     fetch(`${API_URL}/api/ciudades?departamento_id=${form.departamento_id}`)
-      .then((res) => res.json())
-      .then((data) => setCiudades(Array.isArray(data) ? data : []))
+      .then((r) => r.json())
+      .then((d) => setCiudades(Array.isArray(d) ? d : []))
       .catch(() => setCiudades([]));
   }, [form.departamento_id]);
 
   /* ================= ENVÍO ================= */
   const costoEnvio = useMemo(
-    () => calcularEnvio({ ciudad: form.ciudad, total: subtotal }),
+    () =>
+      calcularEnvio({
+        ciudad: form.ciudad,
+        total: subtotal,
+      }),
     [form.ciudad, subtotal]
   );
 
   const totalFinal = subtotal + costoEnvio;
 
-  /* ================= ENVIAR PEDIDO ================= */
+  /* ================= ENVIAR ================= */
   const enviarPedido = async () => {
     if (
       !form.nombre ||
@@ -72,24 +76,22 @@ export default function FormularioEnvioModal() {
           nombre: form.nombre,
           telefono: form.telefono,
           direccion: form.direccion,
-          departamento_id: form.departamento_id,
+          departamento: form.departamento_id,
           ciudad: form.ciudad,
-          subtotal,
-          envio: costoEnvio,
-          total: totalFinal,
+          envio: costoEnvio, // 🔥 MISMO ENVÍO
           carrito: cart.map((p) => ({
             id: p.id,
             nombre: p.nombre,
             precio: p.precio,
-            cantidad: p.cantidad,
+            quantity: p.cantidad,
           })),
         }),
       });
 
       const data = await res.json();
       if (!data.ok) throw new Error();
-    } catch {
-      alert("❌ Error guardando el pedido");
+    } catch (err) {
+      alert("Error enviando pedido");
       setLoading(false);
       return;
     }
@@ -101,7 +103,6 @@ export default function FormularioEnvioModal() {
 👤 ${form.nombre}
 📞 ${form.telefono}
 📍 ${form.direccion}
-🏙️ ${form.ciudad}
 
 🛒 Productos:
 ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
@@ -194,16 +195,18 @@ ${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
               </option>
             ))}
           </select>
+        </div>
 
-          <div className="text-sm text-right opacity-80">
-            Total: ${totalFinal.toLocaleString()}
-          </div>
+        <div className="mt-4 text-sm">
+          <p>Subtotal: ${subtotal.toLocaleString()}</p>
+          <p>Envío: ${costoEnvio.toLocaleString()}</p>
+          <p className="font-bold">Total: ${totalFinal.toLocaleString()}</p>
         </div>
 
         <button
           onClick={enviarPedido}
           disabled={loading}
-          className="w-full mt-4 bg-green-600 py-3 rounded-xl"
+          className="w-full mt-4 bg-green-600 py-3 rounded-xl text-white disabled:opacity-50"
         >
           {loading ? "Enviando..." : "Enviar pedido"}
         </button>
