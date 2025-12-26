@@ -183,85 +183,115 @@ app.post("/api/enviar-formulario", (req, res) => {
     email = null,
     telefono,
     direccion,
-    departamento,
-    departamento_id = null,
-    ciudad,
-    ciudad_id = null,
+    departamento_id,
+    ciudad_id,
     carrito,
     costo_envio = 0,
   } = req.body;
 
-  if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
+  /* ================= VALIDACIONES ================= */
+  if (!nombre || !telefono || !direccion || !departamento_id || !ciudad_id) {
+    return res.status(400).json({ ok: false, error: "Datos incompletos" });
+  }
+
+  if (!Array.isArray(carrito) || carrito.length === 0) {
     return res.status(400).json({ ok: false, error: "Carrito vacío" });
   }
 
-  // 🔢 Calcular subtotal desde carrito
+  /* ================= CALCULAR SUBTOTAL ================= */
   const subtotal = carrito.reduce(
-    (s, i) => s + Number(i.precio) * Number(i.cantidad),
+    (s, p) => s + Number(p.precio) * Number(p.cantidad),
     0
   );
 
-  const total = subtotal + Number(costo_envio || 0);
+  const envio = Number(costo_envio) || 0;
+  const total = subtotal + envio;
 
+  /* ================= OBTENER NOMBRES ================= */
   DB.query(
     `
-    INSERT INTO pedidos
-    (
-      nombre,
-      email,
-      telefono,
-      direccion,
-      departamento,
-      departamento_id,
-      ciudad,
-      ciudad_id,
-      total,
-      costo_envio,
-      estado
-    )
-    VALUES (?,?,?,?,?,?,?,?,?,?,'pendiente')
+    SELECT 
+      d.nombre AS departamento,
+      c.nombre AS ciudad
+    FROM departamentos d
+    JOIN ciudades c ON c.id = ?
+    WHERE d.id = ?
     `,
-    [
-      nombre,
-      email,
-      telefono,
-      direccion,
-      departamento,
-      departamento_id,
-      ciudad,
-      ciudad_id,
-      total,
-      costo_envio,
-    ],
-    (err, result) => {
-      if (err) {
-        console.error("❌ Error creando pedido:", err);
+    [ciudad_id, departamento_id],
+    (err, rows) => {
+      if (err || rows.length === 0) {
+        console.error("❌ Error obteniendo ciudad/depto:", err);
         return res.status(500).json({ ok: false });
       }
 
-      const detalles = carrito.map((p) => [
-        result.insertId,
-        p.id,
-        p.nombre,
-        Number(p.precio),
-        Number(p.cantidad),
-        Number(p.precio) * Number(p.cantidad),
-      ]);
+      const { departamento, ciudad } = rows[0];
 
+      /* ================= INSERT PEDIDO ================= */
       DB.query(
         `
-        INSERT INTO pedido_detalles
-        (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-        VALUES ?
+        INSERT INTO pedidos
+        (
+          nombre,
+          email,
+          telefono,
+          direccion,
+          departamento,
+          departamento_id,
+          ciudad,
+          ciudad_id,
+          total,
+          costo_envio,
+          estado
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?,'pendiente')
         `,
-        [detalles],
-        (err2) => {
+        [
+          nombre,
+          email,
+          telefono,
+          direccion,
+          departamento,
+          departamento_id,
+          ciudad,
+          ciudad_id,
+          total,
+          envio,
+        ],
+        (err2, result) => {
           if (err2) {
-            console.error("❌ Error detalles:", err2);
+            console.error("❌ Error creando pedido:", err2);
             return res.status(500).json({ ok: false });
           }
 
-          res.json({ ok: true, pedido_id: result.insertId });
+          /* ================= DETALLES ================= */
+          const detalles = carrito.map((p) => [
+            result.insertId,
+            p.id,
+            p.nombre,
+            Number(p.precio),
+            Number(p.cantidad),
+            Number(p.precio) * Number(p.cantidad),
+          ]);
+
+          DB.query(
+            `
+            INSERT INTO pedido_detalles
+            (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+            VALUES ?
+            `,
+            [detalles],
+            (err3) => {
+              if (err3) {
+                console.error("❌ Error detalles:", err3);
+                return res.status(500).json({ ok: false });
+              }
+
+              res.json({
+                ok: true,
+                pedido_id: result.insertId,
+              });
+            }
+          );
         }
       );
     }
