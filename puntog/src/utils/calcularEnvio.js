@@ -1,5 +1,5 @@
 export function calcularEnvio({ ciudad, total }) {
-  if (total >= 250000) return 0;
+  if (total >= 200000) return 0;
 
   if (!ciudad) return 0;
 
