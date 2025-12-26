@@ -12,16 +12,27 @@ export default function PedidosAdmin() {
     try {
       const res = await fetch(`${API}/api/pedidos-completo`);
 
-      if (!res.ok) throw new Error("Error HTTP");
+      // 🔒 VALIDACIÓN CLAVE
+      if (!res.ok) {
+        throw new Error(`Error HTTP ${res.status}`);
+      }
 
-      const data = await res.json();
+      const text = await res.text();
 
-      // 🔒 SOPORTA AMBOS FORMATOS
-      const pedidosData = Array.isArray(data) ? data : data.results || [];
+      // 🔒 Si viene HTML, lo detectamos
+      if (text.startsWith("<!DOCTYPE")) {
+        throw new Error("El backend devolvió HTML, no JSON");
+      }
 
-      setPedidos(pedidosData);
+      const data = JSON.parse(text);
+
+      if (!data.ok) {
+        throw new Error("Respuesta inválida del servidor");
+      }
+
+      setPedidos(data.results);
     } catch (err) {
-      console.error(err);
+      console.error("ERROR PEDIDOS ADMIN:", err);
       setError("No se pudieron cargar los pedidos");
     } finally {
       setLoading(false);
@@ -40,6 +51,10 @@ export default function PedidosAdmin() {
 
       if (!res.ok) throw new Error();
 
+      const data = await res.json();
+
+      if (!data.ok) throw new Error();
+
       setPedidos((prev) =>
         prev.map((p) =>
           p.id === id
@@ -55,14 +70,12 @@ export default function PedidosAdmin() {
     }
   };
 
-  if (loading) return <p className="p-6">Cargando pedidos…</p>;
-  if (error) return <p className="p-6 text-red-500">{error}</p>;
+  if (loading) return <p>Cargando pedidos...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        📦 Pedidos
-      </h1>
+      <h1 className="text-2xl font-bold mb-6">📦 Pedidos</h1>
 
       <div className="overflow-x-auto rounded-xl border border-white/10">
         <table className="w-full text-sm text-white">
@@ -84,7 +97,7 @@ export default function PedidosAdmin() {
             {pedidos.map((p) => (
               <tr
                 key={p.id}
-                className="border-t border-white/10 hover:bg-white/5 transition"
+                className="border-t border-white/10 hover:bg-white/5"
               >
                 <td className="p-3">{p.id}</td>
                 <td>{p.nombre}</td>
@@ -113,8 +126,8 @@ export default function PedidosAdmin() {
                     onClick={() => cambiarEstado(p.id)}
                     className={`px-3 py-1 rounded text-xs font-semibold ${
                       p.estado === "pendiente"
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-yellow-600 hover:bg-yellow-700"
+                        ? "bg-green-600"
+                        : "bg-yellow-600"
                     }`}
                   >
                     {p.estado === "pendiente"
@@ -124,7 +137,7 @@ export default function PedidosAdmin() {
 
                   <Link
                     to={`/admin/orden-servicio/${p.id}`}
-                    className="text-blue-400 underline text-xs text-center hover:text-blue-300"
+                    className="text-blue-400 underline text-xs text-center"
                   >
                     Orden de Servicio
                   </Link>
@@ -133,12 +146,6 @@ export default function PedidosAdmin() {
             ))}
           </tbody>
         </table>
-
-        {pedidos.length === 0 && (
-          <p className="p-6 text-center text-gray-400">
-            No hay pedidos registrados
-          </p>
-        )}
       </div>
     </div>
   );
