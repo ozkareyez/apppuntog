@@ -31,14 +31,23 @@ export default function FormularioEnvioModal() {
 
   /* ================= CIUDADES ================= */
   useEffect(() => {
-    if (!form.departamento_id) return;
+    if (!form.departamento_id) {
+      setCiudades([]);
+      return;
+    }
 
-    fetch(`${API_URL}/api/ciudades/${form.departamento_id}`)
-      .then((res) => res.json())
+    fetch(`${API_URL}/api/ciudades?departamento_id=${form.departamento_id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error cargando ciudades");
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data)) setCiudades(data);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Ciudades:", err);
+        setCiudades([]);
+      });
   }, [form.departamento_id]);
 
   const totalFinal = subtotal;
