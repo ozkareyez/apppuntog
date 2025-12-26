@@ -104,7 +104,8 @@ export default function PedidosAdmin() {
                 <td>{p.telefono}</td>
                 <td>{p.direccion}</td>
                 <td>{p.departamento_nombre || "—"}</td>
-                <td>{p.ciudad || "—"}</td>
+                <td>{p.ciudad_nombre || "—"}</td>
+
                 <td className="font-semibold">
                   ${Number(p.total).toLocaleString()}
                 </td>
