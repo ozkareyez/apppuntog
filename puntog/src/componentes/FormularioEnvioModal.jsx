@@ -141,28 +141,36 @@ ${cart
 
   /* ================= UI ================= */
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
+      {/* BACKDROP */}
       <div
-        className="absolute inset-0 bg-black/80"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={() => setShowShippingModal(false)}
       />
 
-      <div className="relative bg-[#0f0f0f] w-full max-w-md p-6 rounded-xl">
+      {/* MODAL */}
+      <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-b from-[#141414] to-[#0b0b0b] shadow-2xl border border-white/10 p-6 animate-fadeIn">
+        {/* CLOSE */}
         <button
-          className="absolute top-4 right-4"
+          className="absolute top-4 right-4 text-white/60 hover:text-white transition"
           onClick={() => setShowShippingModal(false)}
         >
-          <X />
+          <X size={22} />
         </button>
 
-        <h3 className="text-center text-xl mb-4 text-white">
+        {/* TITLE */}
+        <h3 className="text-center text-2xl font-semibold text-white mb-1">
           Finalizar pedido
         </h3>
+        <p className="text-center text-sm text-white/50 mb-6">
+          Completa tus datos para continuar
+        </p>
 
+        {/* FORM */}
         <div className="space-y-3">
           <input
             className="input"
-            placeholder="Nombre"
+            placeholder="Nombre completo"
             value={form.nombre}
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
@@ -192,7 +200,7 @@ ${cart
               })
             }
           >
-            <option value="">Departamento</option>
+            <option value="">Selecciona departamento</option>
             {departamentos.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.nombre}
@@ -201,12 +209,12 @@ ${cart
           </select>
 
           <select
-            className="input"
+            className="input disabled:opacity-50"
             disabled={!form.departamento_id}
             value={form.ciudad}
             onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
           >
-            <option value="">Ciudad</option>
+            <option value="">Selecciona ciudad</option>
             {ciudades.map((c) => (
               <option key={c.id} value={c.nombre}>
                 {c.nombre}
@@ -215,18 +223,35 @@ ${cart
           </select>
         </div>
 
-        <div className="mt-4 text-sm">
-          <p>Subtotal: ${subtotal.toLocaleString()}</p>
-          <p>Envío: ${costoEnvio.toLocaleString()}</p>
-          <p className="font-bold">Total: ${totalFinal.toLocaleString()}</p>
+        {/* TOTAL CARD */}
+        <div className="mt-6 rounded-xl bg-black/40 border border-white/10 p-4 space-y-1 text-sm">
+          <div className="flex justify-between text-white/70">
+            <span>Subtotal</span>
+            <span>${subtotal.toLocaleString()}</span>
+          </div>
+
+          <div className="flex justify-between text-white/70">
+            <span>Envío</span>
+            <span>${costoEnvio.toLocaleString()}</span>
+          </div>
+
+          <div className="flex justify-between text-white text-lg font-semibold pt-2 border-t border-white/10">
+            <span>Total</span>
+            <span>${totalFinal.toLocaleString()}</span>
+          </div>
         </div>
 
+        {/* BUTTON */}
         <button
           onClick={enviarPedido}
           disabled={loading}
-          className="w-full mt-4 bg-green-600 py-3 rounded-xl text-white disabled:opacity-50"
+          className="w-full mt-6 py-4 rounded-xl text-white font-semibold text-lg
+        bg-gradient-to-r from-green-600 to-green-500
+        hover:from-green-500 hover:to-green-400
+        active:scale-[0.98]
+        transition disabled:opacity-50"
         >
-          {loading ? "Enviando..." : "Enviar pedido"}
+          {loading ? "Enviando..." : "Confirmar pedido"}
         </button>
       </div>
     </div>
