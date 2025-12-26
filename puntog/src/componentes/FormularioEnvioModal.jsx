@@ -14,10 +14,11 @@ export default function FormularioEnvioModal() {
 
   const [form, setForm] = useState({
     nombre: "",
+    email: "",
     telefono: "",
     direccion: "",
     departamento_id: "",
-    ciudad: "",
+    ciudad_id: "",
   });
 
   /* ================= DEPARTAMENTOS ================= */
@@ -45,10 +46,10 @@ export default function FormularioEnvioModal() {
   const costoEnvio = useMemo(
     () =>
       calcularEnvio({
-        ciudad: form.ciudad,
+        ciudad_id: form.ciudad_id,
         total: subtotal,
       }),
-    [form.ciudad, subtotal]
+    [form.ciudad_id, subtotal]
   );
 
   const totalFinal = subtotal + costoEnvio;
@@ -57,10 +58,11 @@ export default function FormularioEnvioModal() {
   const enviarPedido = async () => {
     if (
       !form.nombre ||
+      !form.email ||
       !form.telefono ||
       !form.direccion ||
       !form.departamento_id ||
-      !form.ciudad
+      !form.ciudad_id
     ) {
       alert("Completa todos los datos");
       return;
@@ -74,23 +76,13 @@ export default function FormularioEnvioModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre,
+          email: form.email,
           telefono: form.telefono,
           direccion: form.direccion,
-
-          // ✅ ENVIAR AMBOS
-          departamento:
-            departamentos.find((d) => d.id == form.departamento_id)?.nombre ||
-            "",
-
-          departamento_id: form.departamento_id,
-
-          ciudad: form.ciudad,
-          ciudad_id: ciudades.find((c) => c.nombre === form.ciudad)?.id || null,
-
-          // ✅ NOMBRE CORRECTO
+          departamento_id: Number(form.departamento_id),
+          ciudad_id: Number(form.ciudad_id),
           costo_envio: costoEnvio,
-
-          // ✅ CAMPOS CORRECTOS
+          total: totalFinal,
           carrito: cart.map((p) => ({
             id: p.id,
             nombre: p.nombre,
@@ -100,8 +92,7 @@ export default function FormularioEnvioModal() {
         }),
       });
 
-      const data = await res.json();
-      if (!data.ok) throw new Error();
+      if (!res.ok) throw new Error("Error servidor");
     } catch (err) {
       alert("Error enviando pedido");
       setLoading(false);
@@ -110,34 +101,27 @@ export default function FormularioEnvioModal() {
 
     /* ================= WHATSAPP ================= */
     const mensaje = `
-🖤 *NUEVA ORDEN DE SERVICIO – PUNTO G* 🖤
+🖤 *NUEVA ORDEN – PUNTO G* 🖤
 
-👤 *Cliente:* ${form.nombre}
-📞 *Teléfono:* ${form.telefono}
+👤 ${form.nombre}
+📞 ${form.telefono}
+📧 ${form.email}
 
-📍 *Dirección:* ${form.direccion}
-🗺️ *Departamento:* ${
-      departamentos.find((d) => d.id == form.departamento_id)?.nombre || ""
-    }
-🏙️ *Ciudad:* ${form.ciudad}
-
+📍 ${form.direccion}
 
 🛒 *Productos:*
 ${cart
   .map(
     (p) =>
       `• ${p.nombre}
-   Cantidad: ${p.cantidad}
-   Precio: $${p.precio.toLocaleString()}
-   Subtotal: $${(p.precio * p.cantidad).toLocaleString()}`
+Cantidad: ${p.cantidad}
+Precio: $${p.precio.toLocaleString()}`
   )
   .join("\n\n")}
 
-────────────────────
-💰 *Subtotal:* $${subtotal.toLocaleString()}
-🚚 *Envío:* $${costoEnvio.toLocaleString()}
-✅ *TOTAL:* $${totalFinal.toLocaleString()}
-────────────────────
+💰 Subtotal: $${subtotal.toLocaleString()}
+🚚 Envío: $${costoEnvio.toLocaleString()}
+✅ TOTAL: $${totalFinal.toLocaleString()}
 `;
 
     window.open(
@@ -154,65 +138,54 @@ ${cart
   /* ================= UI ================= */
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
-      {/* BACKDROP */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70"
         onClick={() => setShowShippingModal(false)}
       />
 
-      {/* MODAL */}
-      <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-b from-[#141414] to-[#0b0b0b] shadow-2xl border border-white/10 p-6 animate-fadeIn">
-        {/* CLOSE */}
+      <div className="relative w-full max-w-md bg-[#0b0b0b] p-6 rounded-2xl">
         <button
-          className="absolute top-4 right-4 text-white/60 hover:text-white transition"
+          className="absolute top-4 right-4"
           onClick={() => setShowShippingModal(false)}
         >
-          <X size={22} />
+          <X />
         </button>
 
-        {/* TITLE */}
-        <h3 className="text-center text-2xl font-semibold text-white mb-1">
-          Finalizar pedido
-        </h3>
-        <p className="text-center text-sm text-white/50 mb-6">
-          Completa tus datos para continuar
-        </p>
+        <h3 className="text-center text-2xl mb-4">Finalizar pedido</h3>
 
-        {/* FORM */}
         <div className="space-y-3">
           <input
             className="input"
-            placeholder="Nombre completo"
-            value={form.nombre}
+            placeholder="Nombre"
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
-
+          <input
+            className="input"
+            placeholder="Email"
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
           <input
             className="input"
             placeholder="Teléfono"
-            value={form.telefono}
             onChange={(e) => setForm({ ...form, telefono: e.target.value })}
           />
-
           <input
             className="input"
             placeholder="Dirección"
-            value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
           />
 
           <select
             className="input"
-            value={form.departamento_id}
             onChange={(e) =>
               setForm({
                 ...form,
                 departamento_id: e.target.value,
-                ciudad: "",
+                ciudad_id: "",
               })
             }
           >
-            <option value="">Selecciona departamento</option>
+            <option value="">Departamento</option>
             {departamentos.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.nombre}
@@ -221,47 +194,23 @@ ${cart
           </select>
 
           <select
-            className="input disabled:opacity-50"
+            className="input"
             disabled={!form.departamento_id}
-            value={form.ciudad}
-            onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
+            onChange={(e) => setForm({ ...form, ciudad_id: e.target.value })}
           >
-            <option value="">Selecciona ciudad</option>
+            <option value="">Ciudad</option>
             {ciudades.map((c) => (
-              <option key={c.id} value={c.nombre}>
+              <option key={c.id} value={c.id}>
                 {c.nombre}
               </option>
             ))}
           </select>
         </div>
 
-        {/* TOTAL CARD */}
-        <div className="mt-6 rounded-xl bg-black/40 border border-white/10 p-4 space-y-1 text-sm">
-          <div className="flex justify-between text-white/70">
-            <span>Subtotal</span>
-            <span>${subtotal.toLocaleString()}</span>
-          </div>
-
-          <div className="flex justify-between text-white/70">
-            <span>Envío</span>
-            <span>${costoEnvio.toLocaleString()}</span>
-          </div>
-
-          <div className="flex justify-between text-white text-lg font-semibold pt-2 border-t border-white/10">
-            <span>Total</span>
-            <span>${totalFinal.toLocaleString()}</span>
-          </div>
-        </div>
-
-        {/* BUTTON */}
         <button
           onClick={enviarPedido}
           disabled={loading}
-          className="w-full mt-6 py-4 rounded-xl text-white font-semibold text-lg
-        bg-gradient-to-r from-green-600 to-green-500
-        hover:from-green-500 hover:to-green-400
-        active:scale-[0.98]
-        transition disabled:opacity-50"
+          className="w-full mt-6 py-4 bg-green-600 rounded-xl"
         >
           {loading ? "Enviando..." : "Confirmar pedido"}
         </button>
