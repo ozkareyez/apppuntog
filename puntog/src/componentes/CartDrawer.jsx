@@ -16,10 +16,16 @@ export default function CartDrawer() {
   if (!showCart) return null;
 
   const getImageSrc = (item) => {
-    if (item.imagen?.startsWith("http")) return item.imagen;
-    if (item.imagen)
+    if (!item) return "/imagenes/no-image.png";
+
+    if (item.imagen_url && item.imagen_url.startsWith("http")) {
+      return item.imagen_url;
+    }
+
+    if (item.imagen && item.imagen !== "") {
       return `${import.meta.env.VITE_API_URL}/uploads/${item.imagen}`;
-    if (item.imagen_url) return item.imagen_url;
+    }
+
     return "/imagenes/no-image.png";
   };
 
@@ -54,7 +60,10 @@ export default function CartDrawer() {
             <img
               src={getImageSrc(item)}
               alt={item.nombre}
-              className="w-16 h-16 object-cover rounded"
+              onError={(e) => {
+                e.currentTarget.src = "/imagenes/no-image.png";
+              }}
+              className="w-16 h-16 min-w-16 object-cover rounded-lg bg-white"
             />
 
             <div className="flex-1">
