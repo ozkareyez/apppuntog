@@ -15,9 +15,7 @@ export default function OrdenServicio() {
       try {
         const res = await fetch(`${API_URL}/api/orden-servicio/${id}`);
 
-        if (!res.ok) {
-          throw new Error("Orden no encontrada");
-        }
+        if (!res.ok) throw new Error();
 
         const json = await res.json();
         setData(json);
@@ -39,11 +37,11 @@ export default function OrdenServicio() {
 
   return (
     <>
-      {/* BOTONES (NO SE IMPRIMEN) */}
+      {/* BOTONES */}
       <div className="flex justify-between max-w-4xl mx-auto mb-4 print:hidden">
         <button
           onClick={() => navigate("/admin/pedidos")}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          className="px-4 py-2 bg-gray-600 text-white rounded"
         >
           ✖ Cerrar
         </button>
@@ -56,21 +54,20 @@ export default function OrdenServicio() {
         </button>
       </div>
 
-      {/* ZONA IMPRIMIBLE */}
+      {/* ORDEN */}
       <div className="print-area p-8 max-w-4xl mx-auto bg-white text-black">
-        {/* HEADER */}
         <h1 className="text-2xl font-bold mb-6 text-center">
           ORDEN DE SERVICIO
         </h1>
 
-        {/* DATOS CLIENTE */}
+        {/* CLIENTE */}
         <section className="mb-6">
           <h2 className="font-semibold mb-2">Datos del Cliente</h2>
           <p>
             <b>Nombre:</b> {pedido.nombre}
           </p>
           <p>
-            <b>Email:</b> {pedido.email}
+            <b>Email:</b> {pedido.email || "—"}
           </p>
           <p>
             <b>Teléfono:</b> {pedido.telefono}
@@ -79,15 +76,14 @@ export default function OrdenServicio() {
             <b>Dirección:</b> {pedido.direccion}
           </p>
           <p>
-            <b>Departamento:</b> {pedido.departamento_nombre}
+            <b>Departamento:</b> {pedido.departamento_nombre || "—"}
           </p>
-
           <p>
-            <b>Ciudad:</b> {pedido.ciudad}
+            <b>Ciudad:</b> {pedido.ciudad_nombre || "—"}
           </p>
         </section>
 
-        {/* DATOS PEDIDO */}
+        {/* PEDIDO */}
         <section className="mb-6">
           <h2 className="font-semibold mb-2">Datos del Pedido</h2>
           <p>
@@ -101,7 +97,7 @@ export default function OrdenServicio() {
           </p>
         </section>
 
-        {/* TABLA PRODUCTOS */}
+        {/* PRODUCTOS */}
         <table className="w-full border border-black border-collapse mb-6">
           <thead>
             <tr className="bg-gray-200">
@@ -127,12 +123,15 @@ export default function OrdenServicio() {
           </tbody>
         </table>
 
-        {/* TOTAL */}
-        <div className="text-right text-xl font-bold">
-          TOTAL: ${Number(pedido.total).toLocaleString()}
+        {/* TOTALES */}
+        <div className="text-right space-y-1">
+          <p>Subtotal: ${Number(pedido.subtotal || 0).toLocaleString()}</p>
+          <p>Envío: ${Number(pedido.costo_envio || 0).toLocaleString()}</p>
+          <p className="text-xl font-bold">
+            TOTAL: ${Number(pedido.total).toLocaleString()}
+          </p>
         </div>
 
-        {/* FOOTER ORDEN */}
         <div className="mt-10 text-sm text-center">Gracias por su compra</div>
       </div>
     </>
