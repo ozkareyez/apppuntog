@@ -98,18 +98,34 @@ export default function FormularioEnvioModal() {
 
     /* ================= WHATSAPP ================= */
     const mensaje = `
-🖤 Pedido Punto G 🖤
+🖤 *NUEVA ORDEN DE SERVICIO – PUNTO G* 🖤
 
-👤 ${form.nombre}
-📞 ${form.telefono}
-📍 ${form.direccion}
+👤 *Cliente:* ${form.nombre}
+📞 *Teléfono:* ${form.telefono}
 
-🛒 Productos:
-${cart.map((p) => `• ${p.nombre} x${p.cantidad}`).join("\n")}
+📍 *Dirección:* ${form.direccion}
+🗺️ *Departamento:* ${
+      departamentos.find((d) => d.id == form.departamento_id)?.nombre || ""
+    }
+🏙️ *Ciudad:* ${form.ciudad}
 
-💰 Subtotal: $${subtotal.toLocaleString()}
-🚚 Envío: $${costoEnvio.toLocaleString()}
-✅ Total: $${totalFinal.toLocaleString()}
+
+🛒 *Productos:*
+${cart
+  .map(
+    (p) =>
+      `• ${p.nombre}
+   Cantidad: ${p.cantidad}
+   Precio: $${p.precio.toLocaleString()}
+   Subtotal: $${(p.precio * p.cantidad).toLocaleString()}`
+  )
+  .join("\n\n")}
+
+────────────────────
+💰 *Subtotal:* $${subtotal.toLocaleString()}
+🚚 *Envío:* $${costoEnvio.toLocaleString()}
+✅ *TOTAL:* $${totalFinal.toLocaleString()}
+────────────────────
 `;
 
     window.open(
