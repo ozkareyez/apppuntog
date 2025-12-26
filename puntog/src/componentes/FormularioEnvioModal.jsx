@@ -14,11 +14,11 @@ export default function FormularioEnvioModal() {
 
   const [form, setForm] = useState({
     nombre: "",
-    email: "",
     telefono: "",
     direccion: "",
     departamento_id: "",
-    ciudad_id: "",
+    ciudad: "", // 👈 nombre (para calcular envío)
+    ciudad_id: "", // 👈 id (para backend)
   });
 
   /* ================= DEPARTAMENTOS ================= */
@@ -46,10 +46,10 @@ export default function FormularioEnvioModal() {
   const costoEnvio = useMemo(
     () =>
       calcularEnvio({
-        ciudad_id: form.ciudad_id,
+        ciudad: form.ciudad, // ✅ NOMBRE (regla intacta)
         total: subtotal,
       }),
-    [form.ciudad_id, subtotal]
+    [form.ciudad, subtotal]
   );
 
   const totalFinal = subtotal + costoEnvio;
@@ -58,7 +58,6 @@ export default function FormularioEnvioModal() {
   const enviarPedido = async () => {
     if (
       !form.nombre ||
-      !form.email ||
       !form.telefono ||
       !form.direccion ||
       !form.departamento_id ||
@@ -76,7 +75,6 @@ export default function FormularioEnvioModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: form.nombre,
-          email: form.email,
           telefono: form.telefono,
           direccion: form.direccion,
           departamento_id: Number(form.departamento_id),
@@ -92,7 +90,8 @@ export default function FormularioEnvioModal() {
         }),
       });
 
-      if (!res.ok) throw new Error("Error servidor");
+      const data = await res.json();
+      if (!data.ok) throw new Error();
     } catch (err) {
       alert("Error enviando pedido");
       setLoading(false);
@@ -101,13 +100,13 @@ export default function FormularioEnvioModal() {
 
     /* ================= WHATSAPP ================= */
     const mensaje = `
-🖤 *NUEVA ORDEN – PUNTO G* 🖤
+🖤 *NUEVA ORDEN DE SERVICIO – PUNTO G* 🖤
 
-👤 ${form.nombre}
-📞 ${form.telefono}
-📧 ${form.email}
+👤 *Cliente:* ${form.nombre}
+📞 *Teléfono:* ${form.telefono}
 
-📍 ${form.direccion}
+📍 *Dirección:* ${form.direccion}
+🏙️ *Ciudad:* ${form.ciudad}
 
 🛒 *Productos:*
 ${cart
@@ -119,9 +118,11 @@ Precio: $${p.precio.toLocaleString()}`
   )
   .join("\n\n")}
 
+──────────────
 💰 Subtotal: $${subtotal.toLocaleString()}
 🚚 Envío: $${costoEnvio.toLocaleString()}
 ✅ TOTAL: $${totalFinal.toLocaleString()}
+──────────────
 `;
 
     window.open(
@@ -143,44 +144,46 @@ Precio: $${p.precio.toLocaleString()}`
         onClick={() => setShowShippingModal(false)}
       />
 
-      <div className="relative w-full max-w-md bg-[#0b0b0b] p-6 rounded-2xl">
+      <div className="relative w-full max-w-md rounded-2xl bg-[#111] p-6">
         <button
-          className="absolute top-4 right-4"
+          className="absolute top-4 right-4 text-white/60"
           onClick={() => setShowShippingModal(false)}
         >
           <X />
         </button>
 
-        <h3 className="text-center text-2xl mb-4">Finalizar pedido</h3>
+        <h3 className="text-center text-xl mb-4">Finalizar pedido</h3>
 
         <div className="space-y-3">
           <input
             className="input"
             placeholder="Nombre"
+            value={form.nombre}
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
-          <input
-            className="input"
-            placeholder="Email"
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
+
           <input
             className="input"
             placeholder="Teléfono"
+            value={form.telefono}
             onChange={(e) => setForm({ ...form, telefono: e.target.value })}
           />
+
           <input
             className="input"
             placeholder="Dirección"
+            value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
           />
 
           <select
             className="input"
+            value={form.departamento_id}
             onChange={(e) =>
               setForm({
                 ...form,
                 departamento_id: e.target.value,
+                ciudad: "",
                 ciudad_id: "",
               })
             }
@@ -196,7 +199,15 @@ Precio: $${p.precio.toLocaleString()}`
           <select
             className="input"
             disabled={!form.departamento_id}
-            onChange={(e) => setForm({ ...form, ciudad_id: e.target.value })}
+            value={form.ciudad_id}
+            onChange={(e) => {
+              const ciudad = ciudades.find((c) => c.id == e.target.value);
+              setForm({
+                ...form,
+                ciudad_id: e.target.value,
+                ciudad: ciudad?.nombre || "",
+              });
+            }}
           >
             <option value="">Ciudad</option>
             {ciudades.map((c) => (
@@ -210,7 +221,7 @@ Precio: $${p.precio.toLocaleString()}`
         <button
           onClick={enviarPedido}
           disabled={loading}
-          className="w-full mt-6 py-4 bg-green-600 rounded-xl"
+          className="w-full mt-6 bg-green-600 py-3 rounded-xl"
         >
           {loading ? "Enviando..." : "Confirmar pedido"}
         </button>
