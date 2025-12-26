@@ -147,60 +147,88 @@ app.get("/api/productos/:id", (req, res) => {
 app.post("/api/enviar-formulario", (req, res) => {
   const {
     nombre,
+    email = null,
     telefono,
     direccion,
-    departamento, // 👈 NOMBRE, no ID
+    departamento,
+    departamento_id = null,
     ciudad,
+    ciudad_id = null,
     carrito,
+    costo_envio = 0,
   } = req.body;
 
   if (!carrito || !Array.isArray(carrito) || carrito.length === 0) {
     return res.status(400).json({ ok: false, error: "Carrito vacío" });
   }
 
-  const total = carrito.reduce(
-    (sum, item) => sum + Number(item.precio) * Number(item.cantidad),
+  // 🔢 Calcular subtotal desde carrito
+  const subtotal = carrito.reduce(
+    (s, i) => s + Number(i.precio) * Number(i.cantidad),
     0
   );
 
+  const total = subtotal + Number(costo_envio || 0);
+
   DB.query(
     `
-    INSERT INTO pedidos 
-    (nombre, telefono, direccion, departamento, ciudad, total, estado)
-    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
+    INSERT INTO pedidos
+    (
+      nombre,
+      email,
+      telefono,
+      direccion,
+      departamento,
+      departamento_id,
+      ciudad,
+      ciudad_id,
+      total,
+      costo_envio,
+      estado
+    )
+    VALUES (?,?,?,?,?,?,?,?,?,?,'pendiente')
     `,
-    [nombre, telefono, direccion, departamento, ciudad, total],
+    [
+      nombre,
+      email,
+      telefono,
+      direccion,
+      departamento,
+      departamento_id,
+      ciudad,
+      ciudad_id,
+      total,
+      costo_envio,
+    ],
     (err, result) => {
       if (err) {
-        console.error("❌ Error MySQL pedido:", err);
-        return res.status(500).json({ ok: false, error: err.message });
+        console.error("❌ Error creando pedido:", err);
+        return res.status(500).json({ ok: false });
       }
 
-      const pedidoId = result.insertId;
-
-      const detalles = carrito.map((i) => [
-        pedidoId,
-        i.id,
-        i.nombre,
-        i.precio,
-        i.cantidad,
-        i.precio * i.cantidad,
+      const detalles = carrito.map((p) => [
+        result.insertId,
+        p.id,
+        p.nombre,
+        Number(p.precio),
+        Number(p.cantidad),
+        Number(p.precio) * Number(p.cantidad),
       ]);
 
       DB.query(
         `
         INSERT INTO pedido_detalles
-        (pedido_id, producto_id, nombre, precio, cantidad, subtotal)
+        (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
         VALUES ?
         `,
         [detalles],
         (err2) => {
           if (err2) {
-            console.error("❌ Error MySQL detalles:", err2);
-            return res.status(500).json({ ok: false, error: err2.message });
+            console.error("❌ Error detalles:", err2);
+            return res.status(500).json({ ok: false });
           }
 
-          res.json({ ok: true, pedidoId });
+          res.json({ ok: true, pedido_id: result.insertId });
         }
       );
     }
