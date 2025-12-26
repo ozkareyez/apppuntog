@@ -52,7 +52,7 @@ export default function CartDrawer() {
             className="flex gap-3 mb-4 border-b border-white/10 pb-3"
           >
             <img
-              src={getImageSrc(item)}
+              src={item.imagen}
               alt={item.nombre}
               className="w-16 h-16 object-cover rounded"
             />
@@ -60,7 +60,7 @@ export default function CartDrawer() {
             <div className="flex-1">
               <p className="text-sm">{item.nombre}</p>
               <p className="text-pink-400 font-semibold">
-                ${Number(item.precio).toLocaleString()}
+                ${item.precio.toLocaleString()}
               </p>
 
               <div className="flex items-center gap-2 mt-2">
