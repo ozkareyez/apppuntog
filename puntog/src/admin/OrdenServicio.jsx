@@ -125,7 +125,7 @@ export default function OrdenServicio() {
 
         {/* TOTALES */}
         <div className="text-right space-y-1">
-          <p>Subtotal: ${Number(pedido.subtotal || 0).toLocaleString()}</p>
+          {/* <p>Subtotal: ${Number(pedido.subtotal || 0).toLocaleString()}</p> */}
           <p>Envío: ${Number(pedido.costo_envio || 0).toLocaleString()}</p>
           <p className="text-xl font-bold">
             TOTAL: ${Number(pedido.total).toLocaleString()}
