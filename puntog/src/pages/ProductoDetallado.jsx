@@ -186,9 +186,7 @@ const ProductoDetallado = () => {
                     ${precioAntes.toFixed(2)}
                   </p>
                 )}
-                <p className="text-pink-400 text-5xl font-bold">
-                  ${precio.toFixed(2)}
-                </p>
+                <p className="text-pink-400 text-5xl font-bold">${precio}</p>
               </div>
 
               <p
