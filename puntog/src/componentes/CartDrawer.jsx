@@ -105,9 +105,11 @@ const CartDrawer = () => {
           </div>
 
           <button
-            className="w-full bg-pink-600 text-white py-2 rounded"
-            onClick={() => setShowShipping(true)}
-            disabled={cart.length === 0}
+            onClick={() => {
+              setShowCart(false); // ⬅️ cerrar carrito
+              setShowShippingModal(true); // ⬅️ abrir modal
+            }}
+            className="w-full mt-4 bg-pink-500 py-3 rounded-xl font-semibold"
           >
             Confirmar pedido
           </button>

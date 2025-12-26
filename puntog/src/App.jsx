@@ -32,7 +32,15 @@ export default function App() {
 
       {/* 🛒 Drawer del carrito (SIEMPRE MONTADO) */}
       <CartDrawer />
-      <ShippingModal />
+      <ShippingModal
+        isOpen={showShipping}
+        onClose={() => setShowShipping(false)}
+        onConfirm={(data) => {
+          console.log("Datos de envío:", data);
+          setShowShipping(false);
+          setShowCart(false);
+        }}
+      />
 
       <Routes>
         {/* PUBLIC */}

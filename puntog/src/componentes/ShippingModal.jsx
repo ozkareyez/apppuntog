@@ -115,15 +115,6 @@ const CartDrawer = () => {
       </aside>
 
       {/* MODAL ENVÍO */}
-      <ShippingModal
-        isOpen={showShipping}
-        onClose={() => setShowShipping(false)}
-        onConfirm={(data) => {
-          console.log("Datos de envío:", data);
-          setShowShipping(false);
-          setShowCart(false);
-        }}
-      />
     </>
   );
 };
