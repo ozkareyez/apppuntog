@@ -104,4 +104,4 @@ const AgeVerification = ({ onVerified }) => {
   );
 };
 
-export default HomeWithVerification;
+export default AgeVerification;
