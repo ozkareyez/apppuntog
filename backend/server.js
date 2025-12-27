@@ -1,7 +1,6 @@
 import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
-import ExcelJS from "exceljs";
 import path from "path";
 import multer from "multer";
 import { fileURLToPath } from "url";
@@ -11,13 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 /* ================= MIDDLEWARE ================= */
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  })
-);
-
+app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ================= STATIC IMAGES ================= */
+/* ================= STATIC ================= */
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* ================= MYSQL ================= */
@@ -37,21 +30,20 @@ const DB = mysql.createPool({
   port: process.env.MYSQLPORT,
 });
 
-/* ================= MULTER (UPLOAD) ================= */
+/* ================= MULTER ================= */
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_, __, cb) => {
     cb(null, path.join(__dirname, "public/images"));
   },
-  filename: (req, file, cb) => {
-    const ext = file.originalname.split(".").pop();
-    const filename = `prod-${Date.now()}.${ext}`;
-    cb(null, filename);
+  filename: (_, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `prod-${Date.now()}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 /* ================= ROOT ================= */
@@ -60,10 +52,7 @@ app.get("/", (_, res) => res.json({ ok: true }));
 /* ================= UPLOAD IMAGEN ================= */
 app.post("/api/upload-imagen", upload.single("imagen"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({
-      ok: false,
-      message: "No se subió ninguna imagen",
-    });
+    return res.status(400).json({ ok: false, message: "No se subió imagen" });
   }
 
   res.json({
@@ -81,42 +70,15 @@ app.get("/api/categorias", (_, res) => {
   });
 });
 
-/* ================= PRODUCTOS ================= */
-app.get("/api/productos", (req, res) => {
-  const { categoria, es_oferta, limit } = req.query;
-
-  let query = "SELECT p.* FROM productos p";
-  const params = [];
-  const conditions = [];
-
-  if (categoria && categoria !== "todas") {
-    query += " INNER JOIN categorias c ON p.categoria_id = c.id";
-    conditions.push("c.slug = ?");
-    params.push(categoria);
-  }
-
-  if (es_oferta === "true") {
-    conditions.push("p.es_oferta = 1");
-  }
-
-  if (conditions.length) {
-    query += " WHERE " + conditions.join(" AND ");
-  }
-
-  query += " ORDER BY p.id DESC";
-
-  if (limit) {
-    query += " LIMIT ?";
-    params.push(parseInt(limit));
-  }
-
-  DB.query(query, params, (err, results) => {
+/* ================= LISTAR PRODUCTOS ================= */
+app.get("/api/productos", (_, res) => {
+  DB.query("SELECT * FROM productos ORDER BY id DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
     res.json(
-      results.map((p) => ({
+      rows.map((p) => ({
         ...p,
-        precio: Number(p.precio) || 0,
+        precio: Number(p.precio),
         precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
         descuento: p.descuento ? Number(p.descuento) : 0,
         es_oferta: Boolean(p.es_oferta),
@@ -128,12 +90,7 @@ app.get("/api/productos", (req, res) => {
 /* ================= PRODUCTO INDIVIDUAL ================= */
 app.get("/api/productos/:id", (req, res) => {
   DB.query(
-    `
-    SELECT p.*, c.nombre AS categoria, c.slug AS categoria_slug
-    FROM productos p
-    LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.id = ?
-    `,
+    "SELECT * FROM productos WHERE id = ?",
     [req.params.id],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -142,34 +99,11 @@ app.get("/api/productos/:id", (req, res) => {
       const p = rows[0];
       res.json({
         ...p,
-        precio: Number(p.precio) || 0,
+        precio: Number(p.precio),
         precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
         descuento: p.descuento ? Number(p.descuento) : 0,
         es_oferta: Boolean(p.es_oferta),
       });
-    }
-  );
-});
-
-//================= DEPARTAMENTOS ================= */
-app.get("/api/departamentos", (_, res) => {
-  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
-    if (err) return res.status(500).json(err);
-    res.json(rows);
-  });
-});
-
-/* ================= CIUDADES ================= */
-app.get("/api/ciudades", (req, res) => {
-  const { departamento_id } = req.query;
-  if (!departamento_id) return res.json([]);
-
-  DB.query(
-    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
-    [departamento_id],
-    (err, rows) => {
-      if (err) return res.status(500).json([]);
-      res.json(rows);
     }
   );
 });
@@ -190,29 +124,18 @@ app.post("/api/productos", (req, res) => {
     descripcion = null,
   } = req.body;
 
-  if (!nombre || !precio || !imagen) {
+  if (!nombre || !precio || !imagen || !categoria_id) {
     return res.status(400).json({
       ok: false,
-      message: "Campos obligatorios incompletos",
+      message: "Campos obligatorios faltantes",
     });
   }
 
   DB.query(
     `
     INSERT INTO productos
-    (
-      categoria,
-      nombre,
-      talla,
-      color,
-      precio,
-      imagen,
-      categoria_id,
-      precio_antes,
-      descuento,
-      es_oferta,
-      descripcion
-    )
+    (categoria, nombre, talla, color, precio, imagen, categoria_id,
+     precio_antes, descuento, es_oferta, descripcion)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)
     `,
     [
@@ -238,97 +161,6 @@ app.post("/api/productos", (req, res) => {
         ok: true,
         producto_id: result.insertId,
       });
-    }
-  );
-});
-
-/* ================= FORMULARIO CLIENTE ================= */
-app.post("/api/enviar-formulario", (req, res) => {
-  const {
-    nombre,
-    email = null,
-    telefono,
-    direccion,
-    departamento_id,
-    ciudad_id,
-    carrito,
-    costo_envio = 0,
-  } = req.body;
-
-  if (!nombre || !telefono || !direccion || !departamento_id || !ciudad_id) {
-    return res.status(400).json({ ok: false });
-  }
-
-  if (!Array.isArray(carrito) || !carrito.length) {
-    return res.status(400).json({ ok: false });
-  }
-
-  const subtotal = carrito.reduce(
-    (s, p) => s + Number(p.precio) * Number(p.cantidad),
-    0
-  );
-
-  const total = subtotal + Number(costo_envio);
-
-  DB.query(
-    `
-    SELECT d.nombre AS departamento, c.nombre AS ciudad
-    FROM departamentos d
-    JOIN ciudades c ON c.id = ?
-    WHERE d.id = ?
-    `,
-    [ciudad_id, departamento_id],
-    (err, rows) => {
-      if (err || !rows.length) return res.status(500).json({ ok: false });
-
-      const { departamento, ciudad } = rows[0];
-
-      DB.query(
-        `
-        INSERT INTO pedidos
-        (
-          nombre, email, telefono, direccion,
-          departamento, departamento_id,
-          ciudad, ciudad_id,
-          total, costo_envio, estado
-        )
-        VALUES (?,?,?,?,?,?,?,?,?,?,'pendiente')
-        `,
-        [
-          nombre,
-          email,
-          telefono,
-          direccion,
-          departamento,
-          departamento_id,
-          ciudad,
-          ciudad_id,
-          total,
-          costo_envio,
-        ],
-        (err2, result) => {
-          if (err2) return res.status(500).json({ ok: false });
-
-          const detalles = carrito.map((p) => [
-            result.insertId,
-            p.id,
-            p.nombre,
-            Number(p.precio),
-            Number(p.cantidad),
-            Number(p.precio) * Number(p.cantidad),
-          ]);
-
-          DB.query(
-            `
-            INSERT INTO pedido_detalles
-            (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
-            VALUES ?
-            `,
-            [detalles],
-            () => res.json({ ok: true, pedido_id: result.insertId })
-          );
-        }
-      );
     }
   );
 });
