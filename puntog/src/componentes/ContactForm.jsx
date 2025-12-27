@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "@/config";
 
 export default function ContactForm() {
   const [form, setForm] = useState({
@@ -8,22 +9,41 @@ export default function ContactForm() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [enviado, setEnviado] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const enviarFormulario = async (e) => {
     e.preventDefault();
+
+    if (!form.nombre || !form.email || !form.mensaje) {
+      alert("Completa todos los campos");
+      return;
+    }
+
     setLoading(true);
-    setSuccess(false);
 
     try {
-      // 🔗 AQUÍ conectas backend después
-      // await fetch("/api/contacto", { method: "POST", body: JSON.stringify(form) });
+      const res = await fetch(`${API_URL}/api/contacto`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
-      console.log("Mensaje enviado:", form);
+      const data = await res.json();
 
-      setSuccess(true);
+      if (!data.ok) throw new Error();
+
+      setEnviado(true);
       setForm({ nombre: "", email: "", mensaje: "" });
-    } catch (err) {
+    } catch (error) {
       alert("Error enviando el mensaje");
     } finally {
       setLoading(false);
@@ -31,65 +51,76 @@ export default function ContactForm() {
   };
 
   return (
-    <section className="max-w-xl mx-auto px-4 py-14 text-white">
-      <h1 className="text-3xl font-bold text-red-500 text-center mb-2">
-        Contáctanos
-      </h1>
-
-      <p className="text-center text-gray-400 mb-8">
-        ¿Tienes preguntas o necesitas ayuda? Escríbenos y te responderemos.
+    <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">Contáctanos</h2>
+      <p className="text-gray-500 mb-6">
+        Déjanos tu mensaje y te responderemos pronto
       </p>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 bg-gray-300/10 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl"
-      >
-        <input
-          type="text"
-          placeholder="Nombre completo"
-          className="input w-full"
+      {enviado && (
+        <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-sm">
+          ✅ Mensaje enviado correctamente
+        </div>
+      )}
+
+      <form onSubmit={enviarFormulario} className="space-y-4">
+        <Input
+          label="Nombre"
+          name="nombre"
           value={form.nombre}
-          onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-          required
+          onChange={handleChange}
         />
 
-        <input
+        <Input
+          label="Email"
+          name="email"
           type="email"
-          placeholder="Correo electrónico"
-          className="input w-full"
           value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          required
+          onChange={handleChange}
         />
 
-        <textarea
-          placeholder="Escribe tu mensaje..."
-          rows={4}
-          className="input w-full resize-none"
+        <Textarea
+          label="Mensaje"
+          name="mensaje"
           value={form.mensaje}
-          onChange={(e) => setForm({ ...form, mensaje: e.target.value })}
-          required
+          onChange={handleChange}
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="
-            w-full py-3 rounded-xl font-semibold
-            bg-red-600 hover:bg-red-700
-            disabled:opacity-60 disabled:cursor-not-allowed
-            transition-all
-          "
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition disabled:opacity-60"
         >
           {loading ? "Enviando..." : "Enviar mensaje"}
         </button>
-
-        {success && (
-          <p className="text-green-400 text-center text-sm font-medium">
-            ✔ Mensaje enviado correctamente
-          </p>
-        )}
       </form>
-    </section>
+    </div>
   );
 }
+
+/* ================= COMPONENTES UI ================= */
+
+const Input = ({ label, ...props }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+    </label>
+    <input
+      {...props}
+      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+    />
+  </div>
+);
+
+const Textarea = ({ label, ...props }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+    </label>
+    <textarea
+      rows="4"
+      {...props}
+      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+    />
+  </div>
+);
