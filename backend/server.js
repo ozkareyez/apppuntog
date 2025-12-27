@@ -474,7 +474,7 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
 
 /* ================= CONTACTO - GUARDAR ================= */
 app.post("/api/contacto", (req, res) => {
-  console.log("📩 BODY RECIBIDO:", req.body);
+  console.log("📩 BODY:", req.body);
 
   const { nombre, email, mensaje } = req.body;
 
@@ -484,10 +484,16 @@ app.post("/api/contacto", (req, res) => {
     (err, result) => {
       if (err) {
         console.error("❌ MYSQL ERROR:", err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({
+          ok: false,
+          error: err.message,
+        });
       }
 
-      res.status(201).json({ ok: true });
+      res.status(201).json({
+        ok: true,
+        id: result.insertId,
+      });
     }
   );
 });
