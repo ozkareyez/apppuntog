@@ -478,7 +478,6 @@ app.post("/api/contacto", (req, res) => {
 
   const { nombre, email, mensaje } = req.body;
 
-  // 🔒 VALIDACIÓN FUERTE
   if (!nombre || !email || !mensaje) {
     return res.status(400).json({
       ok: false,
