@@ -62,33 +62,31 @@ app.get("/", (_, res) => res.json({ ok: true }));
 app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ ok: false, message: "No se subió imagen" });
+      return res.status(400).json({
+        ok: false,
+        message: "No se subió imagen",
+      });
     }
 
-    // Convertir buffer a base64
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    const b64 = req.file.buffer.toString("base64");
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
-    // Subir a Cloudinary
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: "punto-g-productos",
-      resource_type: "auto",
-      public_id: `prod-${Date.now()}`,
     });
 
-    console.log("✅ Imagen subida a Cloudinary:", result.secure_url);
+    console.log("✅ Imagen subida:", result.secure_url);
 
     res.json({
       ok: true,
+      url: result.secure_url,
       filename: result.public_id,
-      url: result.secure_url, // 👈 URL completa de Cloudinary
     });
   } catch (error) {
-    console.error("❌ Error subiendo a Cloudinary:", error);
+    console.error("❌ Cloudinary error:", error);
     res.status(500).json({
       ok: false,
       message: "Error al subir imagen",
-      error: error.message,
     });
   }
 });
