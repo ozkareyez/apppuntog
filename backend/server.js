@@ -478,9 +478,17 @@ app.post("/api/contacto", (req, res) => {
 
   const { nombre, email, mensaje } = req.body;
 
+  // 🔒 VALIDACIÓN FUERTE
+  if (!nombre || !email || !mensaje) {
+    return res.status(400).json({
+      ok: false,
+      message: "Todos los campos son obligatorios",
+    });
+  }
+
   DB.query(
     "INSERT INTO contactos (nombre, email, mensaje) VALUES (?,?,?)",
-    [nombre, email, mensaje],
+    [nombre.trim(), email.trim(), mensaje.trim()],
     (err, result) => {
       if (err) {
         console.error("❌ MYSQL ERROR:", err);
@@ -496,6 +504,30 @@ app.post("/api/contacto", (req, res) => {
       });
     }
   );
+});
+
+/* ================= CONTACTO - ADMIN ================= */
+
+// listar mensajes
+app.get("/api/admin/contacto", (req, res) => {
+  DB.query("SELECT * FROM contactos ORDER BY id DESC", (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json([]);
+    }
+    res.json(rows);
+  });
+});
+
+// eliminar mensaje
+app.delete("/api/admin/contacto/:id", (req, res) => {
+  DB.query("DELETE FROM contactos WHERE id = ?", [req.params.id], (err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ ok: false });
+    }
+    res.json({ ok: true });
+  });
 });
 
 //*============orden de servicio======================*/
