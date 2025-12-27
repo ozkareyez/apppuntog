@@ -48,13 +48,13 @@ function App() {
         </Route>
 
         {/* ---------- ADMIN ---------- */}
-        <Route path="/admin/login" element={<Login />} />
-
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="pedidos" element={<PedidosAdmin />} />
-          <Route path="contacto" element={<ContactosAdmin />} />
-          <Route path="nuevo_producto" element={<FormularioProducto />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="pedidos" element={<PedidosAdmin />} />
+            <Route path="contacto" element={<ContactosAdmin />} />
+            <Route path="nuevo_producto" element={<FormularioProducto />} />
+          </Route>
         </Route>
 
         {/* ---------- ORDEN DE SERVICIO ---------- */}
