@@ -487,7 +487,7 @@ app.post("/api/contacto", (req, res) => {
 
   DB.query(
     "INSERT INTO contactos (nombre, email, mensaje) VALUES (?,?,?)",
-    [nombre.trim(), email.trim(), mensaje.trim()],
+    [nombre, email, mensaje],
     (err, result) => {
       if (err) {
         console.error("❌ MYSQL ERROR:", err);
