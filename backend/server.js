@@ -83,10 +83,11 @@ app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
       filename: result.public_id,
     });
   } catch (error) {
-    console.error("❌ Cloudinary error:", error);
+    console.error("❌ Cloudinary error FULL:", error);
+
     res.status(500).json({
       ok: false,
-      message: "Error al subir imagen",
+      message: error.message || "Error al subir imagen",
     });
   }
 });
