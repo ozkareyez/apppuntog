@@ -474,49 +474,20 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
 
 /* ================= CONTACTO - GUARDAR ================= */
 app.post("/api/contacto", (req, res) => {
+  console.log("📩 BODY RECIBIDO:", req.body);
+
   const { nombre, email, mensaje } = req.body;
 
-  if (!nombre || !email || !mensaje) {
-    return res.status(400).json({
-      ok: false,
-      message: "Datos incompletos",
-    });
-  }
-
   DB.query(
-    `
-    INSERT INTO contactos (nombre, email, mensaje)
-    VALUES (?,?,?)
-    `,
+    "INSERT INTO contactos (nombre, email, mensaje) VALUES (?,?,?)",
     [nombre, email, mensaje],
     (err, result) => {
       if (err) {
-        console.error("❌ Error guardando contacto:", err);
-        return res.status(500).json({ ok: false });
+        console.error("❌ MYSQL ERROR:", err);
+        return res.status(500).json({ error: err.message });
       }
 
-      res.status(201).json({
-        ok: true,
-        id: result.insertId,
-      });
-    }
-  );
-});
-
-app.get("/api/admin/contacto", (req, res) => {
-  DB.query(
-    `
-    SELECT id, nombre, email, mensaje, fecha
-    FROM contactos
-    ORDER BY fecha DESC
-    `,
-    (err, rows) => {
-      if (err) {
-        console.error("❌ Error obteniendo contactos:", err);
-        return res.status(500).json([]);
-      }
-
-      res.json(rows);
+      res.status(201).json({ ok: true });
     }
   );
 });
