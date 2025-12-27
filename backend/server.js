@@ -279,6 +279,199 @@ app.post("/api/enviar-formulario", (req, res) => {
   );
 });
 
+/* ================= ADMIN PEDIDOS ================= */
+app.get("/api/pedidos-completo", (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const { search, inicio, fin } = req.query;
+
+    let where = "WHERE 1=1";
+    const params = [];
+
+    // 🔍 BUSCADOR
+    if (search) {
+      where += `
+        AND (
+          p.nombre LIKE ?
+          OR CAST(p.telefono AS CHAR) LIKE ?
+        )
+      `;
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    // 📅 FECHAS
+    if (inicio) {
+      where += " AND DATE(p.fecha) >= ?";
+      params.push(inicio);
+    }
+
+    if (fin) {
+      where += " AND DATE(p.fecha) <= ?";
+      params.push(fin);
+    }
+
+    // 🔢 TOTAL
+    DB.query(
+      `SELECT COUNT(*) AS total FROM pedidos p ${where}`,
+      params,
+      (errCount, countRows) => {
+        if (errCount) {
+          console.error("❌ Error COUNT:", errCount);
+          return res.status(500).json({ ok: false });
+        }
+
+        const total = countRows[0].total;
+
+        // 📦 LISTADO
+        DB.query(
+          `
+          SELECT
+            p.id,
+            p.nombre,
+            p.telefono,
+            p.direccion,
+
+            -- 🔥 USAR IDS CORRECTOS
+            d.nombre AS departamento_nombre,
+            c.nombre AS ciudad_nombre,
+
+            p.total,
+            p.costo_envio,
+            p.estado,
+            p.fecha
+          FROM pedidos p
+          LEFT JOIN departamentos d ON p.departamento_id = d.id
+          LEFT JOIN ciudades c ON p.ciudad_id = c.id
+          ${where}
+          ORDER BY p.id DESC
+          LIMIT ? OFFSET ?
+          `,
+          [...params, limit, offset],
+          (errRows, rows) => {
+            if (errRows) {
+              console.error("❌ Error pedidos:", errRows);
+              return res.status(500).json({ ok: false });
+            }
+
+            res.json({
+              ok: true,
+              results: rows,
+              total,
+              totalPages: Math.ceil(total / limit),
+              page,
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error("🔥 Error general:", error);
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get("/api/orden-servicio/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [pedido] = await DB.promise().query(
+      `
+      SELECT
+        p.*,
+        d.nombre AS departamento_nombre,
+        c.nombre AS ciudad_nombre
+      FROM pedidos p
+      LEFT JOIN departamentos d ON p.departamento = d.id
+      LEFT JOIN ciudades c ON p.ciudad = c.id
+      WHERE p.id = ?
+      `,
+      [id]
+    );
+
+    if (!pedido.length) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    const [detalle] = await DB.promise().query(
+      "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+      [id]
+    );
+
+    res.json({
+      pedido: pedido[0],
+      productos: detalle,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+});
+
+/* ================= EXCEL ================= */
+app.get("/api/exportar-pedidos-completo", async (_, res) => {
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Pedidos");
+
+    ws.columns = [
+      { header: "Pedido ID", key: "pedido_id", width: 10 },
+      { header: "Fecha", key: "fecha", width: 15 },
+      { header: "Cliente", key: "cliente", width: 25 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Dirección", key: "direccion", width: 30 },
+      { header: "Ciudad", key: "ciudad", width: 15 },
+      { header: "Teléfono", key: "telefono", width: 15 },
+      { header: "Producto", key: "producto", width: 25 },
+      { header: "Precio", key: "precio", width: 12 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Subtotal", key: "subtotal", width: 12 },
+    ];
+
+    const sql = `
+      SELECT
+        p.id AS pedido_id,
+        DATE(p.fecha) AS fecha,
+        p.nombre AS cliente,
+        p.email,
+        p.direccion,
+        p.ciudad,
+        p.telefono,
+        pr.nombre AS producto,
+        d.precio,
+        d.cantidad,
+        d.subtotal
+      FROM pedidos p
+      JOIN pedido_detalles d ON d.pedido_id = p.id
+      JOIN productos pr ON pr.id = d.producto_id
+      ORDER BY p.id DESC
+    `;
+
+    DB.query(sql, async (err, rows) => {
+      if (err) return res.status(500).json({ error: "Error Excel" });
+
+      ws.addRows(rows);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=pedidos_completos.xlsx"
+      );
+
+      await wb.xlsx.write(res);
+      res.end();
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno" });
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
