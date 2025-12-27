@@ -48,13 +48,18 @@ function App() {
         </Route>
 
         {/* ---------- ADMIN ---------- */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="pedidos" element={<PedidosAdmin />} />
-            <Route path="contacto" element={<ContactosAdmin />} />
-            <Route path="nuevo_producto" element={<FormularioProducto />} />
-          </Route>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
+          <Route path="contacto" element={<ContactosAdmin />} />
+          <Route path="nuevo_producto" element={<FormularioProducto />} />
         </Route>
 
         {/* ---------- ORDEN DE SERVICIO ---------- */}
