@@ -176,8 +176,7 @@ const Productos = () => {
                     }}
                     className="w-full py-2 rounded-xl font-semibold flex items-center justify-center gap-2 bg-red-600 text-white hover:bg-red-700 transition"
                   >
-                    <ShoppingCart size={16} />
-                    Agregar al carrito
+                    Agregar <ShoppingCart size={16} />
                   </button>
                 </div>
               </div>
