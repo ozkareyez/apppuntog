@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config";
 
@@ -42,59 +41,50 @@ export default function Dashboard() {
     }
   };
 
-  // 🔹 carga inicial
+  // carga inicial
   useEffect(() => {
     fetchPedidos();
   }, []);
 
-  // 🔹 volver a buscar cuando cambian filtros
+  // debounce filtros
   useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchPedidos();
-    }, 500); // debounce
-
+    const delay = setTimeout(fetchPedidos, 500);
     return () => clearTimeout(delay);
   }, [buscar, fechaInicio, fechaFin]);
 
   return (
-    <div className="min-h-screen bg-[#0B0B0F] text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">📊 Panel Administrador</h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">
+        📊 Panel Administrador
+      </h1>
 
       {/* ================= FILTROS ================= */}
-      <div className="bg-[#12121A] p-4 rounded-xl border border-white/10 grid md:grid-cols-4 gap-4 mb-6">
-        {/* BUSCADOR */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 grid md:grid-cols-4 gap-4 mb-6">
         <input
           type="text"
           placeholder="Buscar cliente o teléfono"
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
-          className="bg-black/50 border border-white/10 rounded px-3 py-2
-                     focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="input-admin"
         />
 
-        {/* FECHA INICIO */}
         <input
           type="date"
           value={fechaInicio}
           onChange={(e) => setFechaInicio(e.target.value)}
-          className="bg-black/50 border border-white/10 rounded px-3 py-2
-                     text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-          style={{ colorScheme: "dark" }}
+          className="input-admin"
         />
 
-        {/* FECHA FIN */}
         <input
           type="date"
           value={fechaFin}
           onChange={(e) => setFechaFin(e.target.value)}
-          className="bg-black/50 border border-white/10 rounded px-3 py-2
-                     text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-          style={{ colorScheme: "dark" }}
+          className="input-admin"
         />
 
         <button
           onClick={fetchPedidos}
-          className="bg-pink-500 hover:bg-pink-600 rounded px-4 py-2 font-semibold"
+          className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 font-semibold transition"
         >
           🔍 Buscar
         </button>
@@ -106,16 +96,16 @@ export default function Dashboard() {
           href={`${API_URL}/api/exportar-pedidos-completo`}
           target="_blank"
           rel="noreferrer"
-          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm font-semibold"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
         >
           📥 Descargar Excel
         </a>
       </div>
 
       {/* ================= TABLA ================= */}
-      <div className="bg-[#12121A] rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-[#181824]">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto shadow">
+        <table className="w-full text-sm text-gray-700">
+          <thead className="bg-red-50 text-red-700">
             <tr>
               <th className="px-4 py-3 text-left">ID</th>
               <th className="px-4 py-3 text-left">Cliente</th>
@@ -130,7 +120,7 @@ export default function Dashboard() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan="7" className="text-center py-6">
+                <td colSpan="7" className="text-center py-6 text-gray-500">
                   Cargando pedidos...
                 </td>
               </tr>
@@ -138,7 +128,7 @@ export default function Dashboard() {
 
             {!loading && pedidos.length === 0 && (
               <tr>
-                <td colSpan="7" className="text-center py-6 text-white/50">
+                <td colSpan="7" className="text-center py-6 text-gray-500">
                   No hay pedidos
                 </td>
               </tr>
@@ -148,21 +138,22 @@ export default function Dashboard() {
               pedidos.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-t border-white/10 hover:bg-white/5"
+                  className="border-t border-gray-200 hover:bg-gray-50"
                 >
-                  <td className="px-4 py-2">{p.id}</td>
+                  <td className="px-4 py-2 font-semibold">{p.id}</td>
                   <td className="px-4 py-2">{p.nombre}</td>
                   <td className="px-4 py-2">{p.telefono}</td>
-                  <td className="px-4 py-2">${p.total}</td>
+                  <td className="px-4 py-2 font-bold text-red-600">
+                    ${Number(p.total).toLocaleString()}
+                  </td>
 
                   <td className="px-4 py-2">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold
-                        ${
-                          p.estado === "pendiente"
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        p.estado === "pendiente"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
                     >
                       {p.estado}
                     </span>
@@ -173,7 +164,7 @@ export default function Dashboard() {
                   <td className="px-4 py-2">
                     <button
                       onClick={() => setDetalle(p)}
-                      className="text-pink-400 hover:underline"
+                      className="text-red-600 hover:text-red-800 font-medium underline"
                     >
                       Ver
                     </button>
@@ -186,29 +177,33 @@ export default function Dashboard() {
 
       {/* ================= MODAL ================= */}
       {detalle && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-[#12121A] w-full max-w-lg rounded-xl p-6">
-            <h3 className="text-xl font-bold mb-4">Pedido #{detalle.id}</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-lg rounded-xl p-6 shadow-xl">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Pedido #{detalle.id}
+            </h3>
 
-            <p>
-              <b>Cliente:</b> {detalle.nombre}
-            </p>
-            <p>
-              <b>Teléfono:</b> {detalle.telefono}
-            </p>
-            <p>
-              <b>Total:</b> ${detalle.total}
-            </p>
-            <p>
-              <b>Estado:</b> {detalle.estado}
-            </p>
-            <p>
-              <b>Fecha:</b> {detalle.fecha}
-            </p>
+            <div className="space-y-1 text-gray-700">
+              <p>
+                <b>Cliente:</b> {detalle.nombre}
+              </p>
+              <p>
+                <b>Teléfono:</b> {detalle.telefono}
+              </p>
+              <p>
+                <b>Total:</b> ${detalle.total}
+              </p>
+              <p>
+                <b>Estado:</b> {detalle.estado}
+              </p>
+              <p>
+                <b>Fecha:</b> {detalle.fecha}
+              </p>
+            </div>
 
             <button
               onClick={() => setDetalle(null)}
-              className="mt-6 w-full bg-pink-500 hover:bg-pink-600 py-2 rounded"
+              className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition"
             >
               Cerrar
             </button>
@@ -218,3 +213,224 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// // Dashboard.jsx
+// import { useEffect, useState } from "react";
+// import { API_URL } from "../../config";
+
+// export default function Dashboard() {
+//   const [pedidos, setPedidos] = useState([]);
+//   const [loading, setLoading] = useState(false);
+
+//   // filtros
+//   const [buscar, setBuscar] = useState("");
+//   const [fechaInicio, setFechaInicio] = useState("");
+//   const [fechaFin, setFechaFin] = useState("");
+
+//   // modal
+//   const [detalle, setDetalle] = useState(null);
+
+//   const fetchPedidos = async () => {
+//     try {
+//       setLoading(true);
+
+//       const params = new URLSearchParams();
+//       if (buscar.trim()) params.append("search", buscar.trim());
+//       if (fechaInicio) params.append("inicio", fechaInicio);
+//       if (fechaFin) params.append("fin", fechaFin);
+
+//       const res = await fetch(
+//         `${API_URL}/api/pedidos-completo?${params.toString()}`
+//       );
+
+//       const data = await res.json();
+
+//       if (!Array.isArray(data.results)) {
+//         throw new Error("Formato de datos inválido");
+//       }
+
+//       setPedidos(data.results);
+//     } catch (error) {
+//       console.error("Error cargando pedidos:", error);
+//       setPedidos([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // 🔹 carga inicial
+//   useEffect(() => {
+//     fetchPedidos();
+//   }, []);
+
+//   // 🔹 volver a buscar cuando cambian filtros
+//   useEffect(() => {
+//     const delay = setTimeout(() => {
+//       fetchPedidos();
+//     }, 500); // debounce
+
+//     return () => clearTimeout(delay);
+//   }, [buscar, fechaInicio, fechaFin]);
+
+//   return (
+//     <div className="min-h-screen bg-[#0B0B0F] text-white p-6">
+//       <h1 className="text-3xl font-bold mb-6">📊 Panel Administrador</h1>
+
+//       {/* ================= FILTROS ================= */}
+//       <div className="bg-[#12121A] p-4 rounded-xl border border-white/10 grid md:grid-cols-4 gap-4 mb-6">
+//         {/* BUSCADOR */}
+//         <input
+//           type="text"
+//           placeholder="Buscar cliente o teléfono"
+//           value={buscar}
+//           onChange={(e) => setBuscar(e.target.value)}
+//           className="bg-black/50 border border-white/10 rounded px-3 py-2
+//                      focus:outline-none focus:ring-2 focus:ring-pink-500"
+//         />
+
+//         {/* FECHA INICIO */}
+//         <input
+//           type="date"
+//           value={fechaInicio}
+//           onChange={(e) => setFechaInicio(e.target.value)}
+//           className="bg-black/50 border border-white/10 rounded px-3 py-2
+//                      text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+//           style={{ colorScheme: "dark" }}
+//         />
+
+//         {/* FECHA FIN */}
+//         <input
+//           type="date"
+//           value={fechaFin}
+//           onChange={(e) => setFechaFin(e.target.value)}
+//           className="bg-black/50 border border-white/10 rounded px-3 py-2
+//                      text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+//           style={{ colorScheme: "dark" }}
+//         />
+
+//         <button
+//           onClick={fetchPedidos}
+//           className="bg-pink-500 hover:bg-pink-600 rounded px-4 py-2 font-semibold"
+//         >
+//           🔍 Buscar
+//         </button>
+//       </div>
+
+//       {/* ================= EXCEL ================= */}
+//       <div className="mb-4 flex justify-end">
+//         <a
+//           href={`${API_URL}/api/exportar-pedidos-completo`}
+//           target="_blank"
+//           rel="noreferrer"
+//           className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm font-semibold"
+//         >
+//           📥 Descargar Excel
+//         </a>
+//       </div>
+
+//       {/* ================= TABLA ================= */}
+//       <div className="bg-[#12121A] rounded-xl overflow-x-auto">
+//         <table className="w-full text-sm">
+//           <thead className="bg-[#181824]">
+//             <tr>
+//               <th className="px-4 py-3 text-left">ID</th>
+//               <th className="px-4 py-3 text-left">Cliente</th>
+//               <th className="px-4 py-3 text-left">Teléfono</th>
+//               <th className="px-4 py-3 text-left">Total</th>
+//               <th className="px-4 py-3 text-left">Estado</th>
+//               <th className="px-4 py-3 text-left">Fecha</th>
+//               <th className="px-4 py-3 text-left">Acciones</th>
+//             </tr>
+//           </thead>
+
+//           <tbody>
+//             {loading && (
+//               <tr>
+//                 <td colSpan="7" className="text-center py-6">
+//                   Cargando pedidos...
+//                 </td>
+//               </tr>
+//             )}
+
+//             {!loading && pedidos.length === 0 && (
+//               <tr>
+//                 <td colSpan="7" className="text-center py-6 text-white/50">
+//                   No hay pedidos
+//                 </td>
+//               </tr>
+//             )}
+
+//             {!loading &&
+//               pedidos.map((p) => (
+//                 <tr
+//                   key={p.id}
+//                   className="border-t border-white/10 hover:bg-white/5"
+//                 >
+//                   <td className="px-4 py-2">{p.id}</td>
+//                   <td className="px-4 py-2">{p.nombre}</td>
+//                   <td className="px-4 py-2">{p.telefono}</td>
+//                   <td className="px-4 py-2">${p.total}</td>
+
+//                   <td className="px-4 py-2">
+//                     <span
+//                       className={`px-3 py-1 rounded-full text-xs font-semibold
+//                         ${
+//                           p.estado === "pendiente"
+//                             ? "bg-yellow-500/20 text-yellow-400"
+//                             : "bg-green-500/20 text-green-400"
+//                         }`}
+//                     >
+//                       {p.estado}
+//                     </span>
+//                   </td>
+
+//                   <td className="px-4 py-2">{p.fecha}</td>
+
+//                   <td className="px-4 py-2">
+//                     <button
+//                       onClick={() => setDetalle(p)}
+//                       className="text-pink-400 hover:underline"
+//                     >
+//                       Ver
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+//           </tbody>
+//         </table>
+//       </div>
+
+//       {/* ================= MODAL ================= */}
+//       {detalle && (
+//         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+//           <div className="bg-[#12121A] w-full max-w-lg rounded-xl p-6">
+//             <h3 className="text-xl font-bold mb-4">Pedido #{detalle.id}</h3>
+
+//             <p>
+//               <b>Cliente:</b> {detalle.nombre}
+//             </p>
+//             <p>
+//               <b>Teléfono:</b> {detalle.telefono}
+//             </p>
+//             <p>
+//               <b>Total:</b> ${detalle.total}
+//             </p>
+//             <p>
+//               <b>Estado:</b> {detalle.estado}
+//             </p>
+//             <p>
+//               <b>Fecha:</b> {detalle.fecha}
+//             </p>
+
+//             <button
+//               onClick={() => setDetalle(null)}
+//               className="mt-6 w-full bg-pink-500 hover:bg-pink-600 py-2 rounded"
+//             >
+//               Cerrar
+//             </button>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }

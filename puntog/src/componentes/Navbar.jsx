@@ -8,23 +8,23 @@ import React from "react";
 //       </nav>
 //     </>
 //   );
+// // };
+
+// // export default Navbar;
+
+// const Navbar = () => {
+//   return (
+//     <nav className="h-24 bg-white border-b border-red-500/30 shadow-sm">
+//       <div className="max-w-7xl mx-auto px-6 h-full flex items-center">
+//         {/* LOGO */}
+//         <img
+//           src="/imagenes/logo.png"
+//           alt="Punto G"
+//           className="h-40 object-contain"
+//         />
+//       </div>
+//     </nav>
+//   );
 // };
 
 // export default Navbar;
-
-const Navbar = () => {
-  return (
-    <nav className="h-24 bg-white border-b border-red-500/30 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-full flex items-center">
-        {/* LOGO */}
-        <img
-          src="/imagenes/logo.png"
-          alt="Punto G"
-          className="h-40 object-contain"
-        />
-      </div>
-    </nav>
-  );
-};
-
-export default Navbar;

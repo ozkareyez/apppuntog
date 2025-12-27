@@ -203,7 +203,7 @@ const ProductoDetallado = () => {
         {/* DESCRIPCIÓN */}
         {producto.descripcion && (
           <div className="mt-14 bg-gray-50 rounded-2xl p-8 border border-gray-200">
-            <h2 className="text-2xl font-bold mb-6">
+            <h2 className="text-2xl font-bold mb-6 text-red-600">
               Descripción del producto
             </h2>
             {renderDescripcion(producto.descripcion)}

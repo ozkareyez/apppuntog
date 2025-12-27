@@ -33,15 +33,15 @@ const Home = () => {
 
       {/* ENTREGA + CONTACTO */}
       <section className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-12 items-start">
+        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-1 gap-12 items-start">
           <div className="bg-white rounded-2xl shadow-md p-8 border border-gray-100">
             <MainEnterga />
           </div>
 
           <div className="bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-            <h3 className="text-2xl font-bold mb-6">
+            {/* <h3 className="text-2xl font-bold mb-6">
               <span className="text-red-600">Contáctanos</span>
-            </h3>
+            </h3> */}
             <ContactForm />
           </div>
         </div>

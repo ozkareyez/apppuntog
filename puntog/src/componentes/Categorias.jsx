@@ -54,7 +54,7 @@ const Categorias = () => {
                 border border-white/10 rounded-2xl p-6 text-center
                 shadow-xl transition-all duration-500
                 hover:-translate-y-2 hover:shadow-pink-500/30
-                hover:border-pink-500/50 cursor-pointer
+                hover:border-red-600/50 cursor-pointer
                 overflow-hidden
               "
             >
