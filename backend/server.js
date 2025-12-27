@@ -86,6 +86,75 @@ app.get("/api/ciudades", (req, res) => {
 });
 
 /* ================= CATEGORIAS ================= */
+app.get("/api/categorias", (req, res) => {
+  DB.query("SELECT * FROM categorias", (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al obtener categorías" });
+    }
+
+    res.json(rows);
+  });
+});
+
+/* ================= PRODUCTOS ================= */
+// backend/server.js o donde tengas tus rutas
+app.get("/api/productos", (req, res) => {
+  const { categoria, es_oferta, limit } = req.query;
+
+  let query = "SELECT p.* FROM productos p";
+  const params = [];
+  const conditions = [];
+
+  // ⭐ FILTRO POR CATEGORÍA (usando slug)
+  if (categoria && categoria !== "todas") {
+    query += " INNER JOIN categorias c ON p.categoria_id = c.id";
+    conditions.push("c.slug = ?");
+    params.push(categoria);
+  }
+
+  // ⭐ FILTRO POR OFERTAS
+  if (es_oferta === "true") {
+    conditions.push("p.es_oferta = 1"); // o = true dependiendo de tu BD
+  }
+
+  // Construir WHERE
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += " ORDER BY p.id DESC";
+
+  // Límite opcional
+  if (limit) {
+    query += " LIMIT ?";
+    params.push(parseInt(limit));
+  }
+
+  console.log("🔍 Query:", query);
+  console.log("📊 Params:", params);
+
+  DB.query(query, params, (err, results) => {
+    if (err) {
+      console.error("❌ Error en productos:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    // Normalizar datos
+    const productos = results.map((p) => ({
+      ...p,
+      precio: parseFloat(p.precio) || 0,
+      precio_antes: p.precio_antes ? parseFloat(p.precio_antes) : null,
+      descuento: p.descuento ? parseInt(p.descuento) : 0,
+      es_oferta: Boolean(p.es_oferta),
+    }));
+
+    console.log(`✅ ${productos.length} productos encontrados`);
+    res.json(productos);
+  });
+});
+
+/* ================= CATEGORIAS ================= */
 app.get("/api/categorias", (_, res) => {
   DB.query("SELECT * FROM categorias", (err, rows) => {
     if (err) return res.status(500).json({ error: "Error categorías" });
