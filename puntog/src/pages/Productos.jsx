@@ -17,19 +17,37 @@ const Productos = () => {
   const categoriaActual = searchParams.get("categoria") || "todas";
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
+  // 🔥 FUNCIÓN MEJORADA PARA OBTENER IMÁGENES
   const getImageSrc = (imagen) => {
-    if (!imagen) return "/imagenes/no-image.png";
-    if (imagen.startsWith("http://"))
+    if (!imagen) {
+      return "/imagenes/no-image.png";
+    }
+
+    // Si ya es una URL completa (Cloudinary o cualquier CDN)
+    if (imagen.startsWith("http://") || imagen.startsWith("https://")) {
       return imagen.replace("http://", "https://");
-    if (imagen.startsWith("https://")) return imagen;
+    }
+
+    // Si es un path relativo antiguo
+    if (imagen.startsWith("/imagenes/")) {
+      return imagen;
+    }
+
+    // Si es nombre de archivo del sistema antiguo (Railway)
     return `${API_URL}/images/${imagen}`;
   };
 
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
-      .then((data) => setCategorias(Array.isArray(data) ? data : []))
-      .catch(() => setCategorias([]));
+      .then((data) => {
+        console.log("📂 Categorías cargadas:", data);
+        setCategorias(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("❌ Error al cargar categorías:", err);
+        setCategorias([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -38,13 +56,26 @@ const Productos = () => {
     if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
     if (filtroOferta) url += `es_oferta=true&`;
 
+    console.log("🔍 Cargando productos desde:", url);
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        console.log("📦 Productos recibidos:", data);
+
+        // Debug de imágenes
+        if (data.length > 0) {
+          console.log("🖼️ Ejemplo de imagen:", {
+            original: data[0].imagen,
+            procesada: getImageSrc(data[0].imagen),
+          });
+        }
+
         setProductos(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("❌ Error al cargar productos:", err);
         setProductos([]);
         setLoading(false);
       });
@@ -78,7 +109,7 @@ const Productos = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* TÍTULO */}
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-10">
-          <span className="text-red-600">Nuestros Productos </span>
+          <span className="text-red-600">Nuestros Productos</span>
         </h1>
 
         {/* CATEGORÍAS */}
@@ -133,6 +164,7 @@ const Productos = () => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
             const esOferta = Number(producto.es_oferta) === 1;
+            const imagenUrl = getImageSrc(producto.imagen);
 
             return (
               <div
@@ -141,16 +173,27 @@ const Productos = () => {
                 className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition"
               >
                 {esOferta && (
-                  <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
                     OFERTA
                   </span>
                 )}
 
-                <div className="h-48 flex items-center justify-center bg-gray-50">
+                <div className="h-48 flex items-center justify-center bg-gray-50 relative">
                   <img
-                    src={getImageSrc(producto.imagen)}
+                    src={imagenUrl}
                     alt={producto.nombre}
                     className="max-h-full max-w-full object-contain"
+                    onError={(e) => {
+                      console.error("❌ Error cargando imagen:", {
+                        producto: producto.nombre,
+                        imagenOriginal: producto.imagen,
+                        urlProcesada: imagenUrl,
+                      });
+                      e.target.src = "/imagenes/no-image.png";
+                    }}
+                    onLoad={() => {
+                      console.log("✅ Imagen cargada:", producto.nombre);
+                    }}
                   />
                 </div>
 
@@ -199,6 +242,462 @@ const Productos = () => {
 };
 
 export default Productos;
+
+// import { useEffect, useState } from "react";
+// import { useSearchParams, useNavigate } from "react-router-dom";
+// import { ShoppingCart, Tag, Filter } from "lucide-react";
+// import { useCart } from "@/context/CartContext";
+// import { API_URL } from "@/config";
+
+// const Productos = () => {
+//   const { addToCart } = useCart();
+//   const navigate = useNavigate();
+
+//   const [productos, setProductos] = useState([]);
+//   const [categorias, setCategorias] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const [searchParams, setSearchParams] = useSearchParams();
+
+//   const categoriaActual = searchParams.get("categoria") || "todas";
+//   const filtroOferta = searchParams.get("filtro") === "ofertas";
+
+//   // 🔥 FUNCIÓN MEJORADA PARA OBTENER IMÁGENES
+//   const getImageSrc = (imagen) => {
+//     if (!imagen) {
+//       console.log("⚠️ Producto sin imagen");
+//       return "/imagenes/no-image.png";
+//     }
+
+//     // Si ya es una URL completa con http/https
+//     if (imagen.startsWith("http://") || imagen.startsWith("https://")) {
+//       console.log("✅ URL completa:", imagen);
+//       return imagen.replace("http://", "https://");
+//     }
+
+//     // Si es un path relativo antiguo (ej: /imagenes/producto.jpg)
+//     if (imagen.startsWith("/imagenes/")) {
+//       console.log("📁 Path antiguo:", imagen);
+//       return imagen;
+//     }
+
+//     // Si es solo el nombre del archivo (nuevo sistema)
+//     console.log(
+//       "🆕 Archivo nuevo:",
+//       imagen,
+//       "→",
+//       `${API_URL}/images/${imagen}`
+//     );
+//     return `${API_URL}/images/${imagen}`;
+//   };
+
+//   useEffect(() => {
+//     fetch(`${API_URL}/api/categorias`)
+//       .then((res) => res.json())
+//       .then((data) => {
+//         console.log("📂 Categorías cargadas:", data);
+//         setCategorias(Array.isArray(data) ? data : []);
+//       })
+//       .catch((err) => {
+//         console.error("❌ Error al cargar categorías:", err);
+//         setCategorias([]);
+//       });
+//   }, []);
+
+//   useEffect(() => {
+//     setLoading(true);
+//     let url = `${API_URL}/api/productos?`;
+//     if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
+//     if (filtroOferta) url += `es_oferta=true&`;
+
+//     console.log("🔍 Cargando productos desde:", url);
+
+//     fetch(url)
+//       .then((res) => res.json())
+//       .then((data) => {
+//         console.log("📦 Productos recibidos:", data);
+
+//         // Debug de imágenes
+//         if (data.length > 0) {
+//           console.log("🖼️ Ejemplo de imagen:", {
+//             original: data[0].imagen,
+//             procesada: getImageSrc(data[0].imagen),
+//           });
+//         }
+
+//         setProductos(Array.isArray(data) ? data : []);
+//         setLoading(false);
+//       })
+//       .catch((err) => {
+//         console.error("❌ Error al cargar productos:", err);
+//         setProductos([]);
+//         setLoading(false);
+//       });
+//   }, [categoriaActual, filtroOferta]);
+
+//   const cambiarCategoria = (slug) => {
+//     const params = new URLSearchParams(searchParams);
+//     slug === "todas"
+//       ? params.delete("categoria")
+//       : params.set("categoria", slug);
+//     setSearchParams(params);
+//   };
+
+//   const toggleOferta = () => {
+//     const params = new URLSearchParams(searchParams);
+//     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
+//     setSearchParams(params);
+//   };
+
+//   /* LOADING */
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-white">
+//         <div className="h-14 w-14 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <section className="bg-white py-14">
+//       <div className="max-w-7xl mx-auto px-4">
+//         {/* TÍTULO */}
+//         <h1 className="text-3xl md:text-4xl font-bold text-center mb-10">
+//           <span className="text-red-600">Nuestros Productos</span>
+//         </h1>
+
+//         {/* CATEGORÍAS */}
+//         <div className="flex flex-wrap justify-center gap-3 mb-8">
+//           <button
+//             onClick={() => cambiarCategoria("todas")}
+//             className={`px-4 py-2 rounded-full font-medium border transition
+//               ${
+//                 categoriaActual === "todas"
+//                   ? "bg-red-600 text-white border-red-600"
+//                   : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+//               }`}
+//           >
+//             Todas
+//           </button>
+
+//           {categorias.map((cat) => (
+//             <button
+//               key={cat.id}
+//               onClick={() => cambiarCategoria(cat.slug)}
+//               className={`px-4 py-2 rounded-full font-medium border transition
+//                 ${
+//                   categoriaActual === cat.slug
+//                     ? "bg-red-600 text-white border-red-600"
+//                     : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+//                 }`}
+//             >
+//               {cat.nombre}
+//             </button>
+//           ))}
+//         </div>
+
+//         {/* OFERTAS */}
+//         <div className="flex justify-center mb-10">
+//           <button
+//             onClick={toggleOferta}
+//             className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition
+//               ${
+//                 filtroOferta
+//                   ? "bg-red-600 text-white"
+//                   : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
+//               }`}
+//           >
+//             <Tag size={18} />
+//             {filtroOferta ? "Mostrando ofertas" : "Ver solo ofertas"}
+//           </button>
+//         </div>
+
+//         {/* GRID */}
+//         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+//           {productos.map((producto) => {
+//             const precio = Number(producto.precio || 0);
+//             const precioAntes = Number(producto.precio_antes || 0);
+//             const esOferta = Number(producto.es_oferta) === 1;
+//             const imagenUrl = getImageSrc(producto.imagen);
+
+//             return (
+//               <div
+//                 key={producto.id}
+//                 onClick={() => navigate(`/productos/${producto.id}`)}
+//                 className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition"
+//               >
+//                 {esOferta && (
+//                   <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+//                     OFERTA
+//                   </span>
+//                 )}
+
+//                 <div className="h-48 flex items-center justify-center bg-gray-50 relative">
+//                   <img
+//                     src={imagenUrl}
+//                     alt={producto.nombre}
+//                     className="max-h-full max-w-full object-contain"
+//                     onError={(e) => {
+//                       console.error("❌ Error cargando imagen:", {
+//                         producto: producto.nombre,
+//                         imagenOriginal: producto.imagen,
+//                         urlProcesada: imagenUrl,
+//                       });
+//                       e.target.src = "/imagenes/no-image.png";
+//                     }}
+//                     onLoad={() => {
+//                       console.log("✅ Imagen cargada:", producto.nombre);
+//                     }}
+//                   />
+//                 </div>
+
+//                 <div className="p-4 text-center">
+//                   <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-2">
+//                     {producto.nombre}
+//                   </h3>
+
+//                   {esOferta && precioAntes > 0 && (
+//                     <p className="text-gray-400 text-sm line-through">
+//                       ${precioAntes.toLocaleString()}
+//                     </p>
+//                   )}
+
+//                   <p className="text-red-600 text-xl font-bold mb-4">
+//                     ${precio.toLocaleString()}
+//                   </p>
+
+//                   <button
+//                     onClick={(e) => {
+//                       e.stopPropagation();
+//                       addToCart(producto);
+//                     }}
+//                     className="w-full py-2 rounded-xl font-semibold flex items-center justify-center gap-2 bg-red-600 text-white hover:bg-red-700 transition"
+//                   >
+//                     Agregar <ShoppingCart size={16} />
+//                   </button>
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+
+//         {/* SIN PRODUCTOS */}
+//         {productos.length === 0 && (
+//           <div className="text-center py-20">
+//             <Filter className="w-14 h-14 text-gray-400 mx-auto mb-4" />
+//             <p className="text-gray-500 text-lg">
+//               No hay productos con estos filtros
+//             </p>
+//           </div>
+//         )}
+//       </div>
+//     </section>
+//   );
+// };
+
+// export default Productos;
+
+// import { useEffect, useState } from "react";
+// import { useSearchParams, useNavigate } from "react-router-dom";
+// import { ShoppingCart, Tag, Filter } from "lucide-react";
+// import { useCart } from "@/context/CartContext";
+// import { API_URL } from "@/config";
+
+// const Productos = () => {
+//   const { addToCart } = useCart();
+//   const navigate = useNavigate();
+
+//   const [productos, setProductos] = useState([]);
+//   const [categorias, setCategorias] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const [searchParams, setSearchParams] = useSearchParams();
+
+//   const categoriaActual = searchParams.get("categoria") || "todas";
+//   const filtroOferta = searchParams.get("filtro") === "ofertas";
+
+//   const getImageSrc = (imagen) => {
+//     if (!imagen) return "/imagenes/no-image.png";
+//     if (imagen.startsWith("http://"))
+//       return imagen.replace("http://", "https://");
+//     if (imagen.startsWith("https://")) return imagen;
+//     return `${API_URL}/images/${imagen}`;
+//   };
+
+//   useEffect(() => {
+//     fetch(`${API_URL}/api/categorias`)
+//       .then((res) => res.json())
+//       .then((data) => setCategorias(Array.isArray(data) ? data : []))
+//       .catch(() => setCategorias([]));
+//   }, []);
+
+//   useEffect(() => {
+//     setLoading(true);
+//     let url = `${API_URL}/api/productos?`;
+//     if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
+//     if (filtroOferta) url += `es_oferta=true&`;
+
+//     fetch(url)
+//       .then((res) => res.json())
+//       .then((data) => {
+//         setProductos(Array.isArray(data) ? data : []);
+//         setLoading(false);
+//       })
+//       .catch(() => {
+//         setProductos([]);
+//         setLoading(false);
+//       });
+//   }, [categoriaActual, filtroOferta]);
+
+//   const cambiarCategoria = (slug) => {
+//     const params = new URLSearchParams(searchParams);
+//     slug === "todas"
+//       ? params.delete("categoria")
+//       : params.set("categoria", slug);
+//     setSearchParams(params);
+//   };
+
+//   const toggleOferta = () => {
+//     const params = new URLSearchParams(searchParams);
+//     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
+//     setSearchParams(params);
+//   };
+
+//   /* LOADING */
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-white">
+//         <div className="h-14 w-14 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <section className="bg-white py-14">
+//       <div className="max-w-7xl mx-auto px-4">
+//         {/* TÍTULO */}
+//         <h1 className="text-3xl md:text-4xl font-bold text-center mb-10">
+//           <span className="text-red-600">Nuestros Productos </span>
+//         </h1>
+
+//         {/* CATEGORÍAS */}
+//         <div className="flex flex-wrap justify-center gap-3 mb-8">
+//           <button
+//             onClick={() => cambiarCategoria("todas")}
+//             className={`px-4 py-2 rounded-full font-medium border transition
+//               ${
+//                 categoriaActual === "todas"
+//                   ? "bg-red-600 text-white border-red-600"
+//                   : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+//               }`}
+//           >
+//             Todas
+//           </button>
+
+//           {categorias.map((cat) => (
+//             <button
+//               key={cat.id}
+//               onClick={() => cambiarCategoria(cat.slug)}
+//               className={`px-4 py-2 rounded-full font-medium border transition
+//                 ${
+//                   categoriaActual === cat.slug
+//                     ? "bg-red-600 text-white border-red-600"
+//                     : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+//                 }`}
+//             >
+//               {cat.nombre}
+//             </button>
+//           ))}
+//         </div>
+
+//         {/* OFERTAS */}
+//         <div className="flex justify-center mb-10">
+//           <button
+//             onClick={toggleOferta}
+//             className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold transition
+//               ${
+//                 filtroOferta
+//                   ? "bg-red-600 text-white"
+//                   : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
+//               }`}
+//           >
+//             <Tag size={18} />
+//             {filtroOferta ? "Mostrando ofertas" : "Ver solo ofertas"}
+//           </button>
+//         </div>
+
+//         {/* GRID */}
+//         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+//           {productos.map((producto) => {
+//             const precio = Number(producto.precio || 0);
+//             const precioAntes = Number(producto.precio_antes || 0);
+//             const esOferta = Number(producto.es_oferta) === 1;
+
+//             return (
+//               <div
+//                 key={producto.id}
+//                 onClick={() => navigate(`/productos/${producto.id}`)}
+//                 className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition"
+//               >
+//                 {esOferta && (
+//                   <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+//                     OFERTA
+//                   </span>
+//                 )}
+
+//                 <div className="h-48 flex items-center justify-center bg-gray-50">
+//                   <img
+//                     src={getImageSrc(producto.imagen)}
+//                     alt={producto.nombre}
+//                     className="max-h-full max-w-full object-contain"
+//                   />
+//                 </div>
+
+//                 <div className="p-4 text-center">
+//                   <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 mb-2">
+//                     {producto.nombre}
+//                   </h3>
+
+//                   {esOferta && precioAntes > 0 && (
+//                     <p className="text-gray-400 text-sm line-through">
+//                       ${precioAntes.toLocaleString()}
+//                     </p>
+//                   )}
+
+//                   <p className="text-red-600 text-xl font-bold mb-4">
+//                     ${precio.toLocaleString()}
+//                   </p>
+
+//                   <button
+//                     onClick={(e) => {
+//                       e.stopPropagation();
+//                       addToCart(producto);
+//                     }}
+//                     className="w-full py-2 rounded-xl font-semibold flex items-center justify-center gap-2 bg-red-600 text-white hover:bg-red-700 transition"
+//                   >
+//                     Agregar <ShoppingCart size={16} />
+//                   </button>
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+
+//         {/* SIN PRODUCTOS */}
+//         {productos.length === 0 && (
+//           <div className="text-center py-20">
+//             <Filter className="w-14 h-14 text-gray-400 mx-auto mb-4" />
+//             <p className="text-gray-500 text-lg">
+//               No hay productos con estos filtros
+//             </p>
+//           </div>
+//         )}
+//       </div>
+//     </section>
+//   );
+// };
+
+// export default Productos;
 
 // import { useEffect, useState } from "react";
 // import { useSearchParams, useNavigate } from "react-router-dom";
