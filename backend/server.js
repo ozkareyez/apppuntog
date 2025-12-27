@@ -503,6 +503,45 @@ app.post("/api/contacto", (req, res) => {
   );
 });
 
+//*============orden de servicio======================*/
+
+app.get("/api/orden-servicio/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [pedido] = await DB.promise().query(
+      `
+      SELECT
+        p.*,
+        d.nombre AS departamento_nombre,
+        c.nombre AS ciudad_nombre
+      FROM pedidos p
+      LEFT JOIN departamentos d ON p.departamento = d.id
+      LEFT JOIN ciudades c ON p.ciudad = c.id
+      WHERE p.id = ?
+      `,
+      [id]
+    );
+
+    if (!pedido.length) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    const [detalle] = await DB.promise().query(
+      "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+      [id]
+    );
+
+    res.json({
+      pedido: pedido[0],
+      productos: detalle,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
