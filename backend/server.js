@@ -503,6 +503,24 @@ app.post("/api/contacto", (req, res) => {
   );
 });
 
+app.get("/api/admin/contacto", (req, res) => {
+  DB.query(
+    `
+    SELECT id, nombre, email, mensaje, fecha
+    FROM contactos
+    ORDER BY fecha DESC
+    `,
+    (err, rows) => {
+      if (err) {
+        console.error("❌ Error obteniendo contactos:", err);
+        return res.status(500).json([]);
+      }
+
+      res.json(rows);
+    }
+  );
+});
+
 //*============orden de servicio======================*/
 
 app.get("/api/orden-servicio/:id", async (req, res) => {

@@ -9,16 +9,8 @@ export default function ContactForm() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [enviado, setEnviado] = useState(false);
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const enviarFormulario = async (e) => {
+  const enviar = async (e) => {
     e.preventDefault();
 
     if (!form.nombre || !form.email || !form.mensaje) {
@@ -31,9 +23,7 @@ export default function ContactForm() {
     try {
       const res = await fetch(`${API_URL}/api/contacto`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
@@ -41,86 +31,49 @@ export default function ContactForm() {
 
       if (!data.ok) throw new Error();
 
-      setEnviado(true);
+      alert("Mensaje enviado correctamente ✅");
       setForm({ nombre: "", email: "", mensaje: "" });
-    } catch (error) {
-      alert("Error enviando el mensaje");
+    } catch {
+      alert("Error enviando mensaje ❌");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Contáctanos</h2>
-      <p className="text-gray-500 mb-6">
-        Déjanos tu mensaje y te responderemos pronto
-      </p>
+    <form
+      onSubmit={enviar}
+      className="max-w-lg mx-auto bg-white p-6 rounded-xl shadow space-y-4"
+    >
+      <input
+        placeholder="Nombre"
+        value={form.nombre}
+        onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+        className="w-full border rounded-lg px-4 py-2"
+      />
 
-      {enviado && (
-        <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-sm">
-          ✅ Mensaje enviado correctamente
-        </div>
-      )}
+      <input
+        placeholder="Email"
+        type="email"
+        value={form.email}
+        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        className="w-full border rounded-lg px-4 py-2"
+      />
 
-      <form onSubmit={enviarFormulario} className="space-y-4">
-        <Input
-          label="Nombre"
-          name="nombre"
-          value={form.nombre}
-          onChange={handleChange}
-        />
+      <textarea
+        placeholder="Mensaje"
+        rows="4"
+        value={form.mensaje}
+        onChange={(e) => setForm({ ...form, mensaje: e.target.value })}
+        className="w-full border rounded-lg px-4 py-2"
+      />
 
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-        />
-
-        <Textarea
-          label="Mensaje"
-          name="mensaje"
-          value={form.mensaje}
-          onChange={handleChange}
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition disabled:opacity-60"
-        >
-          {loading ? "Enviando..." : "Enviar mensaje"}
-        </button>
-      </form>
-    </div>
+      <button
+        disabled={loading}
+        className="w-full bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700 transition"
+      >
+        {loading ? "Enviando..." : "Enviar mensaje"}
+      </button>
+    </form>
   );
 }
-
-/* ================= COMPONENTES UI ================= */
-
-const Input = ({ label, ...props }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      {label}
-    </label>
-    <input
-      {...props}
-      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-    />
-  </div>
-);
-
-const Textarea = ({ label, ...props }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      {label}
-    </label>
-    <textarea
-      rows="4"
-      {...props}
-      className="w-full rounded-xl border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-    />
-  </div>
-);
