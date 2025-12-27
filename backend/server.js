@@ -62,6 +62,29 @@ app.post("/api/upload-imagen", upload.single("imagen"), (req, res) => {
   });
 });
 
+/* ================= DEPARTAMENTOS ================= */
+app.get("/api/departamentos", (_, res) => {
+  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
+    if (err) return res.status(500).json(err);
+    res.json(rows);
+  });
+});
+
+/* ================= CIUDADES ================= */
+app.get("/api/ciudades", (req, res) => {
+  const { departamento_id } = req.query;
+  if (!departamento_id) return res.json([]);
+
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
+    [departamento_id],
+    (err, rows) => {
+      if (err) return res.status(500).json([]);
+      res.json(rows);
+    }
+  );
+});
+
 /* ================= CATEGORIAS ================= */
 app.get("/api/categorias", (_, res) => {
   DB.query("SELECT * FROM categorias", (err, rows) => {

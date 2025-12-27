@@ -7,6 +7,8 @@ export function CartProvider({ children }) {
   const [showCart, setShowCart] = useState(false);
   const [showShippingModal, setShowShippingModal] = useState(false);
 
+  /* ================= ACCIONES ================= */
+
   const addToCart = (product) => {
     setCart((prev) => {
       const found = prev.find((p) => p.id === product.id);
@@ -37,9 +39,21 @@ export function CartProvider({ children }) {
     setCart((prev) => prev.filter((p) => p.id !== id));
   };
 
+  /** ✅ FUNCIÓN QUE FALTABA */
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  /* ================= TOTALES ================= */
+
   const subtotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+    return cart.reduce(
+      (sum, item) => sum + Number(item.precio) * Number(item.cantidad),
+      0
+    );
   }, [cart]);
+
+  /* ================= PROVIDER ================= */
 
   return (
     <CartContext.Provider
@@ -49,6 +63,7 @@ export function CartProvider({ children }) {
         increaseQuantity,
         decreaseQuantity,
         removeFromCart,
+        clearCart, // 👈 YA DISPONIBLE
         showCart,
         setShowCart,
         showShippingModal,
@@ -60,6 +75,8 @@ export function CartProvider({ children }) {
     </CartContext.Provider>
   );
 }
+
+/* ================= HOOK ================= */
 
 export function useCart() {
   const context = useContext(CartContext);
