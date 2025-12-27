@@ -472,6 +472,37 @@ app.get("/api/exportar-pedidos-completo", async (_, res) => {
   }
 });
 
+/* ================= CONTACTO - GUARDAR ================= */
+app.post("/api/contacto", (req, res) => {
+  const { nombre, email, mensaje } = req.body;
+
+  if (!nombre || !email || !mensaje) {
+    return res.status(400).json({
+      ok: false,
+      message: "Datos incompletos",
+    });
+  }
+
+  DB.query(
+    `
+    INSERT INTO contactos (nombre, email, mensaje)
+    VALUES (?,?,?)
+    `,
+    [nombre, email, mensaje],
+    (err, result) => {
+      if (err) {
+        console.error("❌ Error guardando contacto:", err);
+        return res.status(500).json({ ok: false });
+      }
+
+      res.status(201).json({
+        ok: true,
+        id: result.insertId,
+      });
+    }
+  );
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
