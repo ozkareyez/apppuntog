@@ -34,7 +34,7 @@ export default function Header() {
             <img
               src="/imagenes/logo.png"
               alt="Punto G"
-              className="h-30 w-auto hover:scale-105 transition-transform"
+              className="h-34 w-auto hover:scale-105 transition-transform"
             />
           </Link>
 
