@@ -128,7 +128,7 @@ const Productos = () => {
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {productos.map((producto) => {
             const precio = Number(producto.precio || 0);
             const precioAntes = Number(producto.precio_antes || 0);
