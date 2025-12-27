@@ -204,7 +204,7 @@ export default function FormularioEnvioModal() {
         </div>
 
         <button
-          onClick={() => enviarPedido}
+          onClick={enviarPedido}
           disabled={loading}
           className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition disabled:opacity-60"
         >
