@@ -251,7 +251,7 @@ app.post("/api/enviar-formulario", (req, res) => {
     direccion,
     departamento_id,
     ciudad_id,
-    carrito,|
+    carrito,
     costo_envio = 0,
   } = req.body;
 
