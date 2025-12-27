@@ -104,48 +104,4 @@ const AgeVerification = ({ onVerified }) => {
   );
 };
 
-// Ejemplo de uso en Home.jsx
-const HomeWithVerification = () => {
-  const [showContent, setShowContent] = useState(false);
-
-  return (
-    <>
-      <AgeVerification onVerified={() => setShowContent(true)} />
-
-      {showContent && (
-        <div className="w-full bg-white">
-          {/* HERO / CTA */}
-          <section className="bg-gradient-to-b from-white to-gray-50">
-            <div className="text-center py-20">
-              <h1 className="text-4xl font-bold">Bienvenido</h1>
-              <p className="text-gray-600 mt-4">
-                Contenido principal del sitio
-              </p>
-            </div>
-          </section>
-
-          {/* PRODUCTOS */}
-          <section className="max-w-7xl mx-auto px-4 py-14">
-            <h2 className="text-3xl font-bold text-center">
-              Nuestros Productos
-            </h2>
-          </section>
-
-          {/* SEPARADOR */}
-          <div className="max-w-5xl mx-auto h-1 bg-gradient-to-r from-red-500 via-red-600 to-red-500 my-14 rounded-full" />
-
-          {/* ENTREGA + CONTACTO */}
-          <section className="bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 py-16">
-              <div className="bg-white rounded-2xl shadow-md p-8">
-                <h3 className="text-2xl font-bold">Contacto</h3>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-    </>
-  );
-};
-
 export default HomeWithVerification;
