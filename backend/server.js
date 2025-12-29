@@ -511,17 +511,7 @@ app.post("/api/contacto", (req, res) => {
 });
 
 /* ================= CONTACTO - ADMIN ================= */
-app.get("/api/admin/contacto", (req, res) => {
-  DB.query("SELECT * FROM contactos ORDER BY id DESC", (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json([]);
-    }
-    res.json(rows);
-  });
-});
 
-/* ********admin conctacto**************** */
 app.get("/api/admin/contacto", (req, res) => {
   DB.query(
     "SELECT id, nombre, email, mensaje, fecha FROM contacto ORDER BY fecha DESC",
