@@ -72,10 +72,10 @@ function App() {
         </Route>
 
         {/* ---------- ADMIN ---------- */}
-        <Route path="/admin/login" element={<Login />} />
-        <Route index element={<Dashboard />} />
-
         <Route path="/admin" element={<AdminLayout />}>
+          {/* 👇 RUTA INDEX */}
+          <Route index element={<Dashboard />} />
+
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
