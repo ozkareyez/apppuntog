@@ -531,6 +531,28 @@ app.delete("/api/admin/contacto/:id", (req, res) => {
   });
 });
 
+app.put("/api/pedidos-estado/:id", (req, res) => {
+  DB.query(
+    `
+    UPDATE pedidos
+    SET estado = IF(estado='pendiente','entregado','pendiente')
+    WHERE id = ?
+    `,
+    [req.params.id],
+    (err, result) => {
+      if (err) return res.status(500).json({ ok: false });
+      if (!result.affectedRows) return res.status(404).json({ ok: false });
+      res.json({ ok: true });
+    }
+  );
+});
+
+app.delete("/api/pedidos/:id", (req, res) => {
+  DB.query("DELETE FROM pedidos WHERE id = ?", [req.params.id], () =>
+    res.json({ ok: true })
+  );
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
