@@ -28,21 +28,21 @@ export default function AdminLayout() {
         {/* NAV */}
         <nav className="flex-1 p-4 space-y-2">
           <NavLink
-            to="dashboard"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : linkInactive}`
-            }
-          >
-            📊 Dashboard
-          </NavLink>
-
-          <NavLink
             to="pedidos"
             className={({ isActive }) =>
               `${linkBase} ${isActive ? linkActive : linkInactive}`
             }
           >
             📦 Pedidos
+          </NavLink>
+
+          <NavLink
+            to="dashboard"
+            className={({ isActive }) =>
+              `${linkBase} ${isActive ? linkActive : linkInactive}`
+            }
+          >
+            📊 Dashboard
           </NavLink>
 
           <NavLink
