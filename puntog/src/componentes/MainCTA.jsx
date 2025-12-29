@@ -1,9 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const INTERVALO = 5000;
 
 const MainCTA = () => {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef(null);
 
   const slides = [
     {
@@ -15,25 +19,40 @@ const MainCTA = () => {
     },
     {
       title: "Entrega discreta en toda Colombia",
-      desc: "Empaques 100% confidenciales, envíos rápidos y atención personalizada para comprar con tranquilidad.",
+      desc: "Empaques 100% confidenciales, envíos rápidos y atención personalizada para comprar con total tranquilidad.",
       img: "/imagenes/cta-envio.jpg",
       primary: { text: "Ver ofertas", to: "/ofertas" },
       secondary: { text: "Hablar con un asesor", to: "/contacto" },
     },
+    {
+      title: "Calidad premium y atención personalizada",
+      desc: "Seleccionamos productos de alta calidad para que vivas experiencias únicas con confianza y seguridad.",
+      img: "/imagenes/cta-premium.jpg",
+      primary: { text: "Ver novedades", to: "/catalogo" },
+      secondary: { text: "Contáctanos", to: "/contacto" },
+    },
   ];
 
+  // ⏱️ autoplay con pausa
   useEffect(() => {
-    const timer = setInterval(() => {
+    if (paused) return;
+
+    timerRef.current = setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
+    }, INTERVALO);
+
+    return () => clearInterval(timerRef.current);
+  }, [paused]);
 
   const slide = slides[index];
 
   return (
-    <section className="relative w-full py-24 px-6 bg-white overflow-hidden">
-      {/* blobs decorativos */}
+    <section
+      className="relative w-full py-24 px-6 bg-white overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* decorativos */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
 
@@ -45,7 +64,7 @@ const MainCTA = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           >
             <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">
               {slide.title}
@@ -90,22 +109,35 @@ const MainCTA = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="relative"
           >
             <img
               src={slide.img}
               alt="Punto G"
-              className="
-                w-full h-[420px] object-cover rounded-2xl
-                shadow-xl
-              "
+              className="w-full h-[420px] object-cover rounded-2xl shadow-xl"
             />
-
-            {/* overlay sutil */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 via-transparent to-transparent" />
           </motion.div>
         </AnimatePresence>
+      </div>
+
+      {/* INDICADORES */}
+      <div className="mt-8 flex justify-center gap-3">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`
+              w-3 h-3 rounded-full transition-all
+              ${
+                index === i
+                  ? "bg-red-600 scale-125"
+                  : "bg-gray-300 hover:bg-red-400"
+              }
+            `}
+          />
+        ))}
       </div>
     </section>
   );
