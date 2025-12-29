@@ -360,7 +360,7 @@ app.get("/api/pedidos-completo", (req, res) => {
     const limit = 10;
     const offset = (page - 1) * limit;
 
-    const { search, inicio, fin } = req.query;
+    const { search, inicio, fin, estado } = req.query;
 
     let where = "WHERE 1=1";
     const params = [];
@@ -383,6 +383,11 @@ app.get("/api/pedidos-completo", (req, res) => {
     if (fin) {
       where += " AND DATE(p.fecha) <= ?";
       params.push(fin);
+    }
+
+    if (estado && estado !== "todos") {
+      where += " AND p.estado = ?";
+      params.push(estado);
     }
 
     DB.query(
@@ -568,6 +573,68 @@ app.delete("/api/pedidos/:id", (req, res) => {
   DB.query("DELETE FROM pedidos WHERE id = ?", [req.params.id], () =>
     res.json({ ok: true })
   );
+});
+
+/* ================= EXCEL ================= */
+app.get("/api/exportar-pedidos-completo", async (_, res) => {
+  try {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Pedidos");
+
+    ws.columns = [
+      { header: "Pedido ID", key: "pedido_id", width: 10 },
+      { header: "Fecha", key: "fecha", width: 15 },
+      { header: "Cliente", key: "cliente", width: 25 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Dirección", key: "direccion", width: 30 },
+      { header: "Ciudad", key: "ciudad", width: 15 },
+      { header: "Teléfono", key: "telefono", width: 15 },
+      { header: "Producto", key: "producto", width: 25 },
+      { header: "Precio", key: "precio", width: 12 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Subtotal", key: "subtotal", width: 12 },
+    ];
+
+    const sql = `
+      SELECT
+        p.id AS pedido_id,
+        DATE(p.fecha) AS fecha,
+        p.nombre AS cliente,
+        p.email,
+        p.direccion,
+        p.ciudad,
+        p.telefono,
+        pr.nombre AS producto,
+        d.precio,
+        d.cantidad,
+        d.subtotal
+      FROM pedidos p
+      JOIN pedido_detalles d ON d.pedido_id = p.id
+      JOIN productos pr ON pr.id = d.producto_id
+      ORDER BY p.id DESC
+    `;
+
+    DB.query(sql, async (err, rows) => {
+      if (err) return res.status(500).json({ error: "Error Excel" });
+
+      ws.addRows(rows);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=pedidos_completos.xlsx"
+      );
+
+      await wb.xlsx.write(res);
+      res.end();
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno" });
+  }
 });
 
 /* ================= SERVER ================= */
