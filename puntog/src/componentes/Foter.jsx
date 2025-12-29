@@ -124,7 +124,7 @@ const Footer = () => {
 export default Footer;
 //
 
-import { Link } from "react-router-dom";
+//import { Link } from "react-router-dom";
 // import { Facebook, Instagram, Mail } from "lucide-react";
 
 // const Footer = () => {
