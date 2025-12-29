@@ -204,7 +204,7 @@ export default function PedidosAdmin() {
       </div>
 
       {/* PAGINACIÓN */}
-      {totalPaginas > 1 && (
+      {totalPaginas >= 1 && (
         <div className="flex justify-center items-center gap-4 mt-6">
           <button
             onClick={() => setPaginaActual((p) => Math.max(p - 1, 1))}
