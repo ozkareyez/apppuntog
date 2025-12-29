@@ -528,6 +528,26 @@ app.get("/api/admin/contacto", (req, res) => {
   );
 });
 
+app.delete("/api/admin/contacto/:id", (req, res) => {
+  const { id } = req.params;
+
+  DB.query("DELETE FROM contacto WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("❌ MYSQL ERROR:", err);
+      return res.status(500).json({ ok: false });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "Mensaje no encontrado",
+      });
+    }
+
+    res.json({ ok: true });
+  });
+});
+
 app.put("/api/pedidos-estado/:id", (req, res) => {
   DB.query(
     `
