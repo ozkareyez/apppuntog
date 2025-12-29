@@ -1,87 +1,103 @@
 import { useEffect, useState } from "react";
-import { API_URL } from "@/config";
+import { Link } from "react-router-dom";
 
+const API = "https://gleaming-motivation-production-4018.up.railway.app";
 const ITEMS_POR_PAGINA = 10;
 
-export default function ContactosAdmin() {
-  const [contactos, setContactos] = useState([]);
+export default function PedidosAdmin() {
+  const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // 🔹 paginación
+  // 🔹 filtros y paginación
+  const [estadoFiltro, setEstadoFiltro] = useState("todos");
   const [paginaActual, setPaginaActual] = useState(1);
 
-  // 🔹 filtro estado
-  const [estadoFiltro, setEstadoFiltro] = useState("todos");
-
-  useEffect(() => {
-    cargarContactos();
-  }, []);
-
-  const cargarContactos = async () => {
+  const cargarPedidos = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/contacto`);
-      const data = await res.json();
-      setContactos(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
+      const res = await fetch(`${API}/api/pedidos-completo`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const text = await res.text();
+      if (text.startsWith("<!DOCTYPE")) {
+        throw new Error("Respuesta HTML inesperada");
+      }
+
+      const data = JSON.parse(text);
+      if (!data.ok) throw new Error("Respuesta inválida");
+
+      setPedidos(data.results);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar los pedidos");
     } finally {
       setLoading(false);
     }
   };
 
-  const eliminar = async (id) => {
-    if (!confirm("¿Eliminar este mensaje?")) return;
+  useEffect(() => {
+    cargarPedidos();
+  }, []);
 
-    const res = await fetch(`${API_URL}/api/admin/contacto/${id}`, {
-      method: "DELETE",
-    });
+  const cambiarEstado = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/pedidos-estado/${id}`, {
+        method: "PUT",
+      });
 
-    const data = await res.json();
+      if (!res.ok) throw new Error();
 
-    if (!data.ok) {
-      alert("Error al eliminar");
-      return;
+      const data = await res.json();
+      if (!data.ok) throw new Error();
+
+      setPedidos((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                estado: p.estado === "pendiente" ? "entregado" : "pendiente",
+              }
+            : p
+        )
+      );
+    } catch {
+      alert("Error cambiando el estado");
     }
-
-    setContactos((prev) => prev.filter((c) => c.id !== id));
   };
 
-  // 🔹 aplicar filtro por estado
-  const contactosFiltrados =
+  // 🔹 aplicar filtro
+  const pedidosFiltrados =
     estadoFiltro === "todos"
-      ? contactos
-      : contactos.filter((c) => c.estado === estadoFiltro);
+      ? pedidos
+      : pedidos.filter((p) => p.estado === estadoFiltro);
 
   // 🔹 paginación
-  const totalPaginas = Math.ceil(contactosFiltrados.length / ITEMS_POR_PAGINA);
+  const totalPaginas = Math.ceil(pedidosFiltrados.length / ITEMS_POR_PAGINA);
 
   const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
   const fin = inicio + ITEMS_POR_PAGINA;
 
-  const contactosPaginados = contactosFiltrados.slice(inicio, fin);
+  const pedidosPaginados = pedidosFiltrados.slice(inicio, fin);
 
-  // reset página al cambiar filtro
+  // reset página cuando cambia filtro
   useEffect(() => {
     setPaginaActual(1);
   }, [estadoFiltro]);
 
-  if (loading) {
+  if (loading)
     return (
-      <p className="text-center text-gray-500 mt-10">Cargando mensajes...</p>
+      <p className="text-center text-gray-500 mt-10">Cargando pedidos...</p>
     );
-  }
+
+  if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* TÍTULO */}
+    <div className="p-6 bg-gray-100 min-h-full">
+      {/* HEADER */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">
-            📩 Mensajes de contacto
-          </h1>
-          <p className="text-gray-600 text-sm">
-            Consultas enviadas desde el formulario web
-          </p>
+          <h1 className="text-3xl font-bold text-gray-800">📦 Pedidos</h1>
+          <p className="text-gray-500 text-sm">Gestión de pedidos realizados</p>
         </div>
 
         {/* FILTRO */}
@@ -105,72 +121,84 @@ export default function ContactosAdmin() {
       </div>
 
       {/* TABLA */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-gray-700">
+      <div className="bg-white border border-gray-200 rounded-xl shadow overflow-x-auto">
+        <table className="w-full text-sm text-gray-700">
+          <thead className="bg-red-50 text-red-700">
             <tr>
-              <th className="p-3 text-left font-semibold">ID</th>
-              <th className="p-3 text-left font-semibold">Nombre</th>
-              <th className="p-3 text-left font-semibold">Email</th>
-              <th className="p-3 text-left font-semibold">Mensaje</th>
-              <th className="p-3 text-left font-semibold">Estado</th>
-              <th className="p-3 text-center font-semibold">Acciones</th>
+              <th className="p-3 text-left">ID</th>
+              <th>Cliente</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              <th>Depto</th>
+              <th>Ciudad</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th className="text-center">Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {contactosPaginados.length === 0 && (
-              <tr>
-                <td colSpan="6" className="p-6 text-center text-gray-500">
-                  No hay mensajes
-                </td>
-              </tr>
-            )}
+            {pedidosPaginados.map((p) => (
+              <tr
+                key={p.id}
+                className="border-t border-gray-200 hover:bg-gray-50"
+              >
+                <td className="p-3 font-semibold">{p.id}</td>
+                <td>{p.nombre}</td>
+                <td>{p.telefono}</td>
+                <td className="max-w-xs truncate">{p.direccion}</td>
+                <td>{p.departamento_nombre || "—"}</td>
+                <td>{p.ciudad_nombre || "—"}</td>
 
-            {contactosPaginados.map((c) => (
-              <tr key={c.id} className="border-t hover:bg-gray-50 transition">
-                <td className="p-3 text-gray-500">{c.id}</td>
-
-                <td className="p-3 font-medium text-gray-900">{c.nombre}</td>
-
-                <td className="p-3 text-red-600 font-medium">{c.email}</td>
-
-                <td className="p-3 text-gray-700 max-w-md">
-                  <div className="line-clamp-2 hover:line-clamp-none">
-                    {c.mensaje}
-                  </div>
+                <td className="font-bold text-red-600">
+                  ${Number(p.total).toLocaleString()}
                 </td>
 
-                <td className="p-3">
+                <td>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      c.estado === "entregado"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
+                      p.estado === "pendiente"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-800"
                     }`}
                   >
-                    {c.estado || "pendiente"}
+                    {p.estado}
                   </span>
                 </td>
 
-                <td className="p-3 text-center">
-                  <button
-                    onClick={() => eliminar(c.id)}
-                    className="
-                      px-3 py-1.5
-                      rounded-lg
-                      bg-red-600
-                      text-white
-                      font-semibold
-                      hover:bg-red-700
-                      transition
-                    "
-                  >
-                    Eliminar
-                  </button>
+                <td className="p-3">
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => cambiarEstado(p.id)}
+                      className={`px-3 py-1 rounded text-xs font-medium transition ${
+                        p.estado === "pendiente"
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "bg-yellow-500 text-white hover:bg-yellow-600"
+                      }`}
+                    >
+                      {p.estado === "pendiente"
+                        ? "Marcar entregado"
+                        : "Marcar pendiente"}
+                    </button>
+
+                    <Link
+                      to={`/admin/orden-servicio/${p.id}`}
+                      className="text-red-600 hover:text-red-800 underline text-xs text-center"
+                    >
+                      Ver orden de servicio
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
+
+            {pedidosPaginados.length === 0 && (
+              <tr>
+                <td colSpan="9" className="p-6 text-center text-gray-500">
+                  No hay pedidos
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -214,3 +242,166 @@ export default function ContactosAdmin() {
     </div>
   );
 }
+
+// import { useEffect, useState } from "react";
+// import { Link } from "react-router-dom";
+
+// const API = "https://gleaming-motivation-production-4018.up.railway.app";
+
+// export default function PedidosAdmin() {
+//   const [pedidos, setPedidos] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState("");
+
+//   const cargarPedidos = async () => {
+//     try {
+//       const res = await fetch(`${API}/api/pedidos-completo`);
+//       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+//       const text = await res.text();
+//       if (text.startsWith("<!DOCTYPE")) {
+//         throw new Error("Respuesta HTML inesperada");
+//       }
+
+//       const data = JSON.parse(text);
+//       if (!data.ok) throw new Error("Respuesta inválida");
+
+//       setPedidos(data.results);
+//     } catch (err) {
+//       console.error(err);
+//       setError("No se pudieron cargar los pedidos");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     cargarPedidos();
+//   }, []);
+
+//   const cambiarEstado = async (id) => {
+//     try {
+//       const res = await fetch(`${API}/api/pedidos-estado/${id}`, {
+//         method: "PUT",
+//       });
+
+//       if (!res.ok) throw new Error();
+
+//       const data = await res.json();
+//       if (!data.ok) throw new Error();
+
+//       setPedidos((prev) =>
+//         prev.map((p) =>
+//           p.id === id
+//             ? {
+//                 ...p,
+//                 estado: p.estado === "pendiente" ? "entregado" : "pendiente",
+//               }
+//             : p
+//         )
+//       );
+//     } catch {
+//       alert("Error cambiando el estado");
+//     }
+//   };
+
+//   if (loading)
+//     return (
+//       <p className="text-center text-gray-500 mt-10">Cargando pedidos...</p>
+//     );
+
+//   if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
+
+//   return (
+//     <div className="p-6 bg-gray-100 min-h-full">
+//       {/* HEADER */}
+//       <div className="mb-6">
+//         <h1 className="text-3xl font-bold text-gray-800">📦 Pedidos</h1>
+//         <p className="text-gray-500 text-sm">Gestión de pedidos realizados</p>
+//       </div>
+
+//       {/* TABLA */}
+//       <div className="bg-white border border-gray-200 rounded-xl shadow overflow-x-auto">
+//         <table className="w-full text-sm text-gray-700">
+//           <thead className="bg-red-50 text-red-700">
+//             <tr>
+//               <th className="p-3 text-left">ID</th>
+//               <th>Cliente</th>
+//               <th>Teléfono</th>
+//               <th>Dirección</th>
+//               <th>Depto</th>
+//               <th>Ciudad</th>
+//               <th>Total</th>
+//               <th>Estado</th>
+//               <th className="text-center">Acciones</th>
+//             </tr>
+//           </thead>
+
+//           <tbody>
+//             {pedidos.map((p) => (
+//               <tr
+//                 key={p.id}
+//                 className="border-t border-gray-200 hover:bg-gray-50"
+//               >
+//                 <td className="p-3 font-semibold">{p.id}</td>
+//                 <td>{p.nombre}</td>
+//                 <td>{p.telefono}</td>
+//                 <td className="max-w-xs truncate">{p.direccion}</td>
+//                 <td>{p.departamento_nombre || "—"}</td>
+//                 <td>{p.ciudad_nombre || "—"}</td>
+
+//                 <td className="font-bold text-red-600">
+//                   ${Number(p.total).toLocaleString()}
+//                 </td>
+
+//                 <td>
+//                   <span
+//                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
+//                       p.estado === "pendiente"
+//                         ? "bg-yellow-100 text-yellow-800"
+//                         : "bg-green-100 text-green-800"
+//                     }`}
+//                   >
+//                     {p.estado}
+//                   </span>
+//                 </td>
+
+//                 <td className="p-3">
+//                   <div className="flex flex-col gap-2">
+//                     <button
+//                       onClick={() => cambiarEstado(p.id)}
+//                       className={`px-3 py-1 rounded text-xs font-medium transition ${
+//                         p.estado === "pendiente"
+//                           ? "bg-green-600 text-white hover:bg-green-700"
+//                           : "bg-yellow-500 text-white hover:bg-yellow-600"
+//                       }`}
+//                     >
+//                       {p.estado === "pendiente"
+//                         ? "Marcar entregado"
+//                         : "Marcar pendiente"}
+//                     </button>
+
+//                     <Link
+//                       to={`/admin/orden-servicio/${p.id}`}
+//                       className="text-red-600 hover:text-red-800 underline text-xs text-center"
+//                     >
+//                       Ver orden de servicio
+//                     </Link>
+//                   </div>
+//                 </td>
+//               </tr>
+//             ))}
+
+//             {pedidos.length === 0 && (
+//               <tr>
+//                 <td colSpan="9" className="p-6 text-center text-gray-500">
+//                   No hay pedidos registrados
+//                 </td>
+//               </tr>
+//             )}
+//           </tbody>
+//         </table>
+//       </div>
+//     </div>
+//   );
+// }
