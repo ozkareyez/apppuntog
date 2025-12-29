@@ -201,13 +201,11 @@ app.get("/api/productos/:id", (req, res) => {
 
 /* ================= CREAR PRODUCTO ================= */
 app.post("/api/productos", (req, res) => {
-  console.log("📦 BODY completo:", JSON.stringify(req.body, null, 2));
-
   const {
-    categoria,
+    categoria = null, // ✅ Valor por defecto NULL
     nombre,
-    talla,
-    color,
+    talla = null, // ✅ Valor por defecto NULL
+    color = null, // ✅ Valor por defecto NULL
     precio,
     imagen,
     categoria_id,
@@ -217,26 +215,14 @@ app.post("/api/productos", (req, res) => {
     descripcion = null,
   } = req.body;
 
+  // Validación solo de campos realmente obligatorios
   if (!nombre || !precio || !imagen || !categoria_id) {
-    console.log("❌ Validación fallida:", {
-      nombre,
-      precio,
-      imagen,
-      categoria_id,
-    });
     return res.status(400).json({
       ok: false,
-      message: "Campos obligatorios faltantes",
-      faltantes: {
-        nombre: !nombre,
-        precio: !precio,
-        imagen: !imagen,
-        categoria_id: !categoria_id,
-      },
+      message:
+        "Faltan campos obligatorios: nombre, precio, imagen, categoria_id",
     });
   }
-
-  console.log("✅ Validación OK, insertando...");
 
   DB.query(
     `INSERT INTO productos
@@ -246,8 +232,8 @@ app.post("/api/productos", (req, res) => {
     [
       categoria,
       nombre,
-      talla || null,
-      color || null,
+      talla,
+      color,
       precio,
       imagen,
       categoria_id,
@@ -258,16 +244,13 @@ app.post("/api/productos", (req, res) => {
     ],
     (err, result) => {
       if (err) {
-        console.error("❌ Error MySQL COMPLETO:", err);
+        console.error("❌ Error MySQL:", err);
         return res.status(500).json({
           ok: false,
-          message: "Error al guardar en base de datos",
-          error: err.sqlMessage || err.message,
-          code: err.code,
+          message: err.sqlMessage || err.message,
         });
       }
 
-      console.log("✅ Producto insertado:", result.insertId);
       res.status(201).json({
         ok: true,
         producto_id: result.insertId,
