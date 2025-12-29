@@ -12,14 +12,38 @@ export function CartProvider({ children }) {
   const addToCart = (product) => {
     setCart((prev) => {
       const found = prev.find((p) => p.id === product.id);
+
       if (found) {
         return prev.map((p) =>
           p.id === product.id ? { ...p, cantidad: p.cantidad + 1 } : p
         );
       }
-      return [...prev, { ...product, cantidad: 1 }];
+
+      // 🔒 Normalizamos el objeto (NO cambia nunca)
+      return [
+        ...prev,
+        {
+          id: product.id,
+          nombre: product.nombre,
+          precio: Number(product.precio),
+          imagen: product.imagen, // 👈 Cloudinary URL fija
+          cantidad: 1,
+        },
+      ];
     });
   };
+
+  // const addToCart = (product) => {
+  //   setCart((prev) => {
+  //     const found = prev.find((p) => p.id === product.id);
+  //     if (found) {
+  //       return prev.map((p) =>
+  //         p.id === product.id ? { ...p, cantidad: p.cantidad + 1 } : p
+  //       );
+  //     }
+  //     return [...prev, { ...product, cantidad: 1 }];
+  //   });
+  // };
 
   const increaseQuantity = (id) => {
     setCart((prev) =>
