@@ -20,6 +20,7 @@ import Foter from "./componentes/Foter";
 /* ================= EXTRAS ================= */
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import FormularioProducto from "./admin/FormularioProducto";
+import PoliticaPrivacidad from "./pages/PoliticaPrivacidad";
 
 function App() {
   return (
