@@ -175,7 +175,7 @@ export default function PedidosAdmin() {
                 <td className="flex flex-col gap-2 p-3">
                   <button
                     onClick={() => cambiarEstado(p.id)}
-                    className="text-xs bg-black text-white rounded px-3 py-1"
+                    className="text-xs bg-red-600 text-white rounded px-3 py-1"
                   >
                     Cambiar estado
                   </button>
