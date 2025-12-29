@@ -86,7 +86,7 @@ const Footer = () => {
 
           <div className="flex gap-4 text-gray-600">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/puntog_24"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-red-600 transition"
@@ -95,7 +95,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/profile.php?id=61564262671078"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-red-600 transition"
