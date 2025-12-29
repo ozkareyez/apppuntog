@@ -7,6 +7,7 @@ export default function PedidosAdmin() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   // filtros
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
@@ -18,7 +19,15 @@ export default function PedidosAdmin() {
   const cargarPedidos = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/pedidos-completo?page=${page}`);
+      const query = new URLSearchParams({
+        page,
+        estado: estadoFiltro,
+        search: busqueda,
+      });
+
+      const res = await fetch(
+        `${API}/api/pedidos-completo?${query.toString()}`
+      );
 
       if (!res.ok) throw new Error();
 
@@ -68,6 +77,26 @@ export default function PedidosAdmin() {
 
   if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
 
+  const renderPaginas = () => {
+    const paginas = [];
+    for (let i = 1; i <= totalPaginas; i++) {
+      paginas.push(
+        <button
+          key={i}
+          onClick={() => setPaginaActual(i)}
+          className={`px-3 py-1 rounded border text-sm ${
+            i === paginaActual
+              ? "bg-red-600 text-white"
+              : "bg-white hover:bg-gray-100"
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+    return paginas;
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-full">
       {/* HEADER */}
@@ -76,6 +105,17 @@ export default function PedidosAdmin() {
           <h1 className="text-3xl font-bold text-gray-800">📦 Pedidos</h1>
           <p className="text-gray-500 text-sm">Gestión de pedidos realizados</p>
         </div>
+
+        <input
+          type="text"
+          placeholder="Buscar nombre o teléfono..."
+          value={busqueda}
+          onChange={(e) => {
+            setBusqueda(e.target.value);
+            setPaginaActual(1);
+          }}
+          className="border rounded-lg px-4 py-2 text-sm w-full md:w-64"
+        />
 
         {/* FILTRO */}
         <select
@@ -154,25 +194,23 @@ export default function PedidosAdmin() {
       </div>
 
       {/* PAGINACIÓN */}
-      <div className="flex justify-center items-center gap-4 mt-6">
+      <div className="flex justify-center items-center gap-2 mt-6 flex-wrap">
         <button
           disabled={paginaActual === 1}
           onClick={() => setPaginaActual((p) => p - 1)}
-          className="px-4 py-2 border rounded disabled:opacity-50"
+          className="px-3 py-1 border rounded disabled:opacity-50"
         >
-          Anterior
+          ◀
         </button>
 
-        <span className="text-sm">
-          Página <strong>{paginaActual}</strong> de {totalPaginas}
-        </span>
+        {renderPaginas()}
 
         <button
           disabled={paginaActual === totalPaginas}
           onClick={() => setPaginaActual((p) => p + 1)}
-          className="px-4 py-2 border rounded disabled:opacity-50"
+          className="px-3 py-1 border rounded disabled:opacity-50"
         >
-          Siguiente
+          ▶
         </button>
       </div>
     </div>
