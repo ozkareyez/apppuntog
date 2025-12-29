@@ -1,3 +1,8 @@
+if (process.env.RUN_MIGRATION === "true") {
+  console.log("🚚 Ejecutando migración de imágenes...");
+  await import("./migrar-imagenes.js");
+}
+
 import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
