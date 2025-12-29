@@ -521,8 +521,9 @@ app.get("/api/admin/contacto", (req, res) => {
   });
 });
 
+/* ********admin conctacto**************** */
 app.delete("/api/admin/contacto/:id", (req, res) => {
-  DB.query("DELETE FROM contactos WHERE id = ?", [req.params.id], (err) => {
+  DB.query("DELETE FROM contacto WHERE id = ?", [req.params.id], (err) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ ok: false });
