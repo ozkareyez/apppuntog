@@ -2,31 +2,39 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const API = "https://gleaming-motivation-production-4018.up.railway.app";
-const ITEMS_POR_PAGINA = 10;
 
 export default function PedidosAdmin() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 🔹 filtros y paginación
+  // filtros
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
+
+  // 🔥 paginación REAL
   const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
-  const cargarPedidos = async () => {
+  const cargarPedidos = async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API}/api/pedidos-completo`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(`${API}/api/pedidos-completo?page=${page}`);
 
-      const text = await res.text();
-      if (text.startsWith("<!DOCTYPE")) {
-        throw new Error("Respuesta HTML inesperada");
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      if (!data.ok) throw new Error();
+
+      let resultados = data.results;
+
+      // 🔹 filtro estado en frontend
+      if (estadoFiltro !== "todos") {
+        resultados = resultados.filter((p) => p.estado === estadoFiltro);
       }
 
-      const data = JSON.parse(text);
-      if (!data.ok) throw new Error("Respuesta inválida");
-
-      setPedidos(data.results);
+      setPedidos(resultados);
+      setPaginaActual(data.page);
+      setTotalPaginas(data.totalPages);
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar los pedidos");
@@ -36,8 +44,8 @@ export default function PedidosAdmin() {
   };
 
   useEffect(() => {
-    cargarPedidos();
-  }, []);
+    cargarPedidos(paginaActual);
+  }, [paginaActual, estadoFiltro]);
 
   const cambiarEstado = async (id) => {
     try {
@@ -47,42 +55,11 @@ export default function PedidosAdmin() {
 
       if (!res.ok) throw new Error();
 
-      const data = await res.json();
-      if (!data.ok) throw new Error();
-
-      setPedidos((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? {
-                ...p,
-                estado: p.estado === "pendiente" ? "entregado" : "pendiente",
-              }
-            : p
-        )
-      );
+      cargarPedidos(paginaActual);
     } catch {
       alert("Error cambiando el estado");
     }
   };
-
-  // 🔹 aplicar filtro
-  const pedidosFiltrados =
-    estadoFiltro === "todos"
-      ? pedidos
-      : pedidos.filter((p) => p.estado === estadoFiltro);
-
-  // 🔹 paginación
-  const totalPaginas = Math.ceil(pedidosFiltrados.length / ITEMS_POR_PAGINA);
-
-  const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-  const fin = inicio + ITEMS_POR_PAGINA;
-
-  const pedidosPaginados = pedidosFiltrados.slice(inicio, fin);
-
-  // reset página cuando cambia filtro
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [estadoFiltro]);
 
   if (loading)
     return (
@@ -94,7 +71,7 @@ export default function PedidosAdmin() {
   return (
     <div className="p-6 bg-gray-100 min-h-full">
       {/* HEADER */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="mb-6 flex flex-col md:flex-row md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">📦 Pedidos</h1>
           <p className="text-gray-500 text-sm">Gestión de pedidos realizados</p>
@@ -103,16 +80,11 @@ export default function PedidosAdmin() {
         {/* FILTRO */}
         <select
           value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value)}
-          className="
-            border border-gray-300
-            rounded-lg
-            px-4 py-2
-            text-sm
-            focus:outline-none
-            focus:ring-2
-            focus:ring-red-600
-          "
+          onChange={(e) => {
+            setEstadoFiltro(e.target.value);
+            setPaginaActual(1);
+          }}
+          className="border rounded-lg px-4 py-2 text-sm"
         >
           <option value="todos">Todos</option>
           <option value="pendiente">Pendientes</option>
@@ -121,11 +93,11 @@ export default function PedidosAdmin() {
       </div>
 
       {/* TABLA */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow overflow-x-auto">
-        <table className="w-full text-sm text-gray-700">
+      <div className="bg-white rounded-xl shadow overflow-x-auto">
+        <table className="w-full text-sm">
           <thead className="bg-red-50 text-red-700">
             <tr>
-              <th className="p-3 text-left">ID</th>
+              <th className="p-3">ID</th>
               <th>Cliente</th>
               <th>Teléfono</th>
               <th>Dirección</th>
@@ -133,30 +105,25 @@ export default function PedidosAdmin() {
               <th>Ciudad</th>
               <th>Total</th>
               <th>Estado</th>
-              <th className="text-center">Acciones</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {pedidosPaginados.map((p) => (
-              <tr
-                key={p.id}
-                className="border-t border-gray-200 hover:bg-gray-50"
-              >
+            {pedidos.map((p) => (
+              <tr key={p.id} className="border-t">
                 <td className="p-3 font-semibold">{p.id}</td>
                 <td>{p.nombre}</td>
                 <td>{p.telefono}</td>
-                <td className="max-w-xs truncate">{p.direccion}</td>
-                <td>{p.departamento_nombre || "—"}</td>
-                <td>{p.ciudad_nombre || "—"}</td>
-
+                <td className="truncate max-w-xs">{p.direccion}</td>
+                <td>{p.departamento_nombre}</td>
+                <td>{p.ciudad_nombre}</td>
                 <td className="font-bold text-red-600">
                   ${Number(p.total).toLocaleString()}
                 </td>
-
                 <td>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    className={`px-3 py-1 rounded-full text-xs ${
                       p.estado === "pendiente"
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-green-100 text-green-800"
@@ -165,80 +132,49 @@ export default function PedidosAdmin() {
                     {p.estado}
                   </span>
                 </td>
+                <td className="flex flex-col gap-2 p-3">
+                  <button
+                    onClick={() => cambiarEstado(p.id)}
+                    className="text-xs bg-black text-white rounded px-3 py-1"
+                  >
+                    Cambiar estado
+                  </button>
 
-                <td className="p-3">
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => cambiarEstado(p.id)}
-                      className={`px-3 py-1 rounded text-xs font-medium transition ${
-                        p.estado === "pendiente"
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "bg-yellow-500 text-white hover:bg-yellow-600"
-                      }`}
-                    >
-                      {p.estado === "pendiente"
-                        ? "Marcar entregado"
-                        : "Marcar pendiente"}
-                    </button>
-
-                    <Link
-                      to={`/admin/orden-servicio/${p.id}`}
-                      className="text-red-600 hover:text-red-800 underline text-xs text-center"
-                    >
-                      Ver orden de servicio
-                    </Link>
-                  </div>
+                  <Link
+                    to={`/admin/orden-servicio/${p.id}`}
+                    className="text-red-600 text-xs underline text-center"
+                  >
+                    Ver orden
+                  </Link>
                 </td>
               </tr>
             ))}
-
-            {pedidosPaginados.length === 0 && (
-              <tr>
-                <td colSpan="9" className="p-6 text-center text-gray-500">
-                  No hay pedidos
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
 
       {/* PAGINACIÓN */}
-      {totalPaginas >= 1 && (
-        <div className="flex justify-center items-center gap-4 mt-6">
-          <button
-            onClick={() => setPaginaActual((p) => Math.max(p - 1, 1))}
-            disabled={paginaActual === 1}
-            className="
-              px-4 py-2 rounded-lg border
-              text-sm font-semibold
-              disabled:opacity-50
-              hover:bg-gray-100
-            "
-          >
-            Anterior
-          </button>
+      <div className="flex justify-center items-center gap-4 mt-6">
+        <button
+          disabled={paginaActual === 1}
+          onClick={() => setPaginaActual((p) => p - 1)}
+          className="px-4 py-2 border rounded disabled:opacity-50"
+        >
+          Anterior
+        </button>
 
-          <span className="text-sm text-gray-600">
-            Página <strong>{paginaActual}</strong> de {totalPaginas}
-          </span>
+        <span className="text-sm">
+          Página <strong>{paginaActual}</strong> de {totalPaginas}
+        </span>
 
-          <button
-            onClick={() =>
-              setPaginaActual((p) => Math.min(p + 1, totalPaginas))
-            }
-            disabled={paginaActual === totalPaginas}
-            className="
-              px-4 py-2 rounded-lg border
-              text-sm font-semibold
-              disabled:opacity-50
-              hover:bg-gray-100
-            "
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
+        <button
+          disabled={paginaActual === totalPaginas}
+          onClick={() => setPaginaActual((p) => p + 1)}
+          className="px-4 py-2 border rounded disabled:opacity-50"
+        >
+          Siguiente
+        </button>
+      </div>
     </div>
   );
 }
