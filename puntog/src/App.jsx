@@ -21,6 +21,10 @@ import Foter from "./componentes/Foter";
 import { FloatingWhatsApp } from "react-floating-whatsapp";
 import FormularioProducto from "./admin/FormularioProducto";
 import PoliticaPrivacidad from "./pages/PoliticaPrivacidad";
+import TerminosCondiciones from "./pages/TerminosCondiciones";
+import CambiosDevoluciones from "./pages/CambiosDevoluciones";
+import PoliticaCookies from "./pages/PoliticaCookies";
+import UsoResponsable from "./pages/UsoResponsable";
 
 function App() {
   return (
@@ -50,6 +54,20 @@ function App() {
             path="/politica-de-privacidad"
             element={<PoliticaPrivacidad />}
           />
+          <Route
+            path="/politica-de-privacidad"
+            element={<PoliticaPrivacidad />}
+          />
+          <Route
+            path="/terminos-y-condiciones"
+            element={<TerminosCondiciones />}
+          />
+          <Route
+            path="/cambios-y-devoluciones"
+            element={<CambiosDevoluciones />}
+          />
+          <Route path="/politica-de-cookies" element={<PoliticaCookies />} />
+          <Route path="/uso-responsable" element={<UsoResponsable />} />
         </Route>
 
         {/* ---------- ADMIN ---------- */}

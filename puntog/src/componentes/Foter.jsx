@@ -71,6 +71,11 @@ const Footer = () => {
             Política de Privacidad
           </Link>
 
+          <Link to="/terminos-y-condiciones">Términos y Condiciones</Link>
+          <Link to="/cambios-y-devoluciones">Cambios y Devoluciones</Link>
+          <Link to="/politica-de-cookies">Política de Cookies</Link>
+          <Link to="/uso-responsable">Uso Responsable +18</Link>
+
           {/* Futuro */}
           {/* <Link to="/terminos-y-condiciones">Términos y Condiciones</Link> */}
         </div>
