@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const INTERVALO = 5000;
 
-const MainCTA = () => {
+export default function MainCTA() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
@@ -33,7 +33,7 @@ const MainCTA = () => {
     },
   ];
 
-  // ⏱️ autoplay con pausa
+  /* ⏱️ autoplay */
   useEffect(() => {
     if (paused) return;
 
@@ -48,41 +48,42 @@ const MainCTA = () => {
 
   return (
     <section
-      className="relative w-full py-24 px-6 bg-white overflow-hidden"
+      className="relative w-full py-20 px-4 md:px-6 bg-white overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* decorativos */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
+      {/* DECORATIVOS */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center bg-white border border-red-100 rounded-3xl p-10 md:p-16 shadow-xl">
+      <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-12 items-center bg-white border border-red-100 rounded-3xl p-6 sm:p-8 md:p-14 shadow-xl">
         {/* TEXTO */}
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.title}
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.45 }}
+            className="text-center md:text-left"
           >
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-5">
               {slide.title}
             </h1>
 
-            <div className="h-1 w-24 bg-red-600 rounded-full mb-6" />
+            <div className="mx-auto md:mx-0 h-1 w-24 bg-red-600 rounded-full mb-6" />
 
-            <p className="text-gray-600 text-lg leading-relaxed mb-10">
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto md:mx-0">
               {slide.desc}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
                 to={slide.primary.to}
                 className="
-                  px-10 py-4 rounded-full text-lg font-semibold
+                  px-8 py-4 rounded-full text-base sm:text-lg font-semibold
                   bg-red-600 text-white shadow-lg shadow-red-600/30
-                  hover:bg-red-700 hover:scale-105 transition
+                  hover:bg-red-700 hover:scale-105 transition-all
                 "
               >
                 {slide.primary.text}
@@ -91,9 +92,9 @@ const MainCTA = () => {
               <Link
                 to={slide.secondary.to}
                 className="
-                  px-10 py-4 rounded-full text-lg font-semibold
+                  px-8 py-4 rounded-full text-base sm:text-lg font-semibold
                   border border-red-600 text-red-600
-                  hover:bg-red-600 hover:text-white transition
+                  hover:bg-red-600 hover:text-white transition-all
                 "
               >
                 {slide.secondary.text}
@@ -108,28 +109,43 @@ const MainCTA = () => {
             key={slide.img}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.45 }}
             className="relative"
           >
-            <img
-              src={slide.img}
-              alt="Punto G"
-              className="w-full h-[420px] object-cover rounded-2xl shadow-xl"
-            />
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+            {/* MOBILE → proporción correcta */}
+            <div className="md:hidden relative aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
+              <img
+                src={slide.img}
+                alt="Punto G"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+            </div>
+
+            {/* DESKTOP */}
+            <div className="hidden md:block relative h-[420px] rounded-2xl overflow-hidden shadow-xl">
+              <img
+                src={slide.img}
+                alt="Punto G"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* INDICADORES */}
-      <div className="mt-8 flex justify-center gap-3">
+      <div className="mt-8 flex justify-center gap-4">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
             className={`
-              w-3 h-3 rounded-full transition-all
+              w-3.5 h-3.5 rounded-full transition-all
               ${
                 index === i
                   ? "bg-red-600 scale-125"
@@ -141,9 +157,7 @@ const MainCTA = () => {
       </div>
     </section>
   );
-};
-
-export default MainCTA;
+}
 
 // import { motion } from "framer-motion";
 // import { Link } from "react-router-dom";
