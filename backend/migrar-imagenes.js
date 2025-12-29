@@ -1,7 +1,5 @@
 import mysql from "mysql2/promise";
 import cloudinary from "cloudinary";
-import fs from "fs";
-import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,17 +11,18 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/* ================= MYSQL ================= */
+/* ================= MYSQL (RAILWAY INTERNO) ================= */
 const db = await mysql.createConnection({
-  host: process.env.MYSQLHOST,
+  host: process.env.MYSQLHOST, // mysql.railway.internal
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
   port: process.env.MYSQLPORT,
 });
 
-/* ================= PATH IMAGES ================= */
-const IMAGES_DIR = path.resolve("public/images");
+/* ================= BASE URL BACKEND ================= */
+const BASE_IMAGE_URL = process.env.BASE_IMAGE_URL;
+// ejemplo: https://appPuntoG-production.up.railway.app/images
 
 const [productos] = await db.execute(
   "SELECT id, imagen FROM productos WHERE imagen IS NOT NULL"
@@ -32,27 +31,31 @@ const [productos] = await db.execute(
 console.log(`📦 Productos encontrados: ${productos.length}`);
 
 for (const producto of productos) {
-  const localPath = path.join(IMAGES_DIR, producto.imagen);
-
-  if (!fs.existsSync(localPath)) {
-    console.log(`❌ No existe: ${producto.imagen}`);
+  // si ya es cloudinary, saltar
+  if (producto.imagen.startsWith("http")) {
+    console.log(`⏭️ Ya migrada: ${producto.imagen}`);
     continue;
   }
 
-  console.log(`⬆️ Subiendo: ${producto.imagen}`);
+  const imageUrl = `${BASE_IMAGE_URL}/${producto.imagen}`;
+  console.log(`⬆️ Subiendo: ${imageUrl}`);
 
-  const result = await cloudinary.v2.uploader.upload(localPath, {
-    folder: "productos",
-    public_id: path.parse(producto.imagen).name,
-    overwrite: true,
-  });
+  try {
+    const result = await cloudinary.v2.uploader.upload(imageUrl, {
+      folder: "productos",
+      public_id: producto.imagen.replace(/\.[^/.]+$/, ""),
+      overwrite: true,
+    });
 
-  await db.execute("UPDATE productos SET imagen = ? WHERE id = ?", [
-    result.secure_url,
-    producto.id,
-  ]);
+    await db.execute("UPDATE productos SET imagen = ? WHERE id = ?", [
+      result.secure_url,
+      producto.id,
+    ]);
 
-  console.log(`✅ Migrada: ${producto.imagen}`);
+    console.log(`✅ Migrada: ${producto.imagen}`);
+  } catch (err) {
+    console.error(`❌ Error con ${producto.imagen}`, err.message);
+  }
 }
 
 await db.end();
