@@ -1,4 +1,4 @@
-// import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_URL } from "@/config";
 
 const ITEMS_POR_PAGINA = 10;
