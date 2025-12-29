@@ -3,18 +3,19 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ================= CLOUDINARY CONFIG ================= */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/* ================= MYSQL CONNECTION ================= */
 const DB = await mysql.createConnection({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
@@ -23,12 +24,10 @@ const DB = await mysql.createConnection({
   port: process.env.MYSQLPORT,
 });
 
-/* ================= FUNCIÓN DE MIGRACIÓN ================= */
 async function migrarImagenes() {
   console.log("🚀 Iniciando migración de imágenes...\n");
 
   try {
-    // 1. Obtener todos los productos
     const [productos] = await DB.query(
       "SELECT id, nombre, imagen FROM productos WHERE imagen IS NOT NULL"
     );
@@ -39,21 +38,17 @@ async function migrarImagenes() {
     let fallidos = 0;
     const errores = [];
 
-    // 2. Procesar cada producto
     for (const producto of productos) {
       const { id, nombre, imagen } = producto;
 
-      // Saltar si ya es una URL de Cloudinary
       if (imagen.includes("cloudinary.com")) {
         console.log(`⏭️  [${id}] ${nombre} - Ya está en Cloudinary`);
         continue;
       }
 
       try {
-        // Construir la ruta local de la imagen
         const rutaImagen = path.join(__dirname, "public", "images", imagen);
 
-        // Verificar si el archivo existe
         if (!fs.existsSync(rutaImagen)) {
           console.log(
             `⚠️  [${id}] ${nombre} - Archivo no encontrado: ${imagen}`
@@ -63,7 +58,6 @@ async function migrarImagenes() {
           continue;
         }
 
-        // Subir a Cloudinary
         console.log(`📤 [${id}] Subiendo: ${nombre}...`);
 
         const result = await cloudinary.uploader.upload(rutaImagen, {
@@ -71,7 +65,6 @@ async function migrarImagenes() {
           public_id: `producto_${id}_${Date.now()}`,
         });
 
-        // Actualizar la BD con la nueva URL
         await DB.query("UPDATE productos SET imagen = ? WHERE id = ?", [
           result.secure_url,
           id,
@@ -81,8 +74,6 @@ async function migrarImagenes() {
         console.log(`   URL: ${result.secure_url}\n`);
 
         exitosos++;
-
-        // Pequeña pausa para no saturar la API de Cloudinary
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
         console.error(`❌ [${id}] ${nombre} - Error: ${error.message}\n`);
@@ -91,7 +82,6 @@ async function migrarImagenes() {
       }
     }
 
-    // 3. Resumen final
     console.log("\n" + "=".repeat(50));
     console.log("📊 RESUMEN DE MIGRACIÓN");
     console.log("=".repeat(50));
@@ -113,5 +103,4 @@ async function migrarImagenes() {
   }
 }
 
-/* ================= EJECUTAR ================= */
 migrarImagenes();
