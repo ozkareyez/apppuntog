@@ -491,7 +491,7 @@ app.post("/api/contacto", (req, res) => {
   }
 
   DB.query(
-    "INSERT INTO contactos (nombre, email, mensaje) VALUES (?,?,?)",
+    "INSERT INTO contacto (nombre, email, mensaje) VALUES (?,?,?)",
     [nombre, email, mensaje],
     (err, result) => {
       if (err) {
