@@ -104,7 +104,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="mailto:contacto@puntog.com"
+              href="mailto:puntogsexshop2024@hotmail.com"
               className="hover:text-red-600 transition"
             >
               <Mail size={26} />
