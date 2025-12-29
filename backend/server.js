@@ -1,8 +1,3 @@
-if (process.env.RUN_MIGRATION === "true") {
-  console.log("🚚 Ejecutando migración de imágenes...");
-  await import("./migrar-imagenes.js");
-}
-
 import express from "express";
 import mysql from "mysql2";
 import cors from "cors";
@@ -23,6 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 /* ================= PATH ================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// 🔥 HACER PUBLICAS LAS IMÁGENES ojo si algo borar esto
+
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* ================= STATIC ================= */
 app.use("/images", express.static(path.join(__dirname, "public/images")));

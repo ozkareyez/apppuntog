@@ -65,14 +65,14 @@ export default function CartDrawer() {
               key={item.id}
               className="flex gap-4 py-4 border-b border-gray-200"
             >
-              {/* <img
+              <img
                 src={getImageSrc(item)}
                 alt={item.nombre}
                 onError={(e) => {
                   e.currentTarget.src = "/imagenes/no-image.png";
                 }}
                 className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
-              /> */}
+              />
 
               <div className="flex-1">
                 <p className="text-sm font-medium line-clamp-2">
