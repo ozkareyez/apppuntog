@@ -201,6 +201,8 @@ app.get("/api/productos/:id", (req, res) => {
 
 /* ================= CREAR PRODUCTO ================= */
 app.post("/api/productos", (req, res) => {
+  console.log("📦 BODY completo:", JSON.stringify(req.body, null, 2));
+
   const {
     categoria,
     nombre,
@@ -216,24 +218,36 @@ app.post("/api/productos", (req, res) => {
   } = req.body;
 
   if (!nombre || !precio || !imagen || !categoria_id) {
+    console.log("❌ Validación fallida:", {
+      nombre,
+      precio,
+      imagen,
+      categoria_id,
+    });
     return res.status(400).json({
       ok: false,
       message: "Campos obligatorios faltantes",
+      faltantes: {
+        nombre: !nombre,
+        precio: !precio,
+        imagen: !imagen,
+        categoria_id: !categoria_id,
+      },
     });
   }
 
+  console.log("✅ Validación OK, insertando...");
+
   DB.query(
-    `
-    INSERT INTO productos
+    `INSERT INTO productos
     (categoria, nombre, talla, color, precio, imagen, categoria_id,
      precio_antes, descuento, es_oferta, descripcion)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)
-    `,
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     [
       categoria,
       nombre,
-      talla,
-      color,
+      talla || null,
+      color || null,
       precio,
       imagen,
       categoria_id,
@@ -244,10 +258,16 @@ app.post("/api/productos", (req, res) => {
     ],
     (err, result) => {
       if (err) {
-        console.error("❌ Error insert producto:", err);
-        return res.status(500).json({ ok: false });
+        console.error("❌ Error MySQL COMPLETO:", err);
+        return res.status(500).json({
+          ok: false,
+          message: "Error al guardar en base de datos",
+          error: err.sqlMessage || err.message,
+          code: err.code,
+        });
       }
 
+      console.log("✅ Producto insertado:", result.insertId);
       res.status(201).json({
         ok: true,
         producto_id: result.insertId,
@@ -255,7 +275,6 @@ app.post("/api/productos", (req, res) => {
     }
   );
 });
-
 /* ================= FORMULARIO CLIENTE ================= */
 app.post("/api/enviar-formulario", (req, res) => {
   const {
