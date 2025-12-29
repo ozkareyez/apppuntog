@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 /* ================= ADMIN ================= */
 import AdminLayout from "./admin/dashboard/AdminLayout";
+
 import Login from "./admin/Login";
 import Dashboard from "./admin/dashboard/Dashboard";
 import PedidosAdmin from "./admin/PedidosAdmin";
@@ -72,6 +73,7 @@ function App() {
 
         {/* ---------- ADMIN ---------- */}
         <Route path="/admin/login" element={<Login />} />
+        <Route index element={<Dashboard />} />
 
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
