@@ -45,6 +45,10 @@ function App() {
           <Route path="/productos" element={<Productos />} />
           <Route path="/productos/:id" element={<ProductoDetallado />} />
           <Route path="/contacto" element={<ContactForm />} />
+          <Route
+            path="/politica-de-privacidad"
+            element={<PoliticaPrivacidad />}
+          />
         </Route>
 
         {/* ---------- ADMIN ---------- */}
