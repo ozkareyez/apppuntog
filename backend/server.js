@@ -5,6 +5,7 @@ import path from "path";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
+import ExcelJS from "exceljs";
 
 /* ================= APP ================= */
 const app = express();
@@ -576,63 +577,52 @@ app.delete("/api/pedidos/:id", (req, res) => {
 });
 
 /* ================= EXCEL ================= */
-app.get("/api/exportar-pedidos-completo", async (_, res) => {
+app.get("/api/exportar-pedidos-completo", async (req, res) => {
   try {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Pedidos");
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Pedidos");
 
-    ws.columns = [
-      { header: "Pedido ID", key: "pedido_id", width: 10 },
-      { header: "Fecha", key: "fecha", width: 15 },
-      { header: "Cliente", key: "cliente", width: 25 },
-      // { header: "Email", key: "email", width: 30 },
-      { header: "Dirección", key: "direccion", width: 30 },
-      { header: "Ciudad", key: "ciudad", width: 15 },
+    worksheet.columns = [
+      { header: "ID", key: "id", width: 8 },
+      { header: "Cliente", key: "nombre", width: 25 },
       { header: "Teléfono", key: "telefono", width: 15 },
-      { header: "Producto", key: "producto", width: 25 },
-      { header: "Precio", key: "precio", width: 12 },
-      { header: "Cantidad", key: "cantidad", width: 10 },
-      { header: "Subtotal", key: "subtotal", width: 12 },
+      { header: "Dirección", key: "direccion", width: 30 },
+      { header: "Departamento", key: "departamento", width: 20 },
+      { header: "Ciudad", key: "ciudad", width: 20 },
+      { header: "Total", key: "total", width: 12 },
+      { header: "Estado", key: "estado", width: 15 },
+      { header: "Fecha", key: "fecha", width: 20 },
     ];
 
-    const sql = `
+    const [rows] = await DB.promise().query(`
       SELECT
-        p.id AS pedido_id,
-        DATE(p.fecha) AS fecha,
-        p.nombre AS cliente,
-        p.direccion,
-        p.ciudad,
+        p.id,
+        p.nombre,
         p.telefono,
-        pr.nombre AS producto,
-        d.precio,
-        d.cantidad,
-        d.subtotal
+        p.direccion,
+        p.departamento,
+        p.ciudad,
+        p.total,
+        p.estado,
+        p.fecha
       FROM pedidos p
-      JOIN pedido_detalles d ON d.pedido_id = p.id
-      JOIN productos pr ON pr.id = d.producto_id
       ORDER BY p.id DESC
-    `;
+    `);
 
-    DB.query(sql, async (err, rows) => {
-      if (err) return res.status(500).json({ error: "Error Excel" });
+    rows.forEach((row) => worksheet.addRow(row));
 
-      ws.addRows(rows);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=pedidos_completos.xlsx"
-      );
+    res.setHeader("Content-Disposition", "attachment; filename=pedidos.xlsx");
 
-      await wb.xlsx.write(res);
-      res.end();
-    });
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error interno" });
+    console.error("❌ ERROR EXPORTANDO EXCEL:", error);
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
 
