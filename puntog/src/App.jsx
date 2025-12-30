@@ -16,7 +16,6 @@ import Home from "./pages/Home";
 import Productos from "./pages/Productos";
 import ProductoDetallado from "./pages/ProductoDetallado";
 import ContactForm from "./componentes/ContactForm";
-import Foter from "./componentes/Foter";
 
 /* ================= EXTRAS ================= */
 import { FloatingWhatsApp } from "react-floating-whatsapp";
@@ -87,7 +86,6 @@ function App() {
       </Routes>
 
       {/* ================= FOOTER (SOLO PUBLIC) ================= */}
-      <Foter />
     </>
   );
 }

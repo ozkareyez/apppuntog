@@ -4,19 +4,23 @@ import Header from "@/componentes/Header";
 import CartDrawer from "@/componentes/CartDrawer";
 import FormularioEnvioModal from "@/componentes/FormularioEnvioModal";
 import { useCart } from "@/context/CartContext";
+import Foter from "@/componentes/Foter";
 
 export default function PublicLayout() {
   const { showShippingModal } = useCart();
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black flex flex-col">
       {/* HEADER */}
       <Header />
 
       {/* CONTENIDO */}
-      <main className="pt-[88px] relative z-0">
+      <main className="pt-[88px] relative z-0 flex-1">
         <Outlet />
       </main>
+
+      {/* FOOTER (SOLO PÚBLICO) */}
+      <Foter />
 
       {/* CARRITO */}
       <CartDrawer />
