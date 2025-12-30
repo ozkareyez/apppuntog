@@ -98,10 +98,10 @@ export default function OrdenServicio() {
             <b>Dirección:</b> {pedido.direccion}
           </p>
           <p>
-            <b>Departamento:</b> {pedido.departamento_nombre || "—"}
+            <b>Departamento:</b> {pedido.departamento || "—"}
           </p>
           <p>
-            <b>Ciudad:</b> {pedido.ciudad_nombre || "—"}
+            <b>Ciudad:</b> {pedido.ciudad || "—"}
           </p>
         </section>
 
