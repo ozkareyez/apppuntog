@@ -626,6 +626,16 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
   }
 });
 
+/* ================= FRONTEND (VITE BUILD) ================= */
+
+// servir frontend compilado
+app.use(express.static(path.join(__dirname, "dist")));
+
+// fallback para React Router (MUY IMPORTANTE)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
