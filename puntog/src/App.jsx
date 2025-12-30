@@ -16,6 +16,7 @@ import Home from "./pages/Home";
 import Productos from "./pages/Productos";
 import ProductoDetallado from "./pages/ProductoDetallado";
 import ContactForm from "./componentes/ContactForm";
+import EliminarProducto from "./admin/EliminarProducto";
 
 /* ================= EXTRAS ================= */
 import { FloatingWhatsApp } from "react-floating-whatsapp";
@@ -82,6 +83,7 @@ function App() {
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="contacto" element={<ContactosAdmin />} />
           <Route path="nuevo_producto" element={<FormularioProducto />} />
+          <Route path="eliminar_producto" element={<EliminarProducto />} />
         </Route>
 
         {/* ---------- ORDEN DE SERVICIO ---------- */}

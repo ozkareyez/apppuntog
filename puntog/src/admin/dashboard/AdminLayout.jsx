@@ -81,6 +81,14 @@ export default function AdminLayout() {
           >
             ➕ Nuevo producto
           </NavLink>
+          <NavLink
+            to="eliminar_producto"
+            className={({ isActive }) =>
+              `${linkBase} ${isActive ? linkActive : linkInactive}`
+            }
+          >
+            🗑️ Eliminar producto
+          </NavLink>
         </nav>
 
         {/* LOGOUT */}
