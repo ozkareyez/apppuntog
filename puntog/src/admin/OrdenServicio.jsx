@@ -18,6 +18,8 @@ export default function OrdenServicio() {
         if (!res.ok) throw new Error();
 
         const json = await res.json();
+        console.log("📦 Datos recibidos:", json); // 👈 AGREGAR ESTO
+        console.log("📍 Pedido:", json.pedido); // 👈 Y ESTO
         setData(json);
       } catch (err) {
         console.error(err);
@@ -29,6 +31,26 @@ export default function OrdenServicio() {
 
     cargarOrden();
   }, [id]);
+
+  // useEffect(() => {
+  //   const cargarOrden = async () => {
+  //     try {
+  //       const res = await fetch(`${API_URL}/api/orden-servicio/${id}`);
+
+  //       if (!res.ok) throw new Error();
+
+  //       const json = await res.json();
+  //       setData(json);
+  //     } catch (err) {
+  //       console.error(err);
+  //       setError("No se pudo cargar la orden de servicio");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   cargarOrden();
+  // }, [id]);
 
   if (loading) return <p className="p-6">Cargando orden...</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
