@@ -1,19 +1,19 @@
 import { memo } from "react";
 
 const CartImage = memo(
-  function CartImage({ item }) {
+  function CartImage({ imagen, imagen_url, nombre }) {
     let src = "/imagenes/no-image.png";
 
-    if (item?.imagen_url?.startsWith("http")) {
-      src = item.imagen_url;
-    } else if (item?.imagen) {
-      src = `${import.meta.env.VITE_API_URL}/uploads/${item.imagen}`;
+    if (imagen_url?.startsWith("http")) {
+      src = imagen_url;
+    } else if (imagen) {
+      src = `${import.meta.env.VITE_API_URL}/uploads/${imagen}`;
     }
 
     return (
       <img
         src={src}
-        alt={item?.nombre || "Producto"}
+        alt={nombre || "Producto"}
         loading="lazy"
         className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
         onError={(e) => {
@@ -22,17 +22,52 @@ const CartImage = memo(
       />
     );
   },
-  // 👇 CLAVE: Solo re-renderizar si cambia la imagen o ID
+  // Solo re-renderizar si las URLs cambian
   (prevProps, nextProps) => {
     return (
-      prevProps.item.id === nextProps.item.id &&
-      prevProps.item.imagen === nextProps.item.imagen &&
-      prevProps.item.imagen_url === nextProps.item.imagen_url
+      prevProps.imagen === nextProps.imagen &&
+      prevProps.imagen_url === nextProps.imagen_url
     );
   }
 );
 
 export default CartImage;
+
+// import { memo } from "react";
+
+// const CartImage = memo(
+//   function CartImage({ item }) {
+//     let src = "/imagenes/no-image.png";
+
+//     if (item?.imagen_url?.startsWith("http")) {
+//       src = item.imagen_url;
+//     } else if (item?.imagen) {
+//       src = `${import.meta.env.VITE_API_URL}/uploads/${item.imagen}`;
+//     }
+
+//     return (
+//       <img
+//         src={src}
+//         alt={item?.nombre || "Producto"}
+//         loading="lazy"
+//         className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
+//         onError={(e) => {
+//           e.currentTarget.src = "/imagenes/no-image.png";
+//         }}
+//       />
+//     );
+//   },
+//   // 👇 CLAVE: Solo re-renderizar si cambia la imagen o ID
+//   (prevProps, nextProps) => {
+//     return (
+//       prevProps.item.id === nextProps.item.id &&
+//       prevProps.item.imagen === nextProps.item.imagen &&
+//       prevProps.item.imagen_url === nextProps.item.imagen_url
+//     );
+//   }
+// );
+
+// export default CartImage;
 
 // // import { memo, useMemo } from "react";
 
