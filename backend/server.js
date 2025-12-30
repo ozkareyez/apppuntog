@@ -631,25 +631,27 @@ app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [result] = await db.query("DELETE FROM productos WHERE id = ?", [id]);
+    const [result] = await db.query(
+      "UPDATE productos SET activo = 0 WHERE id = ?",
+      [id]
+    );
 
-    // 🔴 AQUÍ ESTABA EL PROBLEMA
     if (result.affectedRows === 0) {
       return res.status(404).json({
         ok: false,
-        message: "No se encontró el producto",
+        message: "Producto no encontrado",
       });
     }
 
     res.json({
       ok: true,
-      message: "Producto eliminado correctamente",
+      message: "Producto desactivado correctamente",
     });
   } catch (error) {
-    console.error("Error eliminando producto:", error);
+    console.error("Error en borrado lógico:", error);
     res.status(500).json({
       ok: false,
-      message: "Error al eliminar producto",
+      message: "Error al desactivar producto",
     });
   }
 });

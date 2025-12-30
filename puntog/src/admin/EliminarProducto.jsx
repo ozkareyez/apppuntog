@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 
+const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
+
 export default function EliminarProducto() {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [eliminandoId, setEliminandoId] = useState(null);
 
   useEffect(() => {
     const cargarProductos = async () => {
       try {
-        const res = await fetch(
-          "https://gleaming-motivation-production-4018.up.railway.app/api/productos"
-        );
+        const res = await fetch(`${API_URL}/api/productos`);
         const data = await res.json();
         setProductos(data);
       } catch (error) {
-        console.error(error);
+        console.error("Error cargando productos:", error);
+        alert("Error al cargar productos");
       } finally {
         setLoading(false);
       }
@@ -24,17 +26,31 @@ export default function EliminarProducto() {
   }, []);
 
   const eliminarProducto = async (id) => {
-    if (!window.confirm("¿Eliminar este producto?")) return;
+    const confirmar = window.confirm(
+      "¿Seguro que deseas eliminar este producto?"
+    );
+    if (!confirmar) return;
+
+    setEliminandoId(id);
 
     try {
-      await fetch(
-        `https://gleaming-motivation-production-4018.up.railway.app/api/productos/${id}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${API_URL}/api/productos/${id}`, {
+        method: "DELETE",
+      });
 
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message || "Error al eliminar");
+      }
+
+      // quitar del estado solo si backend confirma
       setProductos((prev) => prev.filter((p) => p.id !== id));
     } catch (error) {
-      alert("Error al eliminar");
+      console.error(error);
+      alert("No se pudo eliminar el producto");
+    } finally {
+      setEliminandoId(null);
     }
   };
 
@@ -42,8 +58,14 @@ export default function EliminarProducto() {
     return <p className="text-center">Cargando productos...</p>;
   }
 
+  if (productos.length === 0) {
+    return (
+      <p className="text-center text-gray-500">No hay productos activos</p>
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4">
       <h2 className="text-2xl font-bold mb-6">Eliminar productos</h2>
 
       <div className="space-y-4">
@@ -65,7 +87,13 @@ export default function EliminarProducto() {
 
             <button
               onClick={() => eliminarProducto(p.id)}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+              disabled={eliminandoId === p.id}
+              className={`px-4 py-2 rounded-lg text-white transition
+                ${
+                  eliminandoId === p.id
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
             >
               <Trash2 size={16} />
             </button>
