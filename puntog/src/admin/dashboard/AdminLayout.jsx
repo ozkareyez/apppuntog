@@ -1,7 +1,16 @@
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 
 export default function AdminLayout() {
-  const token = localStorage.getItem("admin_token");
+  const tokenData = JSON.parse(localStorage.getItem("admin_token"));
+
+  const token =
+    tokenData && tokenData.expires > Date.now() ? tokenData.value : null;
+
+  if (!token) {
+    localStorage.removeItem("admin_token");
+    return <Navigate to="/admin/login" replace />;
+  }
+
   const navigate = useNavigate();
 
   if (!token) {

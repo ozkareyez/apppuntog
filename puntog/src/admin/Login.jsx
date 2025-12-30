@@ -21,7 +21,14 @@ export default function Login() {
     setError("");
 
     if (user === ADMIN_USER && password === ADMIN_PASS) {
-      localStorage.setItem("admin_token", "yes");
+      localStorage.setItem(
+        "admin_token",
+        JSON.stringify({
+          value: "yes",
+          expires: Date.now() + 1000 * 60 * 60, // 1 hora
+        })
+      );
+
       navigate("/admin/dashboard", { replace: true });
     } else {
       setError("Usuario o contraseña incorrectos");
