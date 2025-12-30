@@ -70,6 +70,9 @@ function App() {
           <Route path="/uso-responsable" element={<UsoResponsable />} />
         </Route>
 
+        {/* ---------- ADMIN LOGIN (Outside AdminLayout) ---------- */}
+        <Route path="/admin/login" element={<Login />} />
+
         {/* ---------- ADMIN ---------- */}
         <Route path="/admin" element={<AdminLayout />}>
           {/* 👇 RUTA INDEX */}
