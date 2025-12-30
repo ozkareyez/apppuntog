@@ -58,7 +58,7 @@ const Categorias = () => {
                 overflow-hidden
               "
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/0 to-pink-500/0 group-hover:from-pink-500/10 group-hover:to-transparent transition-all duration-500" />
+              <div className="absolute inset-0 bg-linear-to-br from-pink-500/0 to-pink-500/0 group-hover:from-pink-500/10 group-hover:to-transparent transition-all duration-500" />
 
               <div className="relative z-10">
                 <h3 className="text-lg font-semibold text-white mb-4 group-hover:text-pink-400 transition-colors">
