@@ -1,46 +1,74 @@
 import { memo } from "react";
 
-const CartImage = memo(
-  function CartImage({ imagen, imagen_url, nombre }) {
-    let src = "/imagenes/no-image.png";
+const CartImage = memo(function CartImage({ imagen, imagen_url, nombre }) {
+  let src = "/imagenes/no-image.png";
 
-    // Prioridad 1: imagen_url (si existe y es HTTP)
-    if (imagen_url?.startsWith("http")) {
-      src = imagen_url;
-    }
-    // Prioridad 2: imagen (verificar si ya es URL completa)
-    else if (imagen) {
-      if (imagen.startsWith("http")) {
-        // Ya es URL completa (Cloudinary)
-        src = imagen;
-      } else {
-        // Es nombre de archivo, construir URL
-        src = `${import.meta.env.VITE_API_URL}/uploads/${imagen}`;
-      }
-    }
-
-    return (
-      <img
-        src={src}
-        alt={nombre || "Producto"}
-        loading="lazy"
-        className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
-        onError={(e) => {
-          e.currentTarget.src = "/imagenes/no-image.png";
-        }}
-      />
-    );
-  },
-  (prev, next) => {
-    return (
-      prev.imagen === next.imagen &&
-      prev.imagen_url === next.imagen_url &&
-      prev.nombre === next.nombre
-    );
+  if (imagen_url?.startsWith("http")) {
+    src = imagen_url;
+  } else if (imagen?.startsWith("http")) {
+    src = imagen;
+  } else if (imagen) {
+    src = `${import.meta.env.VITE_API_URL}/uploads/${imagen}`;
   }
-);
+
+  return (
+    <img
+      src={src}
+      alt={nombre || "Producto"}
+      loading="lazy"
+      className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
+      onError={(e) => {
+        e.currentTarget.src = "/imagenes/no-image.png";
+      }}
+    />
+  );
+});
 
 export default CartImage;
+
+// import { memo } from "react";
+
+// const CartImage = memo(
+//   function CartImage({ imagen, imagen_url, nombre }) {
+//     let src = "/imagenes/no-image.png";
+
+//     // Prioridad 1: imagen_url (si existe y es HTTP)
+//     if (imagen_url?.startsWith("http")) {
+//       src = imagen_url;
+//     }
+//     // Prioridad 2: imagen (verificar si ya es URL completa)
+//     else if (imagen) {
+//       if (imagen.startsWith("http")) {
+//         // Ya es URL completa (Cloudinary)
+//         src = imagen;
+//       } else {
+//         // Es nombre de archivo, construir URL
+//         src = `${import.meta.env.VITE_API_URL}/uploads/${imagen}`;
+//       }
+//     }
+
+//     return (
+//       <img
+//         src={src}
+//         alt={nombre || "Producto"}
+//         loading="lazy"
+//         className="w-16 h-16 rounded-lg object-contain bg-gray-50 border"
+//         onError={(e) => {
+//           e.currentTarget.src = "/imagenes/no-image.png";
+//         }}
+//       />
+//     );
+//   },
+//   (prev, next) => {
+//     return (
+//       prev.imagen === next.imagen &&
+//       prev.imagen_url === next.imagen_url &&
+//       prev.nombre === next.nombre
+//     );
+//   }
+// );
+
+// export default CartImage;
 
 // import { memo, useState, useEffect } from "react";
 
