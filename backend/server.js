@@ -625,6 +625,34 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
+/**=============================DELETE DE PRODUCTOS================= */
+
+app.delete("/api/productos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [result] = await db.query("DELETE FROM productos WHERE id = ?", [id]);
+
+    // 🔴 AQUÍ ESTABA EL PROBLEMA
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "No se encontró el producto",
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Producto eliminado correctamente",
+    });
+  } catch (error) {
+    console.error("Error eliminando producto:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error al eliminar producto",
+    });
+  }
+});
 
 /* ================= FRONTEND (VITE BUILD) ================= */
 
