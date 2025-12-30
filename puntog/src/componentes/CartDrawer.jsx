@@ -4,7 +4,7 @@ import CartImage from "@/componentes/CartImage";
 import { memo } from "react";
 
 const CartItem = memo(
-  function CartItem({
+  ({
     id,
     nombre,
     precio,
@@ -14,13 +14,15 @@ const CartItem = memo(
     onIncrease,
     onDecrease,
     onRemove,
-  }) {
+  }) => {
     return (
       <div className="flex gap-4 py-4 border-b border-gray-200">
+        {/* 👇 Pasar props individuales, no el objeto completo */}
         <CartImage imagen={imagen} imagen_url={imagen_url} nombre={nombre} />
 
         <div className="flex-1">
           <p className="text-sm font-medium line-clamp-2">{nombre}</p>
+
           <p className="text-red-600 font-bold mt-1">
             ${precio.toLocaleString()}
           </p>
@@ -33,7 +35,9 @@ const CartItem = memo(
               >
                 <Minus size={14} />
               </button>
+
               <span className="px-3 text-sm font-semibold">{cantidad}</span>
+
               <button
                 onClick={onIncrease}
                 className="px-2 py-1 hover:bg-gray-100"
@@ -53,16 +57,18 @@ const CartItem = memo(
       </div>
     );
   },
-  (prev, next) => {
+  (prevProps, nextProps) => {
     return (
-      prev.id === next.id &&
-      prev.cantidad === next.cantidad &&
-      prev.precio === next.precio &&
-      prev.imagen === next.imagen &&
-      prev.imagen_url === next.imagen_url
+      prevProps.id === nextProps.id &&
+      prevProps.cantidad === nextProps.cantidad &&
+      prevProps.precio === nextProps.precio &&
+      prevProps.imagen === nextProps.imagen &&
+      prevProps.imagen_url === nextProps.imagen_url
     );
   }
 );
+
+CartItem.displayName = "CartItem";
 
 export default function CartDrawer() {
   const {
