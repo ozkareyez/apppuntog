@@ -10,14 +10,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // ✅ ESTE useEffect SÍ está bien
+  useEffect(() => {
+    // Forzar cierre de sesión al entrar al login
+    localStorage.removeItem("admin_token");
+  }, []);
+
   const handleLogin = (e) => {
     e.preventDefault();
     setError("");
-
-    useEffect(() => {
-      // 🔴 Forzar cierre de sesión al entrar al login
-      localStorage.removeItem("admin_token");
-    }, []);
 
     if (user === ADMIN_USER && password === ADMIN_PASS) {
       localStorage.setItem("admin_token", "yes");
@@ -27,89 +28,41 @@ export default function Login() {
     }
   };
 
-  useEffect(() => {
-    // 🔴 Forzar cierre de sesión al entrar al login
-    localStorage.removeItem("admin_token");
-  }, []);
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <form
         onSubmit={handleLogin}
-        className="
-          bg-white
-          p-8
-          rounded-2xl
-          shadow-2xl
-          w-full
-          max-w-sm
-        "
+        className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm"
       >
-        {/* TÍTULO */}
-        <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-2">
+        <h2 className="text-2xl font-extrabold text-center mb-2">
           Panel Administrativo
         </h2>
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Acceso restringido
-        </p>
 
-        {/* ERROR */}
         {error && (
-          <p className="text-red-600 text-sm text-center mb-4 font-medium">
-            {error}
-          </p>
+          <p className="text-red-600 text-sm text-center mb-4">{error}</p>
         )}
 
-        {/* USUARIO */}
         <input
           type="text"
           placeholder="Usuario"
-          className="
-            w-full mb-4 px-4 py-2.5
-            rounded-lg
-            border border-gray-300
-            focus:outline-none
-            focus:ring-2 focus:ring-red-500
-            focus:border-red-500
-            transition
-          "
+          className="w-full mb-4 px-4 py-2.5 border rounded-lg"
           value={user}
           onChange={(e) => setUser(e.target.value)}
           required
         />
 
-        {/* CONTRASEÑA */}
         <input
           type="password"
           placeholder="Contraseña"
-          className="
-            w-full mb-6 px-4 py-2.5
-            rounded-lg
-            border border-gray-300
-            focus:outline-none
-            focus:ring-2 focus:ring-red-500
-            focus:border-red-500
-            transition
-          "
+          className="w-full mb-6 px-4 py-2.5 border rounded-lg"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
 
-        {/* BOTÓN */}
         <button
           type="submit"
-          className="
-            w-full
-            bg-red-600
-            hover:bg-red-700
-            text-white
-            py-2.5
-            rounded-lg
-            font-semibold
-            tracking-wide
-            transition
-          "
+          className="w-full bg-red-600 text-white py-2.5 rounded-lg"
         >
           Entrar
         </button>
