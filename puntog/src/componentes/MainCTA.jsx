@@ -11,29 +11,29 @@ export default function MainCTA() {
 
   const slides = [
     {
-      title: "Descubre el placer que mereces",
-      desc: "Lencería exclusiva y productos sensuales diseñados para elevar cada experiencia con elegancia y discreción.",
+      title: "Placer y elegancia para ti",
+      desc: "Lencería y productos sensuales con entrega discreta en toda Colombia.",
       img: "/imagenes/cta-lenceria.jpg",
-      primary: { text: "Explorar colección", to: "/catalogo" },
-      secondary: { text: "Asesoría privada", to: "/contacto" },
+      primary: { text: "Ver catálogo", to: "/catalogo" },
+      secondary: { text: "Asesoría", to: "/contacto" },
     },
     {
-      title: "Entrega discreta en toda Colombia",
-      desc: "Empaques 100% confidenciales, envíos rápidos y atención personalizada para comprar con total tranquilidad.",
+      title: "Entrega discreta garantizada",
+      desc: "Empaques confidenciales y envíos rápidos a todo el país.",
       img: "/imagenes/cta-envio.jpg",
-      primary: { text: "Ver ofertas", to: "/ofertas" },
-      secondary: { text: "Hablar con un asesor", to: "/contacto" },
+      primary: { text: "Ofertas", to: "/ofertas" },
+      secondary: { text: "Hablar", to: "/contacto" },
     },
     {
-      title: "Calidad premium y atención personalizada",
-      desc: "Seleccionamos productos de alta calidad para que vivas experiencias únicas con confianza y seguridad.",
+      title: "Calidad premium",
+      desc: "Productos seleccionados para experiencias únicas.",
       img: "/imagenes/cta-premium.jpg",
-      primary: { text: "Ver novedades", to: "/catalogo" },
-      secondary: { text: "Contáctanos", to: "/contacto" },
+      primary: { text: "Novedades", to: "/catalogo" },
+      secondary: { text: "Contacto", to: "/contacto" },
     },
   ];
 
-  /* ⏱️ autoplay */
+  /* autoplay */
   useEffect(() => {
     if (paused) return;
 
@@ -48,44 +48,59 @@ export default function MainCTA() {
 
   return (
     <section
-      className="relative w-full py-12 sm:py-16 md:py-20 px-4 md:px-6 bg-white overflow-hidden"
+      className="
+        relative w-full
+        min-h-[70vh] md:min-h-auto
+        flex items-center
+        px-4 md:px-6
+        bg-white overflow-hidden
+      "
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       {/* DECORATIVOS */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -left-32 w-72 h-72 bg-red-600/15 rounded-full blur-3xl md:block hidden" />
 
-      <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center bg-white border border-red-100 rounded-3xl p-6 sm:p-8 md:p-14 shadow-xl">
+      <div
+        className="
+          relative max-w-6xl mx-auto
+          grid md:grid-cols-2
+          gap-6 md:gap-12
+          items-center
+          bg-white
+          border border-red-100
+          rounded-2xl
+          p-4 sm:p-6 md:p-14
+          shadow-lg
+        "
+      >
         {/* TEXTO */}
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.title}
-            initial={{ opacity: 0, y: 25 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.45 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4 }}
             className="text-center md:text-left"
           >
-            <h1 className="text-[28px] leading-tight sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+            <h1 className="text-xl sm:text-2xl md:text-5xl font-bold text-gray-900 mb-2">
               {slide.title}
             </h1>
 
-            <div className="mx-auto md:mx-0 h-1 w-20 bg-red-600 rounded-full mb-5" />
-
-            <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-7 max-w-xl mx-auto md:mx-0">
+            <p className="text-gray-600 text-sm sm:text-base mb-4 max-w-md mx-auto md:mx-0">
               {slide.desc}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center md:justify-start">
               <Link
                 to={slide.primary.to}
                 className="
-                  px-8 py-4 rounded-full text-base font-semibold
+                  px-6 py-3 rounded-full text-sm font-semibold
                   bg-red-600 text-white
-                  shadow-xl shadow-red-600/30
-                  hover:bg-red-700 hover:scale-[1.03]
-                  transition-all
+                  shadow-md shadow-red-600/30
+                  hover:bg-red-700
+                  transition
                 "
               >
                 {slide.primary.text}
@@ -94,11 +109,10 @@ export default function MainCTA() {
               <Link
                 to={slide.secondary.to}
                 className="
-                  px-8 py-4 rounded-full text-base font-semibold
+                  px-6 py-3 rounded-full text-sm font-semibold
                   border border-red-600/40 text-red-600
-                  bg-white/70 backdrop-blur
                   hover:bg-red-600 hover:text-white
-                  transition-all
+                  transition
                 "
               >
                 {slide.secondary.text}
@@ -111,21 +125,20 @@ export default function MainCTA() {
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.img}
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ duration: 0.45 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
             className="relative"
           >
-            {/* MOBILE */}
-            <div className="md:hidden relative aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl">
+            {/* MOBILE COMPACT */}
+            <div className="md:hidden relative h-[220px] rounded-xl overflow-hidden shadow-md">
               <img
                 src={slide.img}
                 alt="Punto G"
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             </div>
 
             {/* DESKTOP */}
@@ -136,27 +149,20 @@ export default function MainCTA() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* INDICADORES */}
-      <div className="mt-6 flex justify-center gap-3">
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 md:hidden">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`
-              w-2.5 h-2.5 rounded-full transition-all
-              ${
-                index === i
-                  ? "bg-red-600 scale-125"
-                  : "bg-gray-300 hover:bg-red-400"
-              }
-            `}
-            aria-label={`Slide ${i + 1}`}
+            className={`w-2 h-2 rounded-full ${
+              index === i ? "bg-red-600" : "bg-gray-300"
+            }`}
           />
         ))}
       </div>
