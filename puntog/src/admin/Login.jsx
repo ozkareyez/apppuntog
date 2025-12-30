@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const ADMIN_USER = "oscar";
@@ -21,6 +21,11 @@ export default function Login() {
       setError("Usuario o contraseña incorrectos");
     }
   };
+
+  useEffect(() => {
+    // 🔴 Forzar cierre de sesión al entrar al login
+    localStorage.removeItem("admin_token");
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
