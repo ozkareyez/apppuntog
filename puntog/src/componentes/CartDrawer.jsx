@@ -111,7 +111,8 @@ export default function CartDrawer() {
             </p>
           )}
 
-          {cart.map((item) => (
+          {cart.map((item) => {
+            console.log("🛒 Item del carrito:", item); //
             <CartItem
               key={item.id}
               id={item.id}
@@ -123,8 +124,8 @@ export default function CartDrawer() {
               onIncrease={() => increaseQuantity(item.id)}
               onDecrease={() => decreaseQuantity(item.id)}
               onRemove={() => removeFromCart(item.id)}
-            />
-          ))}
+            />;
+          })}
         </div>
 
         {cart.length > 0 && (
