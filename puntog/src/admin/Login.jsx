@@ -14,6 +14,11 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
+    useEffect(() => {
+      // 🔴 Forzar cierre de sesión al entrar al login
+      localStorage.removeItem("admin_token");
+    }, []);
+
     if (user === ADMIN_USER && password === ADMIN_PASS) {
       localStorage.setItem("admin_token", "yes");
       navigate("/admin/dashboard", { replace: true });
