@@ -26,7 +26,7 @@ export function CartProvider({ children }) {
           id: product.id,
           nombre: product.nombre,
           precio: Number(product.precio),
-          imagen: product.imagen, // 👈 Cloudinary URL fija
+          imagen: product.imagen_url, // 👈 Cloudinary URL fija
           cantidad: 1,
         },
       ];
