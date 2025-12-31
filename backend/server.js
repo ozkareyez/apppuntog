@@ -625,33 +625,35 @@ app.get("/api/exportar-pedidos-completo", async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
-/**=============================DELETE DE PRODUCTOS================= */
-
-// DESACTIVAR producto (Soft Delete)
+/* ================================================= */
+/* ========= ELIMINAR PRODUCTO (SOFT DELETE) ======= */
+/* ================================================= */
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [result] = await db.query(
+    const [result] = await DB.promise().query(
       "UPDATE productos SET activo = 0 WHERE id = ?",
       [id]
     );
 
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        ok: false,
+        message: "Producto no encontrado",
+      });
     }
 
     res.json({
       ok: true,
-      message: "Producto desactivado correctamente",
+      message: "Producto eliminado correctamente",
     });
   } catch (error) {
-    console.error("ERROR AL DESACTIVAR:", error);
-    res
-      .status(500)
-      .json({ ok: false, message: "Error al desactivar producto" });
+    console.error("❌ ERROR DELETE PRODUCTO:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error al eliminar producto",
+    });
   }
 });
 
