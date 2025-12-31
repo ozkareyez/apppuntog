@@ -136,10 +136,15 @@ app.get("/api/categorias", (req, res) => {
 app.get("/api/productos", (req, res) => {
   const { categoria, es_oferta, limit } = req.query;
 
-  let query = "SELECT p.* FROM productos p WHERE p.activo = 1";
-  const params = [];
-  const conditions = [];
+  let query = `
+    SELECT p.*
+    FROM productos p
+  `;
 
+  const params = [];
+  const conditions = ["p.activo = 1"];
+
+  // JOIN solo si hay categoría
   if (categoria && categoria !== "todas") {
     query += " INNER JOIN categorias c ON p.categoria_id = c.id";
     conditions.push("c.slug = ?");
@@ -150,7 +155,7 @@ app.get("/api/productos", (req, res) => {
     conditions.push("p.es_oferta = 1");
   }
 
-  if (conditions.length > 0) {
+  if (conditions.length) {
     query += " WHERE " + conditions.join(" AND ");
   }
 
@@ -161,27 +166,76 @@ app.get("/api/productos", (req, res) => {
     params.push(parseInt(limit));
   }
 
-  console.log("🔍 Query:", query);
-  console.log("📊 Params:", params);
+  console.log("🔍 QUERY FINAL:", query);
+  console.log("📦 PARAMS:", params);
 
   DB.query(query, params, (err, results) => {
     if (err) {
-      console.error("❌ Error en productos:", err);
+      console.error("❌ ERROR PRODUCTOS:", err);
       return res.status(500).json({ error: err.message });
     }
 
     const productos = results.map((p) => ({
       ...p,
-      precio: parseFloat(p.precio) || 0,
-      precio_antes: p.precio_antes ? parseFloat(p.precio_antes) : null,
-      descuento: p.descuento ? parseInt(p.descuento) : 0,
+      precio: Number(p.precio),
+      precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+      descuento: p.descuento ? Number(p.descuento) : 0,
       es_oferta: Boolean(p.es_oferta),
     }));
 
-    console.log(`✅ ${productos.length} productos encontrados`);
     res.json(productos);
   });
 });
+
+// app.get("/api/productos", (req, res) => {
+//   const { categoria, es_oferta, limit } = req.query;
+
+//   let query = "SELECT p.* FROM productos p WHERE p.activo = 1";
+//   const params = [];
+//   const conditions = [];
+
+//   if (categoria && categoria !== "todas") {
+//     query += " INNER JOIN categorias c ON p.categoria_id = c.id";
+//     conditions.push("c.slug = ?");
+//     params.push(categoria);
+//   }
+
+//   if (es_oferta === "true") {
+//     conditions.push("p.es_oferta = 1");
+//   }
+
+//   if (conditions.length > 0) {
+//     query += " WHERE " + conditions.join(" AND ");
+//   }
+
+//   query += " ORDER BY p.id DESC";
+
+//   if (limit) {
+//     query += " LIMIT ?";
+//     params.push(parseInt(limit));
+//   }
+
+//   console.log("🔍 Query:", query);
+//   console.log("📊 Params:", params);
+
+//   DB.query(query, params, (err, results) => {
+//     if (err) {
+//       console.error("❌ Error en productos:", err);
+//       return res.status(500).json({ error: err.message });
+//     }
+
+//     const productos = results.map((p) => ({
+//       ...p,
+//       precio: parseFloat(p.precio) || 0,
+//       precio_antes: p.precio_antes ? parseFloat(p.precio_antes) : null,
+//       descuento: p.descuento ? parseInt(p.descuento) : 0,
+//       es_oferta: Boolean(p.es_oferta),
+//     }));
+
+//     console.log(`✅ ${productos.length} productos encontrados`);
+//     res.json(productos);
+//   });
+// });
 
 /* ================= PRODUCTO INDIVIDUAL ================= */
 app.get("/api/productos/:id", (req, res) => {
