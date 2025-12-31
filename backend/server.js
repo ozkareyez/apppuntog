@@ -136,7 +136,7 @@ app.get("/api/categorias", (req, res) => {
 app.get("/api/productos", (req, res) => {
   const { categoria, es_oferta, limit } = req.query;
 
-  let query = "SELECT p.* FROM productos p";
+  let query = "SELECT p.* FROM productos p WHERE p.activo = 1";
   const params = [];
   const conditions = [];
 
