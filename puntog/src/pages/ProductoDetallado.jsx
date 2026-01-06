@@ -245,7 +245,7 @@ const ProductoDetallado = () => {
         {recomendados.length > 0 && (
           <section className="mt-24">
             {/* HEADER */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 text-red-500">
               <h2 className="text-2xl md:text-3xl font-bold">
                 También te puede interesar
               </h2>

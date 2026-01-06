@@ -14,26 +14,29 @@ export default function MainCTA() {
       title: "Placer y elegancia para ti",
       desc: "Lencería y productos sensuales con entrega discreta en toda Colombia.",
       img: "/imagenes/cta-lenceria.jpg",
-      primary: { text: "Ver catálogo", to: "/catalogo" },
-      secondary: { text: "Asesoría", to: "/contacto" },
+      primary: { text: "Ver catálogo", to: "/?categoria=lenceria" },
+      secondary: { text: "Asesoría personalizada", to: "/contacto" },
+      badge: "🔥 Más vendidos",
     },
     {
       title: "Entrega discreta garantizada",
       desc: "Empaques confidenciales y envíos rápidos a todo el país.",
       img: "/imagenes/cta-envio.jpg",
-      primary: { text: "Ofertas", to: "/ofertas" },
-      secondary: { text: "Hablar", to: "/contacto" },
+      primary: { text: "Ver ofertas", to: "/?filtro=ofertas" },
+      secondary: { text: "Hablar ahora", to: "/contacto" },
+      badge: "🚚 Envíos nacionales",
     },
     {
       title: "Calidad premium",
       desc: "Productos seleccionados para experiencias únicas.",
       img: "/imagenes/cta-premium.jpg",
-      primary: { text: "Novedades", to: "/catalogo" },
-      secondary: { text: "Contacto", to: "/contacto" },
+      primary: { text: "Novedades", to: "/?filtro=nuevos" },
+      secondary: { text: "Contáctanos", to: "/contacto" },
+      badge: "💎 Selección premium",
     },
   ];
 
-  /* autoplay */
+  /* AUTOPLAY */
   useEffect(() => {
     if (paused) return;
 
@@ -42,126 +45,102 @@ export default function MainCTA() {
     }, INTERVALO);
 
     return () => clearInterval(timerRef.current);
-  }, [paused, slides.length]);
+  }, [paused]);
 
   const slide = slides[index];
 
   return (
     <section
-      className="
-        relative w-full
-        min-h-[70vh] md:min-h-auto
-        flex items-center
-        px-4 md:px-6
-        bg-white overflow-hidden
-      "
+      className="relative w-full min-h-[75vh] flex items-center bg-white overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* DECORATIVOS */}
-      <div className="absolute -top-32 -left-32 w-72 h-72 bg-red-600/15 rounded-full blur-3xl md:block hidden" />
+      {/* BLUR DECOR */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl" />
 
-      <div
-        className="
-          relative max-w-6xl mx-auto
-          grid md:grid-cols-2
-          gap-6 md:gap-12
-          items-center
-          bg-white
-          border border-red-100
-          rounded-2xl
-          p-4 sm:p-6 md:p-14
-          shadow-lg
-        "
-      >
-        {/* TEXTO */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4 }}
-            className="text-center md:text-left"
-          >
-            <h1 className="text-xl sm:text-2xl md:text-5xl font-bold text-gray-900 mb-2">
-              {slide.title}
-            </h1>
+      <div className="relative max-w-7xl mx-auto px-4 w-full">
+        <div className="grid md:grid-cols-2 gap-10 items-center bg-white/90 backdrop-blur border border-red-100 rounded-3xl p-6 md:p-16 shadow-2xl">
+          {/* TEXTO */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slide.title}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="text-center md:text-left space-y-5"
+            >
+              {/* BADGE */}
+              <span className="inline-block px-4 py-1 rounded-full bg-red-600/10 text-red-600 text-xs font-semibold">
+                {slide.badge}
+              </span>
 
-            <p className="text-gray-600 text-sm sm:text-base mb-4 max-w-md mx-auto md:mx-0">
-              {slide.desc}
-            </p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+                {slide.title}
+              </h1>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center md:justify-start">
-              <Link
-                to={slide.primary.to}
-                className="
-                  px-6 py-3 rounded-full text-sm font-semibold
-                  bg-red-600 text-white
-                  shadow-md shadow-red-600/30
-                  hover:bg-red-700
-                  transition
-                "
-              >
-                {slide.primary.text}
-              </Link>
+              <p className="text-gray-600 max-w-md mx-auto md:mx-0">
+                {slide.desc}
+              </p>
 
-              <Link
-                to={slide.secondary.to}
-                className="
-                  px-6 py-3 rounded-full text-sm font-semibold
-                  border border-red-600/40 text-red-600
-                  hover:bg-red-600 hover:text-white
-                  transition
-                "
-              >
-                {slide.secondary.text}
-              </Link>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+              {/* CTAS */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                <Link
+                  to={slide.primary.to}
+                  className="px-7 py-3 rounded-full text-sm font-semibold bg-red-600 text-white shadow-lg shadow-red-600/30 hover:bg-red-700 hover:shadow-red-700/40 transition"
+                >
+                  {slide.primary.text}
+                </Link>
 
-        {/* IMAGEN */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.img}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.4 }}
-            className="relative"
-          >
-            {/* MOBILE COMPACT */}
-            <div className="md:hidden relative h-[220px] rounded-xl overflow-hidden shadow-md">
-              <img
-                src={slide.img}
-                alt="Punto G"
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
+                <Link
+                  to={slide.secondary.to}
+                  className="px-7 py-3 rounded-full text-sm font-semibold border border-red-600/40 text-red-600 hover:bg-red-600 hover:text-white transition"
+                >
+                  {slide.secondary.text}
+                </Link>
+              </div>
 
-            {/* DESKTOP */}
-            <div className="hidden md:block relative h-[420px] rounded-2xl overflow-hidden shadow-xl">
-              <img
-                src={slide.img}
-                alt="Punto G"
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          </motion.div>
-        </AnimatePresence>
+              {/* TRUST */}
+              <div className="text-xs text-gray-500 pt-4">
+                🔒 Pago seguro · 🚚 Envíos discretos · ❤️ Clientes felices
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* IMAGEN */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slide.img}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="relative h-[260px] md:h-[460px] rounded-3xl overflow-hidden shadow-2xl">
+                {/* OVERLAY */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/30 to-transparent z-10" />
+                <img
+                  src={slide.img}
+                  alt="Punto G"
+                  className="w-full h-full object-cover scale-105"
+                  loading="lazy"
+                />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* INDICADORES */}
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 md:hidden">
+      {/* INDICADORES PRO */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`w-2 h-2 rounded-full ${
-              index === i ? "bg-red-600" : "bg-gray-300"
+            className={`h-2 rounded-full transition-all ${
+              index === i ? "w-8 bg-red-600" : "w-2 bg-gray-300"
             }`}
           />
         ))}
@@ -183,29 +162,29 @@ export default function MainCTA() {
 
 //   const slides = [
 //     {
-//       title: "Descubre el placer que mereces",
-//       desc: "Lencería exclusiva y productos sensuales diseñados para elevar cada experiencia con elegancia y discreción.",
+//       title: "Placer y elegancia para ti",
+//       desc: "Lencería y productos sensuales con entrega discreta en toda Colombia.",
 //       img: "/imagenes/cta-lenceria.jpg",
-//       primary: { text: "Explorar colección", to: "/catalogo" },
-//       secondary: { text: "Asesoría privada", to: "/contacto" },
+//       primary: { text: "Ver catálogo", to: "/?categoria=lenceria" },
+//       secondary: { text: "Asesoría", to: "/?categoria=lenceria" },
 //     },
 //     {
-//       title: "Entrega discreta en toda Colombia",
-//       desc: "Empaques 100% confidenciales, envíos rápidos y atención personalizada para comprar con total tranquilidad.",
+//       title: "Entrega discreta garantizada",
+//       desc: "Empaques confidenciales y envíos rápidos a todo el país.",
 //       img: "/imagenes/cta-envio.jpg",
-//       primary: { text: "Ver ofertas", to: "/ofertas" },
-//       secondary: { text: "Hablar con un asesor", to: "/contacto" },
+//       primary: { text: "Ofertas", to: "/?filtro=ofertas" },
+//       secondary: { text: "Hablar", to: "/contacto" },
 //     },
 //     {
-//       title: "Calidad premium y atención personalizada",
-//       desc: "Seleccionamos productos de alta calidad para que vivas experiencias únicas con confianza y seguridad.",
+//       title: "Calidad premium",
+//       desc: "Productos seleccionados para experiencias únicas.",
 //       img: "/imagenes/cta-premium.jpg",
-//       primary: { text: "Ver novedades", to: "/catalogo" },
-//       secondary: { text: "Contáctanos", to: "/contacto" },
+//       primary: { text: "Novedades", to: "/?filtro=ofertas" },
+//       secondary: { text: "Contacto", to: "?filtro=ofertas" },
 //     },
 //   ];
 
-//   /* ⏱️ autoplay */
+//   /* autoplay */
 //   useEffect(() => {
 //     if (paused) return;
 
@@ -214,48 +193,65 @@ export default function MainCTA() {
 //     }, INTERVALO);
 
 //     return () => clearInterval(timerRef.current);
-//   }, [paused]);
+//   }, [paused, slides.length]);
 
 //   const slide = slides[index];
 
 //   return (
 //     <section
-//       className="relative w-full py-20 px-4 md:px-6 bg-white overflow-hidden"
+//       className="
+//         relative w-full
+//         min-h-[70vh] md:min-h-auto
+//         flex items-center
+//         px-4 md:px-6
+//         bg-white overflow-hidden
+//       "
 //       onMouseEnter={() => setPaused(true)}
 //       onMouseLeave={() => setPaused(false)}
 //     >
 //       {/* DECORATIVOS */}
-//       <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-//       <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+//       <div className="absolute -top-32 -left-32 w-72 h-72 bg-red-600/15 rounded-full blur-3xl md:block hidden" />
 
-//       <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-12 items-center bg-white border border-red-100 rounded-3xl p-6 sm:p-8 md:p-14 shadow-xl">
+//       <div
+//         className="
+//           relative max-w-6xl mx-auto
+//           grid md:grid-cols-2
+//           gap-6 md:gap-12
+//           items-center
+//           bg-white
+//           border border-red-100
+//           rounded-2xl
+//           p-4 sm:p-6 md:p-14
+//           shadow-lg
+//         "
+//       >
 //         {/* TEXTO */}
 //         <AnimatePresence mode="wait">
 //           <motion.div
 //             key={slide.title}
-//             initial={{ opacity: 0, y: 25 }}
+//             initial={{ opacity: 0, y: 20 }}
 //             animate={{ opacity: 1, y: 0 }}
-//             exit={{ opacity: 0, y: -15 }}
-//             transition={{ duration: 0.45 }}
+//             exit={{ opacity: 0, y: -10 }}
+//             transition={{ duration: 0.4 }}
 //             className="text-center md:text-left"
 //           >
-//             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-5">
+//             <h1 className="text-xl sm:text-2xl md:text-5xl font-bold text-gray-900 mb-2">
 //               {slide.title}
 //             </h1>
 
-//             <div className="mx-auto md:mx-0 h-1 w-24 bg-red-600 rounded-full mb-6" />
-
-//             <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-8 max-w-xl mx-auto md:mx-0">
+//             <p className="text-gray-600 text-sm sm:text-base mb-4 max-w-md mx-auto md:mx-0">
 //               {slide.desc}
 //             </p>
 
-//             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+//             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center md:justify-start">
 //               <Link
 //                 to={slide.primary.to}
 //                 className="
-//                   px-8 py-4 rounded-full text-base sm:text-lg font-semibold
-//                   bg-red-600 text-white shadow-lg shadow-red-600/30
-//                   hover:bg-red-700 hover:scale-105 transition-all
+//                   px-6 py-3 rounded-full text-sm font-semibold
+//                   bg-red-600 text-white
+//                   shadow-md shadow-red-600/30
+//                   hover:bg-red-700
+//                   transition
 //                 "
 //               >
 //                 {slide.primary.text}
@@ -264,9 +260,10 @@ export default function MainCTA() {
 //               <Link
 //                 to={slide.secondary.to}
 //                 className="
-//                   px-8 py-4 rounded-full text-base sm:text-lg font-semibold
-//                   border border-red-600 text-red-600
-//                   hover:bg-red-600 hover:text-white transition-all
+//                   px-6 py-3 rounded-full text-sm font-semibold
+//                   border border-red-600/40 text-red-600
+//                   hover:bg-red-600 hover:text-white
+//                   transition
 //                 "
 //               >
 //                 {slide.secondary.text}
@@ -279,21 +276,20 @@ export default function MainCTA() {
 //         <AnimatePresence mode="wait">
 //           <motion.div
 //             key={slide.img}
-//             initial={{ opacity: 0, scale: 0.95 }}
+//             initial={{ opacity: 0, scale: 0.96 }}
 //             animate={{ opacity: 1, scale: 1 }}
-//             exit={{ opacity: 0, scale: 0.92 }}
-//             transition={{ duration: 0.45 }}
+//             exit={{ opacity: 0, scale: 0.95 }}
+//             transition={{ duration: 0.4 }}
 //             className="relative"
 //           >
-//             {/* MOBILE → proporción correcta */}
-//             <div className="md:hidden relative aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
+//             {/* MOBILE COMPACT */}
+//             <div className="md:hidden relative h-[220px] rounded-xl overflow-hidden shadow-md">
 //               <img
 //                 src={slide.img}
 //                 alt="Punto G"
 //                 className="w-full h-full object-cover"
 //                 loading="lazy"
 //               />
-//               <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
 //             </div>
 
 //             {/* DESKTOP */}
@@ -304,175 +300,23 @@ export default function MainCTA() {
 //                 className="w-full h-full object-cover"
 //                 loading="lazy"
 //               />
-//               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 //             </div>
 //           </motion.div>
 //         </AnimatePresence>
 //       </div>
 
 //       {/* INDICADORES */}
-//       <div className="mt-8 flex justify-center gap-4">
+//       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 md:hidden">
 //         {slides.map((_, i) => (
 //           <button
 //             key={i}
 //             onClick={() => setIndex(i)}
-//             className={`
-//               w-3.5 h-3.5 rounded-full transition-all
-//               ${
-//                 index === i
-//                   ? "bg-red-600 scale-125"
-//                   : "bg-gray-300 hover:bg-red-400"
-//               }
-//             `}
+//             className={`w-2 h-2 rounded-full ${
+//               index === i ? "bg-red-600" : "bg-gray-300"
+//             }`}
 //           />
 //         ))}
 //       </div>
 //     </section>
 //   );
 // }
-
-// import { motion } from "framer-motion";
-// import { Link } from "react-router-dom";
-
-// const MainCTA = () => {
-//   return (
-//     <section className="relative w-full py-24 px-6 overflow-hidden bg-white">
-//       {/* Fondo decorativo rojo */}
-//       <div className="absolute inset-0 pointer-events-none">
-//         <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
-//         <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
-//       </div>
-
-//       {/* Contenedor principal */}
-//       <div className="relative max-w-5xl mx-auto text-center bg-white border border-red-100 rounded-3xl p-10 md:p-16 shadow-xl">
-//         {/* Título */}
-//         <motion.h1
-//           className="text-4xl md:text-6xl font-extrabold mb-6 text-gray-900"
-//           initial={{ opacity: 0, y: -40 }}
-//           whileInView={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.7 }}
-//           viewport={{ once: true }}
-//         >
-//           Descubre el placer que mereces
-//         </motion.h1>
-
-//         {/* Línea decorativa */}
-//         <div className="mx-auto mb-8 h-1 w-24 rounded-full bg-red-600" />
-
-//         {/* Descripción */}
-//         <motion.p
-//           className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed"
-//           initial={{ opacity: 0, y: 30 }}
-//           whileInView={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.7, delay: 0.2 }}
-//           viewport={{ once: true }}
-//         >
-//           Lencería exclusiva y productos sensuales diseñados para elevar cada
-//           experiencia con elegancia, discreción y calidad premium.
-//         </motion.p>
-
-//         {/* Botones */}
-//         <motion.div
-//           className="flex flex-col sm:flex-row gap-4 justify-center"
-//           initial={{ scale: 0.8, opacity: 0 }}
-//           whileInView={{ scale: 1, opacity: 1 }}
-//           transition={{ duration: 0.6, delay: 0.4 }}
-//           viewport={{ once: true }}
-//         >
-//           {/* CTA principal */}
-//           <Link
-//             to="/catalogo"
-//             className="px-10 py-4 rounded-full text-lg font-semibold
-//             bg-red-600 text-white shadow-lg shadow-red-600/30
-//             hover:bg-red-700 hover:scale-105 transition-all duration-300"
-//           >
-//             Explorar colección
-//           </Link>
-
-//           {/* CTA secundario */}
-//           <Link
-//             to="/contacto"
-//             className="px-10 py-4 rounded-full text-lg font-semibold
-//             border border-red-600 text-red-600
-//             hover:bg-red-600 hover:text-white transition-all duration-300"
-//           >
-//             Asesoría privada
-//           </Link>
-//         </motion.div>
-//       </div>
-//     </section>
-//   );
-// };
-
-// export default MainCTA;
-
-// import { motion } from "framer-motion";
-// import { Link } from "react-router-dom";
-
-// const MainCTA = () => {
-//   return (
-//     <section className="relative w-full py-24 px-6 overflow-hidden bg-[#0b0b0f]">
-//       {/* Fondo decorativo */}
-//       <div className="absolute inset-0">
-//         <div className="absolute -top-40 -left-40 w-96 h-96 bg-pink-600/30 rounded-full blur-3xl" />
-//         <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-700/30 rounded-full blur-3xl" />
-//       </div>
-
-//       {/* Contenido */}
-//       <div className="relative max-w-5xl mx-auto text-center backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-10 md:p-16 shadow-2xl">
-//         {/* Título */}
-//         <motion.h1
-//           className="text-4xl md:text-6xl font-extrabold mb-6 bg-linear-to-r from-pink-400 via-pink-500 to-purple-500 bg-clip-text text-transparent drop-shadow"
-//           initial={{ opacity: 0, y: -40 }}
-//           whileInView={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.7 }}
-//           viewport={{ once: true }}
-//         >
-//           Descubre el placer que mereces
-//         </motion.h1>
-
-//         {/* Descripción */}
-//         <motion.p
-//           className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed"
-//           initial={{ opacity: 0, y: 30 }}
-//           whileInView={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.7, delay: 0.2 }}
-//           viewport={{ once: true }}
-//         >
-//           Lencería exclusiva y productos sensuales diseñados para elevar cada
-//           experiencia con elegancia, discreción y calidad premium.
-//         </motion.p>
-
-//         {/* Botones */}
-//         <motion.div
-//           className="flex flex-col sm:flex-row gap-4 justify-center"
-//           initial={{ scale: 0.8, opacity: 0 }}
-//           whileInView={{ scale: 1, opacity: 1 }}
-//           transition={{ duration: 0.6, delay: 0.4 }}
-//           viewport={{ once: true }}
-//         >
-//           <Link
-//             to="/catalogo"
-//             className="px-10 py-4 rounded-full text-lg font-semibold
-//             bg-gradient-to-r from-pink-500 to-purple-600
-//             text-white shadow-lg shadow-pink-500/30
-//             hover:scale-110 hover:shadow-pink-500/50 transition-all duration-300"
-//           >
-//             Explorar colección
-//           </Link>
-
-//           <Link
-//             to="/contacto"
-//             className="px-10 py-4 rounded-full text-lg font-semibold
-//             border border-white/30 text-white
-//             hover:bg-white hover:text-black transition-all duration-300"
-//           >
-//             Asesoría privada
-//           </Link>
-//         </motion.div>
-//       </div>
-//     </section>
-//   );
-// };
-
-// export default MainCTA;

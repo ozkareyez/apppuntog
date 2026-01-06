@@ -9,7 +9,7 @@ const Footer = () => {
         <div>
           <div className="flex items-center gap-3 mb-4">
             <img
-              src="imagenes/logonalga.png"
+              src="public/imagenes/logonalga.png"
               alt="Punto G Sex Shop"
               className="w-12"
             />
