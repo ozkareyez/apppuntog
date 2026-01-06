@@ -11,9 +11,12 @@ const ProductoDetallado = () => {
   const { addToCart } = useCart();
 
   const [producto, setProducto] = useState(null);
+  const [recomendados, setRecomendados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cantidad, setCantidad] = useState(1);
   const [error, setError] = useState(null);
+
+  /* ================= HELPERS ================= */
 
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
@@ -25,6 +28,7 @@ const ProductoDetallado = () => {
 
   const renderDescripcion = (texto) => {
     if (!texto) return null;
+
     const partes = texto
       .split("*")
       .map((t) => t.trim())
@@ -56,8 +60,12 @@ const ProductoDetallado = () => {
     );
   };
 
+  /* ================= FETCH PRODUCTO ================= */
+
   useEffect(() => {
     setLoading(true);
+    setError(null);
+
     fetch(`${API_URL}/api/productos/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Producto no encontrado");
@@ -73,9 +81,32 @@ const ProductoDetallado = () => {
       });
   }, [id]);
 
+  /* ================= FETCH RECOMENDADOS ================= */
+
+  useEffect(() => {
+    if (!id) return;
+
+    fetch(`${API_URL}/api/productos-recomendados/${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("🟢 RECOMENDADOS:", data);
+        setRecomendados(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("❌ Error recomendados:", err);
+        setRecomendados([]);
+      });
+  }, [id]);
+
+  /* ================= ACCIONES ================= */
+
   const handleAgregarCarrito = () => {
-    for (let i = 0; i < cantidad; i++) addToCart(producto);
+    for (let i = 0; i < cantidad; i++) {
+      addToCart(producto);
+    }
   };
+
+  /* ================= ESTADOS ================= */
 
   if (loading) {
     return (
@@ -101,10 +132,13 @@ const ProductoDetallado = () => {
     );
   }
 
+  /* ================= DERIVADOS ================= */
+
   const precio = Number(producto.precio ?? 0);
   const precioAntes = Number(producto.precio_antes ?? 0);
   const esOferta = producto.es_oferta && precioAntes > precio;
-  const tieneStock = producto.stock === undefined || producto.stock > 0;
+
+  /* ================= RENDER ================= */
 
   return (
     <section className="bg-white py-12">
@@ -118,9 +152,10 @@ const ProductoDetallado = () => {
           Volver
         </button>
 
+        {/* PRODUCTO */}
         <div className="grid md:grid-cols-2 gap-12">
           {/* IMAGEN */}
-          <div className="relative bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-center h-[500px]">
+          <div className="relative bg-gray-50 rounded-2xl border flex items-center justify-center h-[500px]">
             {esOferta && producto.descuento && (
               <span className="absolute top-5 left-5 bg-red-600 text-white px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-bold">
                 <Tag size={16} />
@@ -138,11 +173,9 @@ const ProductoDetallado = () => {
           {/* INFO */}
           <div className="flex flex-col justify-between">
             <div className="space-y-6">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-                {producto.nombre}
-              </h1>
+              <h1 className="text-3xl font-bold">{producto.nombre}</h1>
 
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+              <div className="bg-gray-50 p-6 rounded-xl border">
                 {esOferta && (
                   <p className="text-gray-400 line-through text-lg">
                     ${precioAntes.toLocaleString()}
@@ -152,14 +185,6 @@ const ProductoDetallado = () => {
                   ${precio.toLocaleString()}
                 </p>
               </div>
-
-              <p
-                className={`font-semibold ${
-                  tieneStock ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {tieneStock ? "Disponible" : "Agotado"}
-              </p>
             </div>
 
             {/* ACCIONES */}
@@ -169,14 +194,14 @@ const ProductoDetallado = () => {
                 <div className="flex items-center border rounded-xl">
                   <button
                     onClick={() => setCantidad(Math.max(1, cantidad - 1))}
-                    className="px-4 py-2 hover:bg-gray-100"
+                    className="px-4 py-2"
                   >
                     <Minus />
                   </button>
-                  <span className="px-6 text-lg font-semibold">{cantidad}</span>
+                  <span className="px-6 font-semibold">{cantidad}</span>
                   <button
                     onClick={() => setCantidad(cantidad + 1)}
-                    className="px-4 py-2 hover:bg-gray-100"
+                    className="px-4 py-2"
                   >
                     <Plus />
                   </button>
@@ -185,14 +210,13 @@ const ProductoDetallado = () => {
 
               <button
                 onClick={handleAgregarCarrito}
-                disabled={!tieneStock}
-                className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-3"
+                className="w-full bg-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3"
               >
                 <ShoppingCart />
                 Agregar al carrito
               </button>
 
-              <button className="w-full border border-gray-300 py-3 rounded-xl text-gray-700 flex items-center justify-center gap-2 hover:border-red-600 hover:text-red-600">
+              <button className="w-full border py-3 rounded-xl flex items-center justify-center gap-2">
                 <Heart />
                 Favoritos
               </button>
@@ -202,11 +226,47 @@ const ProductoDetallado = () => {
 
         {/* DESCRIPCIÓN */}
         {producto.descripcion && (
-          <div className="mt-14 bg-gray-50 rounded-2xl p-8 border border-gray-200">
+          <div className="mt-14 bg-gray-50 rounded-2xl p-8 border">
             <h2 className="text-2xl font-bold mb-6 text-red-600">
               Descripción del producto
             </h2>
             {renderDescripcion(producto.descripcion)}
+          </div>
+        )}
+
+        {/* RECOMENDADOS */}
+        {recomendados.length > 0 && (
+          <div className="mt-20">
+            <h2 className="text-2xl font-bold mb-8">
+              También te puede interesar
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              {recomendados.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => navigate(`/producto/${p.id}`)}
+                  className="cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
+                >
+                  <div className="h-48 bg-gray-50 flex items-center justify-center rounded-t-2xl">
+                    <img
+                      src={getImageSrc(p.imagen)}
+                      alt={p.nombre}
+                      className="h-full object-contain"
+                    />
+                  </div>
+
+                  <div className="p-4">
+                    <p className="text-sm font-semibold line-clamp-2">
+                      {p.nombre}
+                    </p>
+                    <p className="text-red-600 font-bold mt-1">
+                      ${Number(p.precio).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
