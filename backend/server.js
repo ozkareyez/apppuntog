@@ -718,29 +718,17 @@ app.put("/api/productos/:id", async (req, res) => {
     const { id } = req.params;
     const { nombre, precio, descripcion } = req.body;
 
-    // 1️⃣ Verificar que venga al menos un campo
-    if (
-      nombre === undefined &&
-      precio === undefined &&
-      descripcion === undefined
-    ) {
-      return res.status(400).json({
-        ok: false,
-        message: "No hay datos para actualizar",
-      });
-    }
-
     const campos = [];
     const valores = [];
 
-    // 2️⃣ Nombre
-    if (nombre !== undefined) {
+    // Nombre
+    if (nombre !== undefined && nombre !== "") {
       campos.push("nombre = ?");
       valores.push(nombre);
     }
 
-    // 3️⃣ Precio
-    if (precio !== undefined) {
+    // Precio
+    if (precio !== undefined && precio !== "") {
       const precioNumber = Number(precio);
       if (isNaN(precioNumber)) {
         return res.status(400).json({
@@ -752,15 +740,22 @@ app.put("/api/productos/:id", async (req, res) => {
       valores.push(precioNumber);
     }
 
-    // 4️⃣ Descripción
-    if (descripcion !== undefined) {
+    // Descripción
+    if (descripcion !== undefined && descripcion !== "") {
       campos.push("descripcion = ?");
       valores.push(descripcion);
     }
 
+    // 🔴 CLAVE: validar antes de ejecutar SQL
+    if (campos.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        message: "No hay campos válidos para actualizar",
+      });
+    }
+
     valores.push(id);
 
-    // 5️⃣ Ejecutar update
     const [result] = await db.query(
       `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
       valores
@@ -775,22 +770,12 @@ app.put("/api/productos/:id", async (req, res) => {
 
     res.json({ ok: true });
   } catch (error) {
-    console.error("ERROR PUT PRODUCTO:", error);
+    console.error("🔥 ERROR REAL PUT PRODUCTO:", error);
     res.status(500).json({
       ok: false,
       message: error.sqlMessage || error.message,
     });
   }
-});
-
-/* ================= FRONTEND (VITE BUILD) ================= */
-
-// servir frontend compilado
-app.use(express.static(path.join(__dirname, "dist")));
-
-// fallback para React Router (MUY IMPORTANTE)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 /* ================= SERVER ================= */
