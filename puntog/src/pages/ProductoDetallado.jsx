@@ -270,7 +270,12 @@ const ProductoDetallado = () => {
               {recomendados.map((p) => (
                 <div
                   key={p.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => navigate(`/productos/${p.id}`)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && navigate(`/productos/${p.id}`)
+                  }
                   className="min-w-[220px] max-w-[220px] cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
                 >
                   <div className="h-44 bg-gray-50 flex items-center justify-center rounded-t-2xl">
