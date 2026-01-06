@@ -712,22 +712,31 @@ app.delete("/api/productos/:id", async (req, res) => {
 });
 
 app.put("/api/productos/:id", async (req, res) => {
-  const { id } = req.params;
-  let { nombre, precio, descripcion } = req.body;
-
-  // VALIDACIONES BÁSICAS
-  if (!nombre || precio === undefined) {
-    return res.status(400).json({
-      ok: false,
-      message: "Nombre y precio son obligatorios",
-    });
-  }
-
-  // Asegurar tipos correctos
-  precio = Number(precio);
-  descripcion = descripcion || "";
-
   try {
+    const { id } = req.params;
+
+    // DEBUG TEMPORAL (MUY IMPORTANTE)
+    console.log("🟡 BODY RECIBIDO:", req.body);
+
+    let { nombre, precio, descripcion } = req.body;
+
+    if (nombre === undefined || precio === undefined) {
+      return res.status(400).json({
+        ok: false,
+        message: "Faltan datos obligatorios",
+      });
+    }
+
+    precio = Number(precio);
+    if (isNaN(precio)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Precio inválido",
+      });
+    }
+
+    descripcion = descripcion ?? "";
+
     const [result] = await db.query(
       `UPDATE productos 
        SET nombre = ?, precio = ?, descripcion = ?
@@ -744,10 +753,10 @@ app.put("/api/productos/:id", async (req, res) => {
 
     res.json({ ok: true });
   } catch (error) {
-    console.error("❌ ERROR PUT /productos:", error);
+    console.error("🔴 ERROR REAL PUT PRODUCTO:", error);
     res.status(500).json({
       ok: false,
-      message: "Error interno del servidor",
+      message: error.message,
     });
   }
 });
