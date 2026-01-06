@@ -743,17 +743,18 @@ app.put("/api/productos/:id", async (req, res) => {
   }
 
   try {
-    await db.query(`UPDATE productos SET ${campos.join(", ")} WHERE id = ?`, [
-      ...valores,
-      id,
-    ]);
+    const [result] = await db.query(
+      `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
+      [...valores, id]
+    );
 
     res.json({
       ok: true,
       message: "Producto actualizado",
+      affectedRows: result.affectedRows,
     });
   } catch (error) {
-    console.error(error);
+    console.error("ERROR PUT PRODUCTO:", error);
     res.status(500).json({
       ok: false,
       message: "Error al actualizar producto",
