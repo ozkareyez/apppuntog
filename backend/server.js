@@ -720,12 +720,12 @@ app.put("/api/productos/:id", async (req, res) => {
   const campos = [];
   const valores = [];
 
-  if (nombre !== undefined && nombre.trim() !== "") {
+  if (typeof nombre === "string" && nombre.trim() !== "") {
     campos.push("nombre = ?");
     valores.push(nombre.trim());
   }
 
-  if (precio !== undefined && !isNaN(precio)) {
+  if (precio !== undefined && !isNaN(Number(precio))) {
     campos.push("precio = ?");
     valores.push(Number(precio));
   }
@@ -754,10 +754,10 @@ app.put("/api/productos/:id", async (req, res) => {
       affectedRows: result.affectedRows,
     });
   } catch (error) {
-    console.error("ERROR PUT PRODUCTO:", error);
+    console.error("ERROR PUT PRODUCTOS:", error);
     res.status(500).json({
       ok: false,
-      message: "Error al actualizar producto",
+      message: "Error interno al actualizar",
     });
   }
 });
