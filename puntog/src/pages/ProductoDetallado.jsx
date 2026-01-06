@@ -1,11 +1,17 @@
-// src/pages/ProductoDetallado.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ShoppingCart, ArrowLeft, Tag, Heart, Minus, Plus } from "lucide-react";
+import {
+  ShoppingCart,
+  ArrowLeft,
+  Tag,
+  Heart,
+  Minus,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { API_URL } from "@/config";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef } from "react";
 
 const ProductoDetallado = () => {
   const { id } = useParams();
@@ -20,16 +26,6 @@ const ProductoDetallado = () => {
 
   const carruselRef = useRef(null);
 
-  const scrollCarrusel = (direccion) => {
-    if (!carruselRef.current) return;
-
-    const ancho = carruselRef.current.offsetWidth;
-    carruselRef.current.scrollBy({
-      left: direccion === "left" ? -ancho : ancho,
-      behavior: "smooth",
-    });
-  };
-
   /* ================= HELPERS ================= */
 
   const getImageSrc = (imagen) => {
@@ -38,6 +34,16 @@ const ProductoDetallado = () => {
       return imagen.replace("http://", "https://");
     if (imagen.startsWith("https://")) return imagen;
     return `${API_URL}/images/${imagen}`;
+  };
+
+  const scrollCarrusel = (direccion) => {
+    if (!carruselRef.current) return;
+
+    const ancho = carruselRef.current.offsetWidth;
+    carruselRef.current.scrollBy({
+      left: direccion === "left" ? -ancho : ancho,
+      behavior: "smooth",
+    });
   };
 
   const renderDescripcion = (texto) => {
@@ -103,28 +109,16 @@ const ProductoDetallado = () => {
     fetch(`${API_URL}/api/productos-recomendados/${id}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("🟢 RECOMENDADOS:", data);
         setRecomendados(Array.isArray(data) ? data : []);
       })
-      .catch((err) => {
-        console.error("❌ Error recomendados:", err);
-        setRecomendados([]);
-      });
+      .catch(() => setRecomendados([]));
   }, [id]);
-
-  /* ================= ACCIONES ================= */
-
-  const handleAgregarCarrito = () => {
-    for (let i = 0; i < cantidad; i++) {
-      addToCart(producto);
-    }
-  };
 
   /* ================= ESTADOS ================= */
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="h-14 w-14 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
       </div>
     );
@@ -146,8 +140,6 @@ const ProductoDetallado = () => {
     );
   }
 
-  /* ================= DERIVADOS ================= */
-
   const precio = Number(producto.precio ?? 0);
   const precioAntes = Number(producto.precio_antes ?? 0);
   const esOferta = producto.es_oferta && precioAntes > precio;
@@ -168,7 +160,6 @@ const ProductoDetallado = () => {
 
         {/* PRODUCTO */}
         <div className="grid md:grid-cols-2 gap-12">
-          {/* IMAGEN */}
           <div className="relative bg-gray-50 rounded-2xl border flex items-center justify-center h-[500px]">
             {esOferta && producto.descuento && (
               <span className="absolute top-5 left-5 bg-red-600 text-white px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-bold">
@@ -184,7 +175,6 @@ const ProductoDetallado = () => {
             />
           </div>
 
-          {/* INFO */}
           <div className="flex flex-col justify-between">
             <div className="space-y-6">
               <h1 className="text-3xl font-bold">{producto.nombre}</h1>
@@ -201,7 +191,6 @@ const ProductoDetallado = () => {
               </div>
             </div>
 
-            {/* ACCIONES */}
             <div className="space-y-5 mt-8">
               <div className="flex items-center gap-4">
                 <span className="font-semibold">Cantidad:</span>
@@ -223,7 +212,11 @@ const ProductoDetallado = () => {
               </div>
 
               <button
-                onClick={handleAgregarCarrito}
+                onClick={() =>
+                  Array.from({ length: cantidad }).forEach(() =>
+                    addToCart(producto)
+                  )
+                }
                 className="w-full bg-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3"
               >
                 <ShoppingCart />
@@ -251,65 +244,54 @@ const ProductoDetallado = () => {
         {/* RECOMENDADOS */}
         {recomendados.length > 0 && (
           <div className="mt-20">
-            <h2 className="text-2xl font-bold mb-8">
-              También te puede interesar
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">También te puede interesar</h2>
 
-            {/* RECOMENDADOS */}
-            {recomendados.length > 0 && (
-              <div className="mt-20">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">
-                    También te puede interesar
-                  </h2>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => scrollCarrusel("left")}
+                  className="p-2 rounded-full border hover:bg-gray-100"
+                >
+                  <ChevronLeft />
+                </button>
+                <button
+                  onClick={() => scrollCarrusel("right")}
+                  className="p-2 rounded-full border hover:bg-gray-100"
+                >
+                  <ChevronRight />
+                </button>
+              </div>
+            </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => scrollCarrusel("left")}
-                      className="p-2 rounded-full border hover:bg-gray-100"
-                    >
-                      <ChevronLeft />
-                    </button>
-                    <button
-                      onClick={() => scrollCarrusel("right")}
-                      className="p-2 rounded-full border hover:bg-gray-100"
-                    >
-                      <ChevronRight />
-                    </button>
+            <div
+              ref={carruselRef}
+              className="flex gap-5 overflow-x-auto scroll-smooth pb-4"
+            >
+              {recomendados.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => navigate(`/productos/${p.id}`)}
+                  className="min-w-[220px] max-w-[220px] cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
+                >
+                  <div className="h-44 bg-gray-50 flex items-center justify-center rounded-t-2xl">
+                    <img
+                      src={getImageSrc(p.imagen)}
+                      alt={p.nombre}
+                      className="h-full object-contain"
+                    />
+                  </div>
+
+                  <div className="p-4">
+                    <p className="text-sm font-semibold line-clamp-2">
+                      {p.nombre}
+                    </p>
+                    <p className="text-red-600 font-bold mt-1">
+                      ${Number(p.precio).toLocaleString()}
+                    </p>
                   </div>
                 </div>
-
-                <div
-                  ref={carruselRef}
-                  className="flex gap-5 overflow-x-auto scroll-smooth scrollbar-hide pb-4"
-                >
-                  {recomendados.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => navigate(`/producto/${p.id}`)}
-                      className="min-w-[220px] max-w-[220px] cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
-                    >
-                      <div className="h-44 bg-gray-50 flex items-center justify-center rounded-t-2xl">
-                        <img
-                          src={getImageSrc(p.imagen)}
-                          alt={p.nombre}
-                          className="h-full object-contain"
-                        />
-                      </div>
-
-                      <div className="p-4">
-                        <p className="text-sm font-semibold line-clamp-2">
-                          {p.nombre}
-                        </p>
-                        <p className="text-red-600 font-bold mt-1">
-                          ${Number(p.precio).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )}
       </div>
