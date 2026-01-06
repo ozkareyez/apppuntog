@@ -725,7 +725,7 @@ app.put("/api/productos/:id", async (req, res) => {
     valores.push(nombre.trim());
   }
 
-  if (precio !== undefined && !isNaN(Number(precio))) {
+  if (precio !== undefined && precio !== "" && !isNaN(Number(precio))) {
     campos.push("precio = ?");
     valores.push(Number(precio));
   }
@@ -736,28 +736,34 @@ app.put("/api/productos/:id", async (req, res) => {
   }
 
   if (campos.length === 0) {
-    return res.json({
+    return res.status(400).json({
       ok: false,
       message: "No hay campos válidos para actualizar",
     });
   }
 
   try {
-    const [result] = await db.query(
+    const [result] = await DB.promise().query(
       `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
       [...valores, id]
     );
 
+    if (!result.affectedRows) {
+      return res.status(404).json({
+        ok: false,
+        message: "Producto no encontrado",
+      });
+    }
+
     res.json({
       ok: true,
-      message: "Producto actualizado",
-      affectedRows: result.affectedRows,
+      message: "Producto actualizado correctamente",
     });
   } catch (error) {
-    console.error("ERROR PUT PRODUCTOS:", error);
+    console.error("❌ ERROR PUT PRODUCTOS:", error);
     res.status(500).json({
       ok: false,
-      message: "Error interno al actualizar",
+      message: error.message,
     });
   }
 });
