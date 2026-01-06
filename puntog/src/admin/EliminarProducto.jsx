@@ -8,6 +8,7 @@ export default function EliminarProducto() {
   const [loading, setLoading] = useState(true);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
+  const [productoOriginal, setProductoOriginal] = useState(null);
 
   const [formEdit, setFormEdit] = useState({
     nombre: "",
@@ -15,6 +16,7 @@ export default function EliminarProducto() {
     descripcion: "",
   });
 
+  /* ================= CARGAR PRODUCTOS ================= */
   useEffect(() => {
     const cargarProductos = async () => {
       try {
@@ -32,6 +34,7 @@ export default function EliminarProducto() {
     cargarProductos();
   }, []);
 
+  /* ================= ELIMINAR ================= */
   const eliminarProducto = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este producto?")) return;
 
@@ -54,48 +57,73 @@ export default function EliminarProducto() {
     }
   };
 
+  /* ================= INICIAR EDICIÓN ================= */
   const iniciarEdicion = (producto) => {
     setEditandoId(producto.id);
+    setProductoOriginal(producto);
+
     setFormEdit({
-      nombre: producto.nombre,
-      precio: producto.precio,
+      nombre: producto.nombre || "",
+      precio: producto.precio || "",
       descripcion: producto.descripcion || "",
     });
   };
 
+  /* ================= ACTUALIZAR ================= */
   const actualizarProducto = async (id) => {
+    const payload = {};
+
+    if (formEdit.nombre !== productoOriginal.nombre) {
+      payload.nombre = formEdit.nombre.trim();
+    }
+
+    if (Number(formEdit.precio) !== Number(productoOriginal.precio)) {
+      payload.precio = Number(formEdit.precio);
+    }
+
+    if (formEdit.descripcion !== productoOriginal.descripcion) {
+      payload.descripcion = formEdit.descripcion.trim();
+    }
+
+    if (Object.keys(payload).length === 0) {
+      alert("No has modificado ningún campo");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formEdit),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error();
+      if (!res.ok || !data.ok) {
+        alert(data.message || "Error al actualizar");
+        return;
+      }
 
       setProductos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...formEdit } : p))
+        prev.map((p) => (p.id === id ? { ...p, ...payload } : p))
       );
 
       setEditandoId(null);
+      setProductoOriginal(null);
     } catch (error) {
       console.error(error);
       alert("No se pudo actualizar el producto");
     }
   };
 
-  if (loading) {
-    return <p className="text-center">Cargando productos...</p>;
-  }
+  /* ================= RENDER ================= */
+  if (loading) return <p className="text-center">Cargando productos...</p>;
 
-  if (productos.length === 0) {
+  if (productos.length === 0)
     return (
       <p className="text-center text-gray-500">No hay productos registrados</p>
     );
-  }
 
   return (
     <div className="max-w-5xl mx-auto px-4">
@@ -117,10 +145,7 @@ export default function EliminarProducto() {
                     className="border rounded px-2 py-1 w-full mb-2"
                     value={formEdit.nombre}
                     onChange={(e) =>
-                      setFormEdit({
-                        ...formEdit,
-                        nombre: e.target.value,
-                      })
+                      setFormEdit({ ...formEdit, nombre: e.target.value })
                     }
                   />
 
@@ -129,10 +154,7 @@ export default function EliminarProducto() {
                     className="border rounded px-2 py-1 w-full mb-2"
                     value={formEdit.precio}
                     onChange={(e) =>
-                      setFormEdit({
-                        ...formEdit,
-                        precio: e.target.value,
-                      })
+                      setFormEdit({ ...formEdit, precio: e.target.value })
                     }
                   />
 
@@ -153,7 +175,7 @@ export default function EliminarProducto() {
                   <p className="font-semibold">{p.nombre}</p>
                   <p className="text-sm text-gray-600">${p.precio}</p>
                   <p className="text-sm text-gray-500 line-clamp-2">
-                    {p.descripcion}
+                    {p.descripcion || "Sin descripción"}
                   </p>
                 </>
               )}
