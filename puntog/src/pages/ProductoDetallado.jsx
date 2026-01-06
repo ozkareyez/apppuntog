@@ -243,61 +243,69 @@ const ProductoDetallado = () => {
 
         {/* RECOMENDADOS */}
         {recomendados.length > 0 && (
-          <div className="mt-20">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">También te puede interesar</h2>
+          <section className="mt-24">
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold">
+                También te puede interesar
+              </h2>
 
-              <div className="flex gap-3">
+              <div className="hidden md:flex gap-3">
                 <button
                   onClick={() => scrollCarrusel("left")}
-                  className="p-2 rounded-full border hover:bg-gray-100"
+                  className="p-2 rounded-full border bg-white hover:bg-gray-100 transition"
                 >
                   <ChevronLeft />
                 </button>
                 <button
                   onClick={() => scrollCarrusel("right")}
-                  className="p-2 rounded-full border hover:bg-gray-100"
+                  className="p-2 rounded-full border bg-white hover:bg-gray-100 transition"
                 >
                   <ChevronRight />
                 </button>
               </div>
             </div>
 
+            {/* CARRUSEL */}
             <div
               ref={carruselRef}
-              className="flex gap-5 overflow-x-auto scroll-smooth pb-4"
+              className="flex gap-6 overflow-x-auto scroll-smooth pb-6 snap-x snap-mandatory scrollbar-hide"
             >
               {recomendados.map((p) => (
-                <div
+                <article
                   key={p.id}
-                  role="button"
-                  tabIndex={0}
                   onClick={() => navigate(`/productos/${p.id}`)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && navigate(`/productos/${p.id}`)
-                  }
-                  className="min-w-[220px] max-w-[220px] cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
+                  className="snap-start min-w-[240px] max-w-[240px] bg-white border rounded-2xl cursor-pointer
+                     hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group"
                 >
-                  <div className="h-44 bg-gray-50 flex items-center justify-center rounded-t-2xl">
+                  {/* IMAGEN */}
+                  <div className="relative h-48 bg-gray-50 rounded-t-2xl flex items-center justify-center overflow-hidden">
                     <img
                       src={getImageSrc(p.imagen)}
                       alt={p.nombre}
-                      className="h-full object-contain"
+                      className="h-full object-contain group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
 
-                  <div className="p-4">
-                    <p className="text-sm font-semibold line-clamp-2">
+                  {/* INFO */}
+                  <div className="p-4 space-y-2">
+                    <p className="text-sm font-semibold line-clamp-2 min-h-[40px]">
                       {p.nombre}
                     </p>
-                    <p className="text-red-600 font-bold mt-1">
+
+                    <p className="text-red-600 text-lg font-bold">
                       ${Number(p.precio).toLocaleString()}
                     </p>
+
+                    {/* CTA */}
+                    <span className="inline-block mt-2 text-sm font-medium text-red-600 opacity-0 group-hover:opacity-100 transition">
+                      Ver producto →
+                    </span>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </section>
