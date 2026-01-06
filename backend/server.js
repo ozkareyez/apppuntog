@@ -711,10 +711,21 @@ app.delete("/api/productos/:id", async (req, res) => {
   }
 });
 
-// ACTUALIZAR PRODUCTO
 app.put("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio, descripcion } = req.body;
+  let { nombre, precio, descripcion } = req.body;
+
+  // VALIDACIONES BÁSICAS
+  if (!nombre || precio === undefined) {
+    return res.status(400).json({
+      ok: false,
+      message: "Nombre y precio son obligatorios",
+    });
+  }
+
+  // Asegurar tipos correctos
+  precio = Number(precio);
+  descripcion = descripcion || "";
 
   try {
     const [result] = await db.query(
@@ -733,10 +744,10 @@ app.put("/api/productos/:id", async (req, res) => {
 
     res.json({ ok: true });
   } catch (error) {
-    console.error("Error actualizando producto:", error);
+    console.error("❌ ERROR PUT /productos:", error);
     res.status(500).json({
       ok: false,
-      message: "Error al actualizar producto",
+      message: "Error interno del servidor",
     });
   }
 });
