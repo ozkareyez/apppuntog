@@ -712,52 +712,46 @@ app.delete("/api/productos/:id", async (req, res) => {
 });
 
 app.put("/api/productos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nombre, precio, descripcion } = req.body;
+
+  if (!nombre && precio === undefined && descripcion === undefined) {
+    return res.status(400).json({
+      ok: false,
+      message: "No hay datos para actualizar",
+    });
+  }
+
+  const campos = [];
+  const valores = [];
+
+  if (nombre) {
+    campos.push("nombre = ?");
+    valores.push(nombre);
+  }
+
+  if (precio !== undefined) {
+    valores.push(Number(precio));
+    campos.push("precio = ?");
+  }
+
+  if (descripcion !== undefined) {
+    campos.push("descripcion = ?");
+    valores.push(descripcion);
+  }
+
+  valores.push(id);
+
   try {
-    const { id } = req.params;
-
-    // DEBUG TEMPORAL (MUY IMPORTANTE)
-    console.log("🟡 BODY RECIBIDO:", req.body);
-
-    let { nombre, precio, descripcion } = req.body;
-
-    if (nombre === undefined || precio === undefined) {
-      return res.status(400).json({
-        ok: false,
-        message: "Faltan datos obligatorios",
-      });
-    }
-
-    precio = Number(precio);
-    if (isNaN(precio)) {
-      return res.status(400).json({
-        ok: false,
-        message: "Precio inválido",
-      });
-    }
-
-    descripcion = descripcion ?? "";
-
     const [result] = await db.query(
-      `UPDATE productos 
-       SET nombre = ?, precio = ?, descripcion = ?
-       WHERE id = ?`,
-      [nombre, precio, descripcion, id]
+      `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
+      valores
     );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        ok: false,
-        message: "Producto no encontrado",
-      });
-    }
 
     res.json({ ok: true });
   } catch (error) {
-    console.error("🔴 ERROR REAL PUT PRODUCTO:", error);
-    res.status(500).json({
-      ok: false,
-      message: error.message,
-    });
+    console.error(error);
+    res.status(500).json({ ok: false });
   }
 });
 
