@@ -710,48 +710,56 @@ app.delete("/api/productos/:id", async (req, res) => {
     });
   }
 });
-
+/*================================================ */
+/* ============ ACTUALIZAR PRODUCTO =============== */
+/* ================================================= */
 app.put("/api/productos/:id", async (req, res) => {
-  const { id } = req.params;
-  const { nombre, precio, descripcion } = req.body;
-
-  if (!nombre && precio === undefined && descripcion === undefined) {
-    return res.status(400).json({
-      ok: false,
-      message: "No hay datos para actualizar",
-    });
-  }
-
-  const campos = [];
-  const valores = [];
-
-  if (nombre) {
-    campos.push("nombre = ?");
-    valores.push(nombre);
-  }
-
-  if (precio !== undefined) {
-    valores.push(Number(precio));
-    campos.push("precio = ?");
-  }
-
-  if (descripcion !== undefined) {
-    campos.push("descripcion = ?");
-    valores.push(descripcion);
-  }
-
-  valores.push(id);
-
   try {
+    const { id } = req.params;
+    let { nombre, precio, descripcion } = req.body;
+
+    // Validaciones obligatorias según la tabla
+    if (!nombre || precio === undefined || precio === "") {
+      return res.status(400).json({
+        ok: false,
+        message: "Nombre y precio son obligatorios",
+      });
+    }
+
+    // Forzar tipo correcto
+    precio = Number(precio);
+    if (isNaN(precio)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Precio inválido",
+      });
+    }
+
+    descripcion = descripcion ?? "";
+
     const [result] = await db.query(
-      `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
-      valores
+      `
+      UPDATE productos
+      SET nombre = ?, precio = ?, descripcion = ?
+      WHERE id = ?
+      `,
+      [nombre, precio, descripcion, id]
     );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "Producto no encontrado",
+      });
+    }
 
     res.json({ ok: true });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false });
+    console.error("❌ ERROR PUT PRODUCTOS:", error);
+    res.status(500).json({
+      ok: false,
+      message: error.sqlMessage || error.message,
+    });
   }
 });
 
