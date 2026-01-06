@@ -711,6 +711,36 @@ app.delete("/api/productos/:id", async (req, res) => {
   }
 });
 
+// ACTUALIZAR PRODUCTO
+app.put("/api/productos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nombre, precio, descripcion } = req.body;
+
+  try {
+    const [result] = await db.query(
+      `UPDATE productos 
+       SET nombre = ?, precio = ?, descripcion = ?
+       WHERE id = ?`,
+      [nombre, precio, descripcion, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "Producto no encontrado",
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error actualizando producto:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error al actualizar producto",
+    });
+  }
+});
+
 /* ================= FRONTEND (VITE BUILD) ================= */
 
 // servir frontend compilado

@@ -8,9 +8,11 @@ export default function EliminarProducto() {
   const [loading, setLoading] = useState(true);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
+
   const [formEdit, setFormEdit] = useState({
     nombre: "",
     precio: "",
+    descripcion: "",
   });
 
   useEffect(() => {
@@ -20,6 +22,7 @@ export default function EliminarProducto() {
         const data = await res.json();
         setProductos(data);
       } catch (error) {
+        console.error(error);
         alert("Error al cargar productos");
       } finally {
         setLoading(false);
@@ -33,17 +36,19 @@ export default function EliminarProducto() {
     if (!window.confirm("¿Seguro que deseas eliminar este producto?")) return;
 
     setEliminandoId(id);
+
     try {
       const res = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "DELETE",
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (!res.ok || !data.ok) throw new Error();
 
       setProductos((prev) => prev.filter((p) => p.id !== id));
-    } catch {
-      alert("No se pudo eliminar");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo eliminar el producto");
     } finally {
       setEliminandoId(null);
     }
@@ -54,6 +59,7 @@ export default function EliminarProducto() {
     setFormEdit({
       nombre: producto.nombre,
       precio: producto.precio,
+      descripcion: producto.descripcion || "",
     });
   };
 
@@ -61,7 +67,9 @@ export default function EliminarProducto() {
     try {
       const res = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(formEdit),
       });
 
@@ -73,12 +81,21 @@ export default function EliminarProducto() {
       );
 
       setEditandoId(null);
-    } catch {
-      alert("No se pudo actualizar");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo actualizar el producto");
     }
   };
 
-  if (loading) return <p className="text-center">Cargando...</p>;
+  if (loading) {
+    return <p className="text-center">Cargando productos...</p>;
+  }
+
+  if (productos.length === 0) {
+    return (
+      <p className="text-center text-gray-500">No hay productos registrados</p>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4">
@@ -86,10 +103,7 @@ export default function EliminarProducto() {
 
       <div className="space-y-4">
         {productos.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center gap-4 bg-white p-4 rounded-xl shadow"
-          >
+          <div key={p.id} className="flex gap-4 bg-white p-4 rounded-xl shadow">
             <img
               src={p.imagen}
               alt={p.nombre}
@@ -100,38 +114,61 @@ export default function EliminarProducto() {
               {editandoId === p.id ? (
                 <>
                   <input
+                    className="border rounded px-2 py-1 w-full mb-2"
                     value={formEdit.nombre}
                     onChange={(e) =>
-                      setFormEdit({ ...formEdit, nombre: e.target.value })
+                      setFormEdit({
+                        ...formEdit,
+                        nombre: e.target.value,
+                      })
                     }
-                    className="border rounded px-2 py-1 w-full mb-2"
                   />
+
                   <input
                     type="number"
+                    className="border rounded px-2 py-1 w-full mb-2"
                     value={formEdit.precio}
                     onChange={(e) =>
-                      setFormEdit({ ...formEdit, precio: e.target.value })
+                      setFormEdit({
+                        ...formEdit,
+                        precio: e.target.value,
+                      })
                     }
-                    className="border rounded px-2 py-1 w-full"
+                  />
+
+                  <textarea
+                    rows={3}
+                    className="border rounded px-2 py-1 w-full resize-none"
+                    value={formEdit.descripcion}
+                    onChange={(e) =>
+                      setFormEdit({
+                        ...formEdit,
+                        descripcion: e.target.value,
+                      })
+                    }
                   />
                 </>
               ) : (
                 <>
                   <p className="font-semibold">{p.nombre}</p>
-                  <p className="text-sm text-gray-500">${p.precio}</p>
+                  <p className="text-sm text-gray-600">${p.precio}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    {p.descripcion}
+                  </p>
                 </>
               )}
             </div>
 
-            {/* ACCIONES */}
+            {/* BOTONES */}
             {editandoId === p.id ? (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => actualizarProducto(p.id)}
                   className="bg-green-600 text-white p-2 rounded-lg"
                 >
                   <Save size={16} />
                 </button>
+
                 <button
                   onClick={() => setEditandoId(null)}
                   className="bg-gray-400 text-white p-2 rounded-lg"
@@ -140,13 +177,14 @@ export default function EliminarProducto() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => iniciarEdicion(p)}
                   className="bg-blue-600 text-white p-2 rounded-lg"
                 >
                   <Pencil size={16} />
                 </button>
+
                 <button
                   onClick={() => eliminarProducto(p.id)}
                   disabled={eliminandoId === p.id}
