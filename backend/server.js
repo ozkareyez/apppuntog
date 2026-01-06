@@ -714,66 +714,49 @@ app.delete("/api/productos/:id", async (req, res) => {
 /* ============ ACTUALIZAR PRODUCTO =============== */
 /* ================================================= */
 app.put("/api/productos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nombre, precio, descripcion } = req.body;
+
+  const campos = [];
+  const valores = [];
+
+  if (nombre !== undefined && nombre.trim() !== "") {
+    campos.push("nombre = ?");
+    valores.push(nombre.trim());
+  }
+
+  if (precio !== undefined && !isNaN(precio)) {
+    campos.push("precio = ?");
+    valores.push(Number(precio));
+  }
+
+  if (descripcion !== undefined) {
+    campos.push("descripcion = ?");
+    valores.push(descripcion);
+  }
+
+  if (campos.length === 0) {
+    return res.json({
+      ok: false,
+      message: "No hay campos válidos para actualizar",
+    });
+  }
+
   try {
-    const { id } = req.params;
-    const { nombre, precio, descripcion } = req.body;
+    await db.query(`UPDATE productos SET ${campos.join(", ")} WHERE id = ?`, [
+      ...valores,
+      id,
+    ]);
 
-    const campos = [];
-    const valores = [];
-
-    // Nombre
-    if (nombre !== undefined && nombre !== "") {
-      campos.push("nombre = ?");
-      valores.push(nombre);
-    }
-
-    // Precio
-    if (precio !== undefined && precio !== "") {
-      const precioNumber = Number(precio);
-      if (isNaN(precioNumber)) {
-        return res.status(400).json({
-          ok: false,
-          message: "Precio inválido",
-        });
-      }
-      campos.push("precio = ?");
-      valores.push(precioNumber);
-    }
-
-    // Descripción
-    if (descripcion !== undefined && descripcion !== "") {
-      campos.push("descripcion = ?");
-      valores.push(descripcion);
-    }
-
-    // 🔴 CLAVE: validar antes de ejecutar SQL
-    if (campos.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        message: "No hay campos válidos para actualizar",
-      });
-    }
-
-    valores.push(id);
-
-    const [result] = await db.query(
-      `UPDATE productos SET ${campos.join(", ")} WHERE id = ?`,
-      valores
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        ok: false,
-        message: "Producto no encontrado",
-      });
-    }
-
-    res.json({ ok: true });
+    res.json({
+      ok: true,
+      message: "Producto actualizado",
+    });
   } catch (error) {
-    console.error("🔥 ERROR REAL PUT PRODUCTO:", error);
+    console.error(error);
     res.status(500).json({
       ok: false,
-      message: error.sqlMessage || error.message,
+      message: "Error al actualizar producto",
     });
   }
 });
