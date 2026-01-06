@@ -73,33 +73,48 @@ export default function EliminarProducto() {
   const actualizarProducto = async (id) => {
     const payload = {};
 
-    if (formEdit.nombre !== productoOriginal.nombre) {
+    /* ===== NOMBRE ===== */
+    if (
+      formEdit.nombre.trim() !== "" &&
+      formEdit.nombre.trim() !== productoOriginal.nombre
+    ) {
       payload.nombre = formEdit.nombre.trim();
     }
 
-    if (Number(formEdit.precio) !== Number(productoOriginal.precio)) {
+    /* ===== PRECIO ===== */
+    if (
+      formEdit.precio !== "" &&
+      !isNaN(Number(formEdit.precio)) &&
+      Number(formEdit.precio) !== Number(productoOriginal.precio)
+    ) {
       payload.precio = Number(formEdit.precio);
     }
 
-    if (formEdit.descripcion !== productoOriginal.descripcion) {
+    /* ===== DESCRIPCIÓN ===== */
+    if (
+      formEdit.descripcion.trim() !== "" &&
+      formEdit.descripcion !== productoOriginal.descripcion
+    ) {
       payload.descripcion = formEdit.descripcion.trim();
     }
 
+    /* ===== VALIDACIÓN FINAL ===== */
     if (Object.keys(payload).length === 0) {
-      alert("No has modificado ningún campo");
+      alert("No hay cambios válidos para guardar");
       return;
     }
+
+    console.log("PAYLOAD FINAL:", payload); // 👈 déjalo para debug
 
     try {
       const res = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
+
       if (!res.ok || !data.ok) {
         alert(data.message || "Error al actualizar");
         return;
@@ -113,7 +128,7 @@ export default function EliminarProducto() {
       setProductoOriginal(null);
     } catch (error) {
       console.error(error);
-      alert("No se pudo actualizar el producto");
+      alert("Error inesperado al actualizar");
     }
   };
 
