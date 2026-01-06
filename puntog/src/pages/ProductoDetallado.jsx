@@ -4,6 +4,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, ArrowLeft, Tag, Heart, Minus, Plus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { API_URL } from "@/config";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
 
 const ProductoDetallado = () => {
   const { id } = useParams();
@@ -15,6 +17,18 @@ const ProductoDetallado = () => {
   const [loading, setLoading] = useState(true);
   const [cantidad, setCantidad] = useState(1);
   const [error, setError] = useState(null);
+
+  const carruselRef = useRef(null);
+
+  const scrollCarrusel = (direccion) => {
+    if (!carruselRef.current) return;
+
+    const ancho = carruselRef.current.offsetWidth;
+    carruselRef.current.scrollBy({
+      left: direccion === "left" ? -ancho : ancho,
+      behavior: "smooth",
+    });
+  };
 
   /* ================= HELPERS ================= */
 
@@ -241,32 +255,61 @@ const ProductoDetallado = () => {
               También te puede interesar
             </h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-              {recomendados.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => navigate(`/producto/${p.id}`)}
-                  className="cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
-                >
-                  <div className="h-48 bg-gray-50 flex items-center justify-center rounded-t-2xl">
-                    <img
-                      src={getImageSrc(p.imagen)}
-                      alt={p.nombre}
-                      className="h-full object-contain"
-                    />
-                  </div>
+            {/* RECOMENDADOS */}
+            {recomendados.length > 0 && (
+              <div className="mt-20">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">
+                    También te puede interesar
+                  </h2>
 
-                  <div className="p-4">
-                    <p className="text-sm font-semibold line-clamp-2">
-                      {p.nombre}
-                    </p>
-                    <p className="text-red-600 font-bold mt-1">
-                      ${Number(p.precio).toLocaleString()}
-                    </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => scrollCarrusel("left")}
+                      className="p-2 rounded-full border hover:bg-gray-100"
+                    >
+                      <ChevronLeft />
+                    </button>
+                    <button
+                      onClick={() => scrollCarrusel("right")}
+                      className="p-2 rounded-full border hover:bg-gray-100"
+                    >
+                      <ChevronRight />
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div
+                  ref={carruselRef}
+                  className="flex gap-5 overflow-x-auto scroll-smooth scrollbar-hide pb-4"
+                >
+                  {recomendados.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => navigate(`/producto/${p.id}`)}
+                      className="min-w-[220px] max-w-[220px] cursor-pointer bg-white border rounded-2xl hover:shadow-xl transition"
+                    >
+                      <div className="h-44 bg-gray-50 flex items-center justify-center rounded-t-2xl">
+                        <img
+                          src={getImageSrc(p.imagen)}
+                          alt={p.nombre}
+                          className="h-full object-contain"
+                        />
+                      </div>
+
+                      <div className="p-4">
+                        <p className="text-sm font-semibold line-clamp-2">
+                          {p.nombre}
+                        </p>
+                        <p className="text-red-600 font-bold mt-1">
+                          ${Number(p.precio).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
