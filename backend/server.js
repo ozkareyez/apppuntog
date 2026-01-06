@@ -768,6 +768,43 @@ app.put("/api/productos/:id", async (req, res) => {
   }
 });
 
+app.get("/api/productos-recomendados/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1️⃣ Obtener la categoría del producto actual
+    const [producto] = await DB.promise().query(
+      "SELECT categoria_id FROM productos WHERE id = ? AND activo = 1",
+      [id]
+    );
+
+    if (!producto.length) {
+      return res.status(404).json([]);
+    }
+
+    const categoriaId = producto[0].categoria_id;
+
+    // 2️⃣ Buscar 4 productos de la misma categoría (excluyendo el actual)
+    const [recomendados] = await DB.promise().query(
+      `
+      SELECT id, nombre, precio, imagen
+      FROM productos
+      WHERE categoria_id = ?
+        AND id != ?
+        AND activo = 1
+      ORDER BY RAND()
+      LIMIT 4
+      `,
+      [categoriaId, id]
+    );
+
+    res.json(recomendados);
+  } catch (error) {
+    console.error("❌ ERROR RECOMENDADOS:", error);
+    res.status(500).json([]);
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🚀 Backend funcionando correctamente")
