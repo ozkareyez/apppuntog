@@ -768,6 +768,10 @@ app.put("/api/productos/:id", async (req, res) => {
   }
 });
 
+/* ================================================= */
+/* ======= PRODUCTOS RECOMENDADOS POR CATEGORÍA ==== */
+/* ================================================= */
+
 app.get("/api/productos-recomendados/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -793,7 +797,7 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
         AND id != ?
         AND activo = 1
       ORDER BY RAND()
-      LIMIT 4
+      LIMIT 10
       `,
       [categoriaId, id]
     );
