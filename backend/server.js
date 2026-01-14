@@ -97,198 +97,198 @@ app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
 });
 
 /* ================= DEPARTAMENTOS ================= */
-app.get("/api/departamentos", (_, res) => {
-  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
-    if (err) return res.status(500).json(err);
-    res.json(rows);
-  });
-});
+// app.get("/api/departamentos", (_, res) => {
+//   DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
+//     if (err) return res.status(500).json(err);
+//     res.json(rows);
+//   });
+// });
 
-/* ================= CIUDADES ================= */
-app.get("/api/ciudades", (req, res) => {
-  const { departamento_id } = req.query;
-  if (!departamento_id) return res.json([]);
+// /* ================= CIUDADES ================= */
+// app.get("/api/ciudades", (req, res) => {
+//   const { departamento_id } = req.query;
+//   if (!departamento_id) return res.json([]);
 
-  DB.query(
-    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
-    [departamento_id],
-    (err, rows) => {
-      if (err) return res.status(500).json([]);
-      res.json(rows);
-    }
-  );
-});
+//   DB.query(
+//     "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
+//     [departamento_id],
+//     (err, rows) => {
+//       if (err) return res.status(500).json([]);
+//       res.json(rows);
+//     }
+//   );
+// });
 
-/* ================= CATEGORIAS ================= */
-app.get("/api/categorias", (req, res) => {
-  DB.query("SELECT * FROM categorias", (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Error al obtener categorías" });
-    }
+// /* ================= CATEGORIAS ================= */
+// app.get("/api/categorias", (req, res) => {
+//   DB.query("SELECT * FROM categorias", (err, rows) => {
+//     if (err) {
+//       console.error(err);
+//       return res.status(500).json({ error: "Error al obtener categorías" });
+//     }
 
-    res.json(rows);
-  });
-});
+//     res.json(rows);
+//   });
+// });
 
-//==========paginación productos=================
-app.get("/api/productos", (req, res) => {
-  try {
-    const {
-      categoria,
-      es_oferta,
-      page = 1,
-      limit = 20,
-      sort = "id_desc",
-      min_price,
-      max_price,
-      search,
-    } = req.query;
+// //==========paginación productos=================
+// app.get("/api/productos", (req, res) => {
+//   try {
+//     const {
+//       categoria,
+//       es_oferta,
+//       page = 1,
+//       limit = 20,
+//       sort = "id_desc",
+//       min_price,
+//       max_price,
+//       search,
+//     } = req.query;
 
-    // Validaciones más robustas
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
-    const offset = (pageNum - 1) * limitNum;
+//     // Validaciones más robustas
+//     const pageNum = Math.max(1, parseInt(page) || 1);
+//     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+//     const offset = (pageNum - 1) * limitNum;
 
-    let query = `
-      SELECT SQL_CALC_FOUND_ROWS p.*
-      FROM productos p
-      WHERE p.activo = 1
-    `;
+//     let query = `
+//       SELECT SQL_CALC_FOUND_ROWS p.*
+//       FROM productos p
+//       WHERE p.activo = 1
+//     `;
 
-    const params = [];
-    const conditions = [];
+//     const params = [];
+//     const conditions = [];
 
-    // JOIN solo si hay categoría
-    if (categoria && categoria !== "todas") {
-      query += " INNER JOIN categorias c ON p.categoria_id = c.id";
-      conditions.push("c.slug = ?");
-      params.push(categoria);
-    }
+//     // JOIN solo si hay categoría
+//     if (categoria && categoria !== "todas") {
+//       query += " INNER JOIN categorias c ON p.categoria_id = c.id";
+//       conditions.push("c.slug = ?");
+//       params.push(categoria);
+//     }
 
-    if (es_oferta === "true") {
-      conditions.push("p.es_oferta = 1");
-    }
+//     if (es_oferta === "true") {
+//       conditions.push("p.es_oferta = 1");
+//     }
 
-    // Filtro por rango de precio
-    if (min_price) {
-      const min = parseFloat(min_price);
-      if (!isNaN(min)) {
-        conditions.push("p.precio >= ?");
-        params.push(min);
-      }
-    }
+//     // Filtro por rango de precio
+//     if (min_price) {
+//       const min = parseFloat(min_price);
+//       if (!isNaN(min)) {
+//         conditions.push("p.precio >= ?");
+//         params.push(min);
+//       }
+//     }
 
-    if (max_price) {
-      const max = parseFloat(max_price);
-      if (!isNaN(max)) {
-        conditions.push("p.precio <= ?");
-        params.push(max);
-      }
-    }
+//     if (max_price) {
+//       const max = parseFloat(max_price);
+//       if (!isNaN(max)) {
+//         conditions.push("p.precio <= ?");
+//         params.push(max);
+//       }
+//     }
 
-    if (search) {
-      conditions.push("p.nombre LIKE ?");
-      params.push(`%${search}%`);
-    }
+//     if (search) {
+//       conditions.push("p.nombre LIKE ?");
+//       params.push(`%${search}%`);
+//     }
 
-    if (conditions.length) {
-      query += " AND " + conditions.join(" AND ");
-    }
+//     if (conditions.length) {
+//       query += " AND " + conditions.join(" AND ");
+//     }
 
-    // Ordenamiento
-    let orderBy = "ORDER BY p.id DESC";
-    switch (sort) {
-      case "nuevos":
-        orderBy = "ORDER BY p.created_at DESC, p.id DESC";
-        break;
-      case "precio_asc":
-        orderBy = "ORDER BY p.precio ASC, p.id DESC";
-        break;
-      case "precio_desc":
-        orderBy = "ORDER BY p.precio DESC, p.id DESC";
-        break;
-      case "relevantes":
-        orderBy = "ORDER BY p.es_oferta DESC, p.id DESC";
-        break;
-      case "id_desc":
-      default:
-        orderBy = "ORDER BY p.id DESC";
-        break;
-    }
+//     // Ordenamiento
+//     let orderBy = "ORDER BY p.id DESC";
+//     switch (sort) {
+//       case "nuevos":
+//         orderBy = "ORDER BY p.created_at DESC, p.id DESC";
+//         break;
+//       case "precio_asc":
+//         orderBy = "ORDER BY p.precio ASC, p.id DESC";
+//         break;
+//       case "precio_desc":
+//         orderBy = "ORDER BY p.precio DESC, p.id DESC";
+//         break;
+//       case "relevantes":
+//         orderBy = "ORDER BY p.es_oferta DESC, p.id DESC";
+//         break;
+//       case "id_desc":
+//       default:
+//         orderBy = "ORDER BY p.id DESC";
+//         break;
+//     }
 
-    query += ` ${orderBy} LIMIT ? OFFSET ?`;
-    params.push(limitNum, offset);
+//     query += ` ${orderBy} LIMIT ? OFFSET ?`;
+//     params.push(limitNum, offset);
 
-    console.log("🔍 QUERY PAGINADA:", query.replace(/\s+/g, " "));
-    console.log("📦 PARAMS:", params);
+//     console.log("🔍 QUERY PAGINADA:", query.replace(/\s+/g, " "));
+//     console.log("📦 PARAMS:", params);
 
-    DB.query(query, params, (err, results) => {
-      if (err) {
-        console.error("❌ ERROR PRODUCTOS PAGINADOS:", err);
-        return res.status(500).json({
-          ok: false,
-          error: "Error al obtener productos",
-          details: err.message,
-        });
-      }
+//     DB.query(query, params, (err, results) => {
+//       if (err) {
+//         console.error("❌ ERROR PRODUCTOS PAGINADOS:", err);
+//         return res.status(500).json({
+//           ok: false,
+//           error: "Error al obtener productos",
+//           details: err.message,
+//         });
+//       }
 
-      // Obtener el total de productos
-      DB.query("SELECT FOUND_ROWS() as total", (err2, countResult) => {
-        if (err2) {
-          console.error("❌ ERROR CONTANDO PRODUCTOS:", err2);
-          return res.status(500).json({
-            ok: false,
-            error: "Error al contar productos",
-          });
-        }
+//       // Obtener el total de productos
+//       DB.query("SELECT FOUND_ROWS() as total", (err2, countResult) => {
+//         if (err2) {
+//           console.error("❌ ERROR CONTANDO PRODUCTOS:", err2);
+//           return res.status(500).json({
+//             ok: false,
+//             error: "Error al contar productos",
+//           });
+//         }
 
-        const total = countResult[0]?.total || 0;
-        const totalPages = Math.max(1, Math.ceil(total / limitNum));
+//         const total = countResult[0]?.total || 0;
+//         const totalPages = Math.max(1, Math.ceil(total / limitNum));
 
-        // Si no hay productos y la página solicitada > 1, volver a página 1
-        if (results.length === 0 && pageNum > 1) {
-          console.log(
-            "⚠️ No hay productos en esta página, redirigiendo a página 1"
-          );
-          return res.redirect(
-            `${req.baseUrl}${req.path}?page=1&limit=${limitNum}`
-          );
-        }
+//         // Si no hay productos y la página solicitada > 1, volver a página 1
+//         if (results.length === 0 && pageNum > 1) {
+//           console.log(
+//             "⚠️ No hay productos en esta página, redirigiendo a página 1"
+//           );
+//           return res.redirect(
+//             `${req.baseUrl}${req.path}?page=1&limit=${limitNum}`
+//           );
+//         }
 
-        const productos = results.map((p) => ({
-          ...p,
-          precio: Number(p.precio) || 0,
-          precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-          descuento: p.descuento ? Number(p.descuento) : 0,
-          es_oferta: Boolean(p.es_oferta),
-        }));
+//         const productos = results.map((p) => ({
+//           ...p,
+//           precio: Number(p.precio) || 0,
+//           precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+//           descuento: p.descuento ? Number(p.descuento) : 0,
+//           es_oferta: Boolean(p.es_oferta),
+//         }));
 
-        res.json({
-          ok: true,
-          productos,
-          pagination: {
-            total,
-            totalPages,
-            currentPage: pageNum,
-            limit: limitNum,
-            hasNext: pageNum < totalPages,
-            hasPrev: pageNum > 1,
-            nextPage: pageNum < totalPages ? pageNum + 1 : null,
-            prevPage: pageNum > 1 ? pageNum - 1 : null,
-          },
-          message: `Mostrando ${productos.length} de ${total} productos`,
-        });
-      });
-    });
-  } catch (error) {
-    console.error("❌ ERROR GENERAL:", error);
-    res.status(500).json({
-      ok: false,
-      error: "Error interno del servidor",
-    });
-  }
-});
+//         res.json({
+//           ok: true,
+//           productos,
+//           pagination: {
+//             total,
+//             totalPages,
+//             currentPage: pageNum,
+//             limit: limitNum,
+//             hasNext: pageNum < totalPages,
+//             hasPrev: pageNum > 1,
+//             nextPage: pageNum < totalPages ? pageNum + 1 : null,
+//             prevPage: pageNum > 1 ? pageNum - 1 : null,
+//           },
+//           message: `Mostrando ${productos.length} de ${total} productos`,
+//         });
+//       });
+//     });
+//   } catch (error) {
+//     console.error("❌ ERROR GENERAL:", error);
+//     res.status(500).json({
+//       ok: false,
+//       error: "Error interno del servidor",
+//     });
+//   }
+// });
 /* ================= PRODUCTOS TODOS (sin paginación, para compatibilidad) ================= */
 app.get("/api/productos-todos", (req, res) => {
   const { categoria, es_oferta } = req.query;
