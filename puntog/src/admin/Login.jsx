@@ -1,5 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Shield,
+  Key,
+  AlertCircle,
+  LogIn,
+  Building2,
+  Cpu,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ADMIN_USER = "oscar";
 const ADMIN_PASS = "811012";
@@ -7,73 +20,452 @@ const ADMIN_PASS = "811012";
 export default function Login() {
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [securityLevel, setSecurityLevel] = useState(0);
   const navigate = useNavigate();
 
-  // ✅ ESTE useEffect SÍ está bien
+  // Forzar cierre de sesión al entrar
   useEffect(() => {
-    // Forzar cierre de sesión al entrar al login
     localStorage.removeItem("admin_token");
+    document.title = "Panel Admin | PuntoG";
   }, []);
 
-  const handleLogin = (e) => {
+  // Efecto para mostrar nivel de seguridad de contraseña
+  useEffect(() => {
+    if (password.length === 0) {
+      setSecurityLevel(0);
+    } else if (password.length < 4) {
+      setSecurityLevel(1);
+    } else if (password.length < 6) {
+      setSecurityLevel(2);
+    } else {
+      setSecurityLevel(3);
+    }
+  }, [password]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setShake(false);
 
-    if (user === ADMIN_USER && password === ADMIN_PASS) {
-      localStorage.setItem(
-        "admin_token",
-        JSON.stringify({
-          value: "yes",
+    // Validación básica
+    if (!user.trim() || !password.trim()) {
+      setError("Completa todos los campos");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    setLoading(true);
+
+    // Simular un pequeño delay para mejor UX
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    try {
+      if (user === ADMIN_USER && password === ADMIN_PASS) {
+        // Generar token seguro
+        const tokenData = {
+          value: btoa(`${ADMIN_USER}:${Date.now()}`),
           expires: Date.now() + 1000 * 60 * 60, // 1 hora
-        })
-      );
+          issued: Date.now(),
+          user: ADMIN_USER,
+        };
 
-      navigate("/admin/dashboard", { replace: true });
-    } else {
-      setError("Usuario o contraseña incorrectos");
+        localStorage.setItem("admin_token", JSON.stringify(tokenData));
+
+        // Registro de acceso (solo en memoria para este ejemplo)
+        const accessLog = {
+          user: ADMIN_USER,
+          timestamp: new Date().toISOString(),
+          ip: "127.0.0.1", // En producción se obtendría del servidor
+          userAgent: navigator.userAgent,
+        };
+
+        console.log("Acceso registrado:", accessLog);
+
+        // Animación de éxito antes de redirigir
+        setTimeout(() => {
+          navigate("/admin/dashboard", {
+            replace: true,
+            state: { from: "login", timestamp: Date.now() },
+          });
+        }, 300);
+      } else {
+        setError("Credenciales incorrectas. Intenta nuevamente.");
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
+    } catch (err) {
+      setError("Error en el sistema. Intenta más tarde.");
+      setShake(true);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Efecto de partículas de fondo
+  const BackgroundParticles = () => (
+    <div className="absolute inset-0 overflow-hidden">
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-red-500/20 rounded-full"
+          initial={{
+            x: Math.random() * 100 + "vw",
+            y: Math.random() * 100 + "vh",
+          }}
+          animate={{
+            x: Math.random() * 100 + "vw",
+            y: Math.random() * 100 + "vh",
+          }}
+          transition={{
+            duration: Math.random() * 10 + 10,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+      ))}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm"
+    <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
+      {/* Fondo con gradiente y efectos */}
+      <BackgroundParticles />
+
+      <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-transparent to-red-800/5" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600/30 to-transparent" />
+
+      {/* Tarjeta de Login */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-md mx-4"
       >
-        <h2 className="text-2xl font-extrabold text-center mb-2">
-          Panel Administrativo
-        </h2>
+        <div className="relative">
+          {/* Efecto de borde animado */}
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-red-500 to-red-700 rounded-2xl blur opacity-30" />
 
-        {error && (
-          <p className="text-red-600 text-sm text-center mb-4">{error}</p>
+          <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl overflow-hidden">
+            {/* Header con efecto glassmorphism */}
+            <div className="relative p-8 border-b border-gray-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-red-800/5" />
+              <div className="relative flex flex-col items-center">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/50">
+                    <Shield className="w-8 h-8 text-white" />
+                  </div>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 20,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="absolute inset-0 rounded-2xl border-2 border-red-500/30"
+                  />
+                </div>
+
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  Panel Administrativo
+                </h1>
+                <p className="text-gray-400 text-sm text-center">
+                  Acceso restringido al personal autorizado
+                </p>
+              </div>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleLogin} className="p-8 space-y-6">
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`p-4 rounded-xl border ${
+                      error.includes("correctas")
+                        ? "bg-red-900/20 border-red-800"
+                        : "bg-amber-900/20 border-amber-800"
+                    } flex items-start gap-3 ${shake ? "animate-shake" : ""}`}
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-red-300 text-sm font-medium">
+                        {error}
+                      </p>
+                      {error.includes("correctas") && (
+                        <p className="text-red-400/70 text-xs mt-1">
+                          Verifica las credenciales e intenta nuevamente
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Campo Usuario */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <User className="w-4 h-4 text-gray-400" />
+                  Usuario
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                  <input
+                    type="text"
+                    value={user}
+                    onChange={(e) => setUser(e.target.value)}
+                    className="relative w-full px-4 py-3 pl-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
+                    placeholder="Ingresa tu usuario"
+                    disabled={loading}
+                    autoComplete="username"
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <User className="w-5 h-5 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo Contraseña */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Key className="w-4 h-4 text-gray-400" />
+                  Contraseña
+                  {password.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-auto">
+                      Nivel de seguridad:{" "}
+                      {securityLevel === 0
+                        ? "❌"
+                        : securityLevel === 1
+                        ? "⚠️"
+                        : securityLevel === 2
+                        ? "✅"
+                        : "🔒"}
+                    </span>
+                  )}
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="relative w-full px-4 py-3 pl-12 pr-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                    disabled={loading}
+                    autoComplete="current-password"
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <Lock className="w-5 h-5 text-gray-500" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+
+                {/* Barra de fortaleza de contraseña */}
+                {password.length > 0 && (
+                  <div className="h-1 rounded-full bg-gray-800 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(securityLevel / 3) * 100}%` }}
+                      className={`h-full rounded-full ${
+                        securityLevel === 1
+                          ? "bg-red-500"
+                          : securityLevel === 2
+                          ? "bg-amber-500"
+                          : securityLevel === 3
+                          ? "bg-green-500"
+                          : ""
+                      }`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Botón de Login */}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`w-full py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all ${
+                  loading
+                    ? "bg-gray-800 cursor-not-allowed"
+                    : "bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg hover:shadow-red-900/50"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="text-white">Verificando...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    <span className="text-white">Acceder al Panel</span>
+                  </>
+                )}
+              </motion.button>
+
+              {/* Información de seguridad */}
+              <div className="pt-6 border-t border-gray-800">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-3 h-3" />
+                    <span>PuntoG Admin v1.0</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-3 h-3" />
+                    <span>Sesión: 60 min</span>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {/* Footer del card */}
+            <div className="px-8 py-4 bg-gradient-to-r from-gray-900/50 to-gray-950/50 border-t border-gray-800">
+              <p className="text-center text-xs text-gray-500">
+                🔐 Acceso restringido • Todos los intentos son registrados
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Mensaje de advertencia para desarrollo */}
+        {process.env.NODE_ENV === "development" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6 p-4 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-800/30 rounded-xl"
+          >
+            {/* <p className="text-center text-sm text-amber-300">
+              <span className="font-semibold">Modo desarrollo activo</span>
+              <br />
+              <span className="text-amber-400/70 text-xs">
+                Credenciales: {ADMIN_USER} / {ADMIN_PASS}
+              </span>
+            </p> */}
+          </motion.div>
         )}
+      </motion.div>
 
-        <input
-          type="text"
-          placeholder="Usuario"
-          className="w-full mb-4 px-4 py-2.5 border rounded-lg"
-          value={user}
-          onChange={(e) => setUser(e.target.value)}
-          required
-        />
-
-        <input
-          type="password"
-          placeholder="Contraseña"
-          className="w-full mb-6 px-4 py-2.5 border rounded-lg"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-red-600 text-white py-2.5 rounded-lg"
-        >
-          Entrar
-        </button>
-      </form>
+      {/* CSS para animación de shake */}
+      <style jsx>{`
+        @keyframes shake {
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          10%,
+          30%,
+          50%,
+          70%,
+          90% {
+            transform: translateX(-5px);
+          }
+          20%,
+          40%,
+          60%,
+          80% {
+            transform: translateX(5px);
+          }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
+
+// import { useState, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+
+// const ADMIN_USER = "oscar";
+// const ADMIN_PASS = "811012";
+
+// export default function Login() {
+//   const [user, setUser] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [error, setError] = useState("");
+//   const navigate = useNavigate();
+
+//   // ✅ ESTE useEffect SÍ está bien
+//   useEffect(() => {
+//     // Forzar cierre de sesión al entrar al login
+//     localStorage.removeItem("admin_token");
+//   }, []);
+
+//   const handleLogin = (e) => {
+//     e.preventDefault();
+//     setError("");
+
+//     if (user === ADMIN_USER && password === ADMIN_PASS) {
+//       localStorage.setItem(
+//         "admin_token",
+//         JSON.stringify({
+//           value: "yes",
+//           expires: Date.now() + 1000 * 60 * 60, // 1 hora
+//         })
+//       );
+
+//       navigate("/admin/dashboard", { replace: true });
+//     } else {
+//       setError("Usuario o contraseña incorrectos");
+//     }
+//   };
+
+//   return (
+//     <div className="min-h-screen flex items-center justify-center bg-gray-100">
+//       <form
+//         onSubmit={handleLogin}
+//         className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm"
+//       >
+//         <h2 className="text-2xl font-extrabold text-center mb-2">
+//           Panel Administrativo
+//         </h2>
+
+//         {error && (
+//           <p className="text-red-600 text-sm text-center mb-4">{error}</p>
+//         )}
+
+//         <input
+//           type="text"
+//           placeholder="Usuario"
+//           className="w-full mb-4 px-4 py-2.5 border rounded-lg"
+//           value={user}
+//           onChange={(e) => setUser(e.target.value)}
+//           required
+//         />
+
+//         <input
+//           type="password"
+//           placeholder="Contraseña"
+//           className="w-full mb-6 px-4 py-2.5 border rounded-lg"
+//           value={password}
+//           onChange={(e) => setPassword(e.target.value)}
+//           required
+//         />
+
+//         <button
+//           type="submit"
+//           className="w-full bg-red-600 text-white py-2.5 rounded-lg"
+//         >
+//           Entrar
+//         </button>
+//       </form>
+//     </div>
+//   );
+// }
