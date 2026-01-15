@@ -13,6 +13,19 @@ body {
     "Segoe UI", sans-serif;
   color: black/50;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Elimina espacio después del header */
+main, section, .container {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* =======================
@@ -119,7 +132,7 @@ body {
    MODALES / DRAWERS
 ======================= */
 .overlay {
-  @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-40;
+  @apply fixed inset-0 bg-white backdrop-blur-sm z-40;
 }
 
 .drawer {

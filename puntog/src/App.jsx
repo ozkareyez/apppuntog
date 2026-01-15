@@ -24,8 +24,12 @@ import FormularioProducto from "./admin/FormularioProducto";
 import PoliticaPrivacidad from "./pages/PoliticaPrivacidad";
 import TerminosCondiciones from "./pages/TerminosCondiciones";
 import CambiosDevoluciones from "./pages/CambiosDevoluciones";
+import PoliticasEnvio from "./pages/PoliticasEnvio";
 import PoliticaCookies from "./pages/PoliticaCookies";
 import UsoResponsable from "./pages/UsoResponsable";
+import GarantiasServicios from "./pages/GarantiasServicios";
+import MetodosPago from "./pages/MetodosPago";
+import SobreNosotros from "./pages/SobreNosotros";
 
 function App() {
   return (
@@ -59,6 +63,12 @@ function App() {
             path="/politica-de-privacidad"
             element={<PoliticaPrivacidad />}
           />
+
+          <Route path="/nosotros" element={<SobreNosotros />} />
+
+          <Route path="/pagos" element={<MetodosPago />} />
+
+          <Route path="/politicas-envios" element={<PoliticasEnvio />} />
           <Route
             path="/terminos-y-condiciones"
             element={<TerminosCondiciones />}
@@ -67,6 +77,8 @@ function App() {
             path="/cambios-y-devoluciones"
             element={<CambiosDevoluciones />}
           />
+
+          <Route path="/garantias" element={<GarantiasServicios />} />
           <Route path="/politica-de-cookies" element={<PoliticaCookies />} />
           <Route path="/uso-responsable" element={<UsoResponsable />} />
         </Route>

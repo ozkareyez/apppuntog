@@ -31,7 +31,8 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-2xl font-bold">PG</span>
+                {/* <span className="text-white text-2xl font-bold">PG</span> */}
+                <img src="imagenes/logonalga.png " alt="" />
               </div>
               <div>
                 <h2 className="text-3xl font-extrabold text-gray-900">
@@ -81,11 +82,10 @@ const Footer = () => {
             </h3>
             <ul className="space-y-4">
               {[
-                { to: "/catalogo", label: "Productos" },
-                { to: "/ofertas", label: "Ofertas Especiales" },
+                { to: "/productos", label: "Productos" },
+
                 { to: "/nosotros", label: "Sobre Nosotros" },
                 { to: "/contacto", label: "Contacto" },
-                { to: "/blog", label: "Blog & Consejos" },
               ].map((item) => (
                 <li key={item.to}>
                   <Link
@@ -123,7 +123,7 @@ const Footer = () => {
                 { to: "/politica-de-cookies", label: "Política de Cookies" },
                 { to: "/uso-responsable", label: "Uso Responsable +18" },
                 { to: "/garantias", label: "Garantías y Servicio" },
-                { to: "/envios", label: "Política de Envíos" },
+                { to: "/politicas-envios", label: "Política de Envíos" },
                 { to: "/pagos", label: "Métodos de Pago" },
               ].map((item) => (
                 <li key={item.to}>
@@ -169,7 +169,7 @@ const Footer = () => {
                 <MapPin className="text-red-500 mt-1" size={18} />
                 <div>
                   <p className="font-medium text-gray-800">Ubicación</p>
-                  <p className="text-gray-600 text-sm">Bogotá, Colombia</p>
+                  <p className="text-gray-600 text-sm">Cali, Colombia</p>
                 </div>
               </div>
             </div>
@@ -283,7 +283,7 @@ const Footer = () => {
                 Métodos de pago aceptados:
               </span>
               <div className="flex gap-2">
-                {["Visa", "Mastercard", "PSE", "Efectivo"].map((method) => (
+                {["Nequi", "PSE", "Efectivo"].map((method) => (
                   <span
                     key={method}
                     className="px-3 py-1 bg-white border border-red-100 rounded-lg text-xs text-gray-600"

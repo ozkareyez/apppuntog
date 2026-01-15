@@ -91,7 +91,7 @@ export default function PoliticaPrivacidad() {
               escribirnos a:
               <br />
               <span className="font-semibold text-red-600">
-                contacto@puntog.com
+                puntogsexshop2024@hotmail.com
               </span>
             </p>
           </div>
