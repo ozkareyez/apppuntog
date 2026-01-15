@@ -721,7 +721,7 @@ export default function Header() {
                     <img
                       src="/imagenes/logo.png"
                       alt="Punto G"
-                      className="h-10 w-auto"
+                      className="h-20 w-auto"
                     />
                   </Link>
                   <button
@@ -737,20 +737,20 @@ export default function Header() {
               {/* USER INFO */}
               <div className="p-6 border-b border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                  {/* <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
                     <User size={20} className="text-white" />
-                  </div>
-                  <div>
+                  </div> */}
+                  {/* <div>
                     <p className="text-white font-medium">Bienvenid@</p>
                     <p className="text-white/70 text-sm">
                       Inicia sesión para ver tu cuenta
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
               {/* SEARCH MOBILE */}
-              <div className="p-6 border-b border-white/10">
+              {/* <div className="p-6 border-b border-white/10">
                 <div className="relative">
                   <input
                     type="text"
@@ -759,7 +759,7 @@ export default function Header() {
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                 </div>
-              </div>
+              </div> */}
 
               {/* NAVIGATION */}
               <nav className="p-6">
@@ -791,7 +791,7 @@ export default function Header() {
               </nav>
 
               {/* REDES SOCIALES EN MENÚ MÓVIL */}
-              <div className="p-6 border-t border-white/10">
+              {/* <div className="p-6 border-t border-white/10">
                 <p className="text-white/70 text-sm mb-3">Síguenos en redes</p>
                 <div className="flex items-center gap-4">
                   <a
@@ -816,7 +816,7 @@ export default function Header() {
                     <span className="text-white text-sm">Facebook</span>
                   </a>
                 </div>
-              </div>
+              </div> */}
 
               {/* SECONDARY ACTIONS */}
               <div className="p-6 border-t border-white/10">
