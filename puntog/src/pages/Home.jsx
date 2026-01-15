@@ -4,6 +4,7 @@ import ContactForm from "../componentes/ContactForm";
 import MainEnterga from "../componentes/MainEnterga";
 import MainCTA from "../componentes/MainCTA";
 import AgeVerification from "../pages/AgeVerification";
+import Resenas from "../componentes/Resenas";
 import { useState } from "react";
 
 const Home = () => {
@@ -29,6 +30,7 @@ const Home = () => {
             </h2>  */}
 
             <Productos />
+            <Resenas />
           </section>
 
           {/* SEPARADOR */}
