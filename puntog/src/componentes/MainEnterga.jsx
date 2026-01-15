@@ -52,8 +52,8 @@ const MainEntrega = () => {
       text: "Paga como más te convenga",
       gradient: "from-red-500 to-pink-600",
       badge: "💳",
-      stats: "+4 opciones",
-      features: ["Contraentrega", "Tarjetas", "Transferencia", "PSE"],
+      stats: "+3 opciones",
+      features: ["Contraentrega", "Nequi", "PSE"],
     },
     {
       icon: <FaShieldAlt className="w-12 h-12" />,
