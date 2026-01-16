@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
+import { Bell, Volume2 } from "lucide-react";
 
 const API = "https://gleaming-motivation-production-4018.up.railway.app";
 
@@ -12,6 +13,17 @@ export default function PedidosAdmin() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
+  // Estados para notificaciones
+  const [nuevosPedidos, setNuevosPedidos] = useState([]);
+  const [ultimoPedidoId, setUltimoPedidoId] = useState(null);
+  const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
+  const [sonidoActivo, setSonidoActivo] = useState(true);
+  const [contadorNuevos, setContadorNuevos] = useState(0);
+
+  const audioRef = useRef(null);
+  const notificationSound = "/sounds/notification.mp3"; // Necesitarás agregar este archivo
+
+  // Cargar pedidos iniciales
   const cargarPedidos = async (page = 1) => {
     setLoading(true);
     try {
@@ -39,6 +51,14 @@ export default function PedidosAdmin() {
       setPedidos(resultados);
       setPaginaActual(data.page);
       setTotalPaginas(data.totalPages);
+
+      // Guardar el ID del último pedido para comparaciones futuras
+      if (resultados.length > 0) {
+        const maxId = Math.max(...resultados.map((p) => p.id));
+        if (!ultimoPedidoId || maxId > ultimoPedidoId) {
+          setUltimoPedidoId(maxId);
+        }
+      }
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar los pedidos");
@@ -47,9 +67,83 @@ export default function PedidosAdmin() {
     }
   };
 
+  // Función para detectar nuevos pedidos
+  const verificarNuevosPedidos = async () => {
+    try {
+      const res = await fetch(
+        `${API}/api/pedidos-completo?limit=10&order=desc`
+      );
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data.ok || !data.results) return;
+
+      const nuevos = data.results.filter((pedido) => {
+        // Filtrar solo pedidos más recientes que el último conocido
+        return (
+          (!ultimoPedidoId || pedido.id > ultimoPedidoId) &&
+          pedido.estado === "pendiente"
+        );
+      });
+
+      if (nuevos.length > 0) {
+        // Actualizar último ID
+        const maxId = Math.max(...nuevos.map((p) => p.id));
+        setUltimoPedidoId(maxId);
+
+        // Agregar a la lista de nuevos pedidos
+        setNuevosPedidos((prev) => {
+          const nuevosIds = nuevos.map((p) => p.id);
+          const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
+          return [...nuevos, ...filtrados].slice(0, 5); // Mantener solo últimos 5
+        });
+
+        // Mostrar notificación
+        setMostrarNotificacion(true);
+        setContadorNuevos((prev) => prev + nuevos.length);
+
+        // Reproducir sonido si está activo
+        if (sonidoActivo && audioRef.current) {
+          try {
+            audioRef.current.currentTime = 0;
+            audioRef.current
+              .play()
+              .catch((e) => console.log("Error reproduciendo sonido:", e));
+          } catch (error) {
+            console.log("Error con audio:", error);
+          }
+        }
+
+        // Ocultar notificación después de 5 segundos
+        setTimeout(() => {
+          setMostrarNotificacion(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.log("Error verificando nuevos pedidos:", error);
+    }
+  };
+
+  // Efecto para cargar pedidos iniciales
   useEffect(() => {
     cargarPedidos(paginaActual);
+
+    // Configurar intervalo para verificar nuevos pedidos cada 10 segundos
+    const interval = setInterval(verificarNuevosPedidos, 10000);
+
+    // Verificar inmediatamente
+    setTimeout(verificarNuevosPedidos, 2000);
+
+    return () => clearInterval(interval);
   }, [paginaActual, estadoFiltro]);
+
+  // Efecto para limpiar contador cuando se visitan los pedidos
+  useEffect(() => {
+    if (pedidos.length > 0) {
+      setContadorNuevos(0);
+    }
+  }, [pedidos]);
 
   const cambiarEstado = async (id) => {
     try {
@@ -62,6 +156,35 @@ export default function PedidosAdmin() {
     } catch {
       alert("Error cambiando el estado");
     }
+  };
+
+  const limpiarNotificaciones = () => {
+    setNuevosPedidos([]);
+    setMostrarNotificacion(false);
+    setContadorNuevos(0);
+  };
+
+  // Audio fallback si no hay archivo
+  const playFallbackSound = () => {
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800;
+    oscillator.type = "sine";
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioContext.currentTime + 0.5
+    );
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
   };
 
   if (loading)
@@ -162,6 +285,143 @@ export default function PedidosAdmin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-red-50 p-4 md:p-8">
+      {/* Elemento de audio oculto */}
+      <audio
+        ref={audioRef}
+        preload="auto"
+        onError={() => {
+          console.log("Error cargando sonido, usando fallback");
+        }}
+      >
+        <source src={notificationSound} type="audio/mpeg" />
+        <source src="/sounds/notification.ogg" type="audio/ogg" />
+        <source src="/sounds/notification.wav" type="audio/wav" />
+      </audio>
+
+      {/* Notificación flotante estilo Shopify */}
+      {mostrarNotificacion && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in-up">
+          <div className="bg-white rounded-xl shadow-2xl border border-green-200 overflow-hidden max-w-sm">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">
+                      ¡Nuevo Pedido!
+                    </h3>
+                    <p className="text-white/90 text-sm">
+                      {nuevosPedidos.length}{" "}
+                      {nuevosPedidos.length === 1
+                        ? "pedido nuevo"
+                        : "pedidos nuevos"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={limpiarNotificaciones}
+                  className="text-white/80 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 max-h-64 overflow-y-auto">
+              {nuevosPedidos.slice(0, 3).map((pedido, index) => (
+                <div
+                  key={pedido.id}
+                  className={`p-3 rounded-lg mb-2 ${
+                    index % 2 === 0 ? "bg-green-50" : "bg-white"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        #{pedido.id} - {pedido.nombre}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        ${Number(pedido.total).toLocaleString()} •{" "}
+                        {pedido.ciudad_nombre}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date().toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                      NUEVO
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {nuevosPedidos.length > 3 && (
+                <div className="text-center pt-2">
+                  <p className="text-sm text-gray-500">
+                    +{nuevosPedidos.length - 3} más...
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  cargarPedidos(1);
+                  limpiarNotificaciones();
+                }}
+                className="w-full mt-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all"
+              >
+                Ver todos los pedidos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Botón de notificaciones en esquina */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <div className="flex flex-col items-end gap-2">
+          {contadorNuevos > 0 && (
+            <div className="animate-pulse">
+              <div className="bg-red-600 text-white text-xs font-bold rounded-full px-3 py-1 shadow-lg">
+                {contadorNuevos} nuevo{contadorNuevos !== 1 ? "s" : ""}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 bg-white rounded-full shadow-lg p-2">
+            <button
+              onClick={() => setSonidoActivo(!sonidoActivo)}
+              className={`p-2 rounded-full ${
+                sonidoActivo
+                  ? "bg-green-100 text-green-600"
+                  : "bg-gray-100 text-gray-400"
+              }`}
+              title={sonidoActivo ? "Sonido activado" : "Sonido desactivado"}
+            >
+              <Volume2 className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={verificarNuevosPedidos}
+              className="relative p-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full hover:from-red-700 hover:to-red-800 transition-all"
+              title="Verificar nuevos pedidos"
+            >
+              <Bell className="w-5 h-5" />
+              {contadorNuevos > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-red-600 text-xs font-bold rounded-full flex items-center justify-center">
+                  {contadorNuevos}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Header con fondo blanco y acentos rojos */}
       <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -170,12 +430,20 @@ export default function PedidosAdmin() {
               <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-xl">📦</span>
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-red-600 bg-clip-text text-transparent">
-                Gestión de Pedidos
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-red-600 bg-clip-text text-transparent">
+                  Gestión de Pedidos
+                </h1>
+                {contadorNuevos > 0 && (
+                  <span className="bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-bold px-3 py-1 rounded-full animate-pulse">
+                    {contadorNuevos} NUEVO{contadorNuevos !== 1 ? "S" : ""}
+                  </span>
+                )}
+              </div>
             </div>
             <p className="text-gray-500 text-sm">
               Administra y monitorea todos los pedidos del sistema
+              {sonidoActivo && " 🔊 Notificaciones activadas"}
             </p>
           </div>
 
@@ -218,6 +486,7 @@ export default function PedidosAdmin() {
         </div>
       </div>
 
+      {/* Resto del componente sigue igual... */}
       {/* Tarjeta de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-2xl shadow border border-red-100 p-6">
@@ -298,12 +567,21 @@ export default function PedidosAdmin() {
               {pedidos.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-red-50 hover:bg-red-50 transition-colors group"
+                  className={`border-b border-red-50 hover:bg-red-50 transition-colors group ${
+                    nuevosPedidos.some((np) => np.id === p.id)
+                      ? "bg-gradient-to-r from-green-50/50 to-emerald-50/50 animate-pulse-border"
+                      : ""
+                  }`}
                 >
                   <td className="py-4 px-6">
                     <span className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-lg font-mono font-semibold text-sm">
                       #{p.id}
                     </span>
+                    {nuevosPedidos.some((np) => np.id === p.id) && (
+                      <span className="ml-2 inline-block bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        NUEVO
+                      </span>
+                    )}
                   </td>
                   <td className="py-4 px-6">
                     <div>
@@ -419,9 +697,52 @@ export default function PedidosAdmin() {
           </button>
         </div>
       )}
+
+      {/* Estilos CSS para animaciones */}
+      <style>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes pulse-border {
+          0%, 100% {
+            border-left: 4px solid transparent;
+          }
+          50% {
+            border-left: 4px solid #10b981;
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.3s ease-out;
+        }
+        
+        .animate-pulse-border {
+          animation: pulse-border 2s infinite;
+        }
+        
+        /* Sonido de notificación CSS fallback */
+        @keyframes sound-wave {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+        
+        .sound-active {
+          animation: sound-wave 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
+
+//
 
 // import { useEffect, useState } from "react";
 // import { Link } from "react-router-dom";
