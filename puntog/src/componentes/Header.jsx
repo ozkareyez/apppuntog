@@ -53,9 +53,9 @@ export default function Header() {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-1 md:gap-2">
           <Sparkles size={10} className="text-yellow-300 flex-shrink-0" />
           <div className="truncate text-center">
-            🚚 <span className="font-semibold">ENVÍO GRATIS</span> +$150.000
+            🚚 <span className="font-semibold">ENVÍO GRATIS</span> +$200.000
             <span className="mx-1 md:mx-2">•</span>
-            🎁 <span className="font-semibold">3 CUOTAS</span> SIN INTERÉS
+            🎁 <span className="font-semibold">DESPACHOS A TODA </span> COLOMBIA
           </div>
           <Sparkles size={10} className="text-yellow-300 flex-shrink-0" />
         </div>
@@ -70,7 +70,7 @@ export default function Header() {
         }`}
       >
         <div className="w-full px-3 md:px-6 h-full">
-          <div className="h-16 md:h-20 flex items-center justify-between max-w-7xl mx-auto">
+          <div className="h-16 md:h-24   flex items-center justify-between max-w-7xl mx-auto">
             {/* LOGO SIMPLIFICADO */}
             <Link to="/" className="flex items-center">
               <div className="relative">
@@ -78,7 +78,7 @@ export default function Header() {
                   src="/imagenes/logo.png"
                   alt="Punto G"
                   // Logo siempre con colores originales, sin filtros
-                  className="h-30 md:h-12 w-auto object-contain"
+                  className="h-30 md:h-30 w-auto object-contain"
                   onError={(e) => {
                     console.log(
                       "Logo error, current src:",
