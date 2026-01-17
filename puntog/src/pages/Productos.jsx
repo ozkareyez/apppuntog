@@ -500,10 +500,10 @@ const Productos = () => {
                           e.stopPropagation();
                           addToCart(producto);
                         }}
-                        className="flex-1 py-2 rounded-lg font-medium flex items-center justify-center gap-1 bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-md text-xs"
+                        className="flex-1 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-md text-xs md:text-sm px-1 md:px-2"
                       >
-                        <ShoppingCart size={12} />
-                        Agregar
+                        <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                        <span className="truncate">Agregar</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -677,9 +677,9 @@ const Productos = () => {
                               className="fill-amber-400 text-amber-400"
                             />
                             <span className="font-medium text-sm">4.8</span>
-                            <span className="text-gray-500 text-xs">
+                            {/* <span className="text-gray-500 text-xs">
                               (128 reseñas)
-                            </span>
+                            </span> */}
                           </div>
                           <span className="text-green-600 font-medium text-sm">
                             En stock
