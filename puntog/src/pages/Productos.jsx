@@ -468,7 +468,7 @@ const Productos = () => {
                   </div>
 
                   {/* PRODUCT INFO - SIN DESCRIPCIÓN */}
-                  <div className="p-3">
+                  <div className="p-2 md:p-3">
                     {/* RATING - Opcional, puedes comentarlo si quieres */}
                     {/* <div className="flex items-center gap-1 mb-1">
                       {[...Array(5)].map((_, i) => (
@@ -732,7 +732,7 @@ const Productos = () => {
                         }}
                         className="flex-1 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:shadow-lg transition text-sm"
                       >
-                        Agregar al carrito
+                        Agregar
                       </button>
                       <button
                         onClick={() => {
