@@ -238,75 +238,83 @@ const Productos = () => {
       {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto px-4">
         {/* FILTERS BAR - Más compacto */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => cambiarCategoria("todas")}
-              className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 flex items-center gap-1 text-sm
-                ${
-                  categoriaActual === "todas"
-                    ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
-                }`}
-            >
-              <Sparkles size={14} />
-              Todas
-            </button>
-
-            {categorias.map((cat) => (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* CATEGORÍAS - Scroll horizontal en móvil */}
+          <div className="w-full md:w-auto">
+            <div className="flex overflow-x-auto pb-2 md:pb-0 md:flex-wrap gap-2 scrollbar-hide">
               <button
-                key={cat.id}
-                onClick={() => cambiarCategoria(cat.slug)}
-                className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 text-sm
-                  ${
-                    categoriaActual === cat.slug
-                      ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-                      : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
-                  }`}
+                onClick={() => cambiarCategoria("todas")}
+                className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 flex items-center gap-1 text-sm whitespace-nowrap flex-shrink-0
+          ${
+            categoriaActual === "todas"
+              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+              : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+          }`}
               >
-                {cat.nombre}
+                <Sparkles size={14} />
+                Todas
               </button>
-            ))}
+
+              {categorias.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => cambiarCategoria(cat.slug)}
+                  className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 text-sm whitespace-nowrap flex-shrink-0
+            ${
+              categoriaActual === cat.slug
+                ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+                : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+            }`}
+                >
+                  {cat.nombre}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-3 md:mt-0">
-            {/* SORT */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+          {/* FILTROS - Mejor responsive */}
+          <div className="w-full md:w-auto">
+            <div className="flex flex-wrap gap-2 justify-center md:justify-end">
+              {/* SORT - Más compacto en móvil */}
+              <div className="relative flex-shrink-0">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm w-full md:w-auto"
+                >
+                  <option value="recomendados">Recomendados</option>
+                  <option value="nuevos">Más nuevos</option>
+                  <option value="precio-asc">Precio: menor</option>
+                  <option value="precio-desc">Precio: mayor</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              </div>
+
+              {/* OFFERS FILTER - Botón más compacto */}
+              <button
+                onClick={toggleOferta}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg font-medium transition-all duration-300 text-sm whitespace-nowrap flex-shrink-0
+          ${
+            filtroOferta
+              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+              : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
+          }`}
               >
-                <option value="recomendados">Recomendados</option>
-                <option value="nuevos">Más nuevos</option>
-                <option value="precio-asc">Precio: menor a mayor</option>
-                <option value="precio-desc">Precio: mayor a menor</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                <Tag size={14} />
+                <span className="hidden sm:inline">Ofertas</span>
+                <span className="sm:hidden">Ofertas</span>
+              </button>
+
+              {/* FILTERS TOGGLE - Botón más compacto */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 hover:border-red-600 hover:text-red-600 transition text-sm whitespace-nowrap flex-shrink-0"
+              >
+                <Filter size={14} />
+                <span className="hidden sm:inline">Filtros</span>
+                <span className="sm:hidden">Filtros</span>
+              </button>
             </div>
-
-            {/* OFFERS FILTER */}
-            <button
-              onClick={toggleOferta}
-              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm
-                ${
-                  filtroOferta
-                    ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-                    : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
-                }`}
-            >
-              <Tag size={14} />
-              {filtroOferta ? "Ofertas" : "Ofertas"}
-            </button>
-
-            {/* FILTERS TOGGLE */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 hover:border-red-600 hover:text-red-600 transition text-sm"
-            >
-              <Filter size={14} />
-              Filtros
-            </button>
           </div>
         </div>
 
