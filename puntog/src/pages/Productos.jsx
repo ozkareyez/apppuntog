@@ -393,7 +393,7 @@ const Productos = () => {
         {loading ? (
           <LoadingSkeleton />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {currentProductos.map((producto) => {
               const precio = Number(producto.precio || 0);
               const precioAntes = Number(producto.precio_antes || 0);
