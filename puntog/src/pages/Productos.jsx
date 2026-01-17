@@ -102,7 +102,7 @@ const Productos = () => {
 
   const toggleWishlist = (id) => {
     setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -115,7 +115,7 @@ const Productos = () => {
         return sorted.sort((a, b) => b.precio - a.precio);
       case "nuevos":
         return sorted.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
         );
       default:
         return sorted;
@@ -123,7 +123,7 @@ const Productos = () => {
   };
 
   const filteredProductos = sortedProductos().filter(
-    (p) => p.precio >= priceRange[0] && p.precio <= priceRange[1]
+    (p) => p.precio >= priceRange[0] && p.precio <= priceRange[1],
   );
 
   // Cálculo de productos para la página actual
@@ -131,7 +131,7 @@ const Productos = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentProductos = filteredProductos.slice(
     indexOfFirstItem,
-    indexOfLastItem
+    indexOfLastItem,
   );
 
   // Función para cambiar de página
@@ -197,9 +197,9 @@ const Productos = () => {
   );
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12 ">
+    <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12">
       {/* HERO SECTION - Más compacto */}
-      <div className="max-w-7xl mx-auto px-4 mb-8 ">
+      <div className="max-w-7xl mx-auto px-4 mb-8">
         <div className="text-center mb-6 pt-15">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -381,11 +381,11 @@ const Productos = () => {
           </div>
         )}
 
-        {/* PRODUCTS GRID - Tarjetas más compactas */}
+        {/* PRODUCTS GRID - Tarjetas modificadas */}
         {loading ? (
           <LoadingSkeleton />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {currentProductos.map((producto) => {
               const precio = Number(producto.precio || 0);
               const precioAntes = Number(producto.precio_antes || 0);
@@ -444,14 +444,14 @@ const Productos = () => {
                       onError={(e) => (e.target.src = "/imagenes/no-image.png")}
                     />
 
-                    {/* QUICK VIEW OVERLAY */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {/* QUICK VIEW OVERLAY - Siempre visible en móvil */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity duration-300">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setQuickView(producto);
                         }}
-                        className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full font-medium flex items-center gap-1 hover:scale-105 transition-transform text-xs"
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full font-medium flex items-center gap-1 hover:scale-105 transition-transform text-xs"
                       >
                         <Eye size={12} />
                         Vista rápida
@@ -459,9 +459,10 @@ const Productos = () => {
                     </div>
                   </div>
 
-                  {/* PRODUCT INFO */}
+                  {/* PRODUCT INFO - SIN DESCRIPCIÓN */}
                   <div className="p-3">
-                    <div className="flex items-center gap-1 mb-1">
+                    {/* RATING - Opcional, puedes comentarlo si quieres */}
+                    {/* <div className="flex items-center gap-1 mb-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
@@ -470,19 +471,14 @@ const Productos = () => {
                         />
                       ))}
                       <span className="text-xs text-gray-600 ml-1">4.8</span>
-                    </div>
+                    </div> */}
 
                     <h3
                       onClick={() => navigate(`/productos/${producto.id}`)}
-                      className="font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-red-600 transition text-sm"
+                      className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12 text-sm cursor-pointer hover:text-red-600 transition"
                     >
                       {producto.nombre}
                     </h3>
-
-                    <p className="text-gray-600 text-xs mb-2 line-clamp-2 h-8">
-                      {producto.descripcion?.substring(0, 60) ||
-                        "Producto premium de alta calidad"}
-                    </p>
 
                     {/* PRICE */}
                     <div className="flex items-center justify-between mb-3">
@@ -492,7 +488,7 @@ const Productos = () => {
                             ${precioAntes.toLocaleString()}
                           </p>
                         )}
-                        <p className="text-base font-bold text-red-600">
+                        <p className="text-lg font-bold text-red-600">
                           ${precio.toLocaleString()}
                         </p>
                       </div>
@@ -609,7 +605,7 @@ const Productos = () => {
                   >
                     {pageNumber}
                   </button>
-                )
+                ),
               )}
 
               {/* Botón siguiente */}
@@ -765,6 +761,9 @@ export default Productos;
 //   TrendingUp,
 //   ChevronDown,
 //   Sparkles,
+//   ChevronLeft,
+//   ChevronRight,
+//   MoreHorizontal,
 // } from "lucide-react";
 // import { useCart } from "@/context/CartContext";
 // import { API_URL } from "@/config";
@@ -783,6 +782,11 @@ export default Productos;
 //   const [priceRange, setPriceRange] = useState([0, 500000]);
 //   const [showFilters, setShowFilters] = useState(false);
 //   const [quickView, setQuickView] = useState(null);
+
+//   // Estados para paginación
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const [itemsPerPage, setItemsPerPage] = useState(20);
+//   const [totalPages, setTotalPages] = useState(1);
 
 //   const categoriaActual = searchParams.get("categoria") || "todas";
 //   const filtroOferta = searchParams.get("filtro") === "ofertas";
@@ -813,14 +817,23 @@ export default Productos;
 //     fetch(url)
 //       .then((res) => res.json())
 //       .then((data) => {
-//         setProductos(Array.isArray(data) ? data : []);
+//         const productosArray = Array.isArray(data) ? data : [];
+//         setProductos(productosArray);
+//         // Calcular total de páginas
+//         setTotalPages(Math.ceil(productosArray.length / itemsPerPage));
 //         setLoading(false);
 //       })
 //       .catch(() => {
 //         setProductos([]);
+//         setTotalPages(1);
 //         setLoading(false);
 //       });
 //   }, [categoriaActual, filtroOferta]);
+
+//   // Resetear a página 1 cuando cambian los filtros
+//   useEffect(() => {
+//     setCurrentPage(1);
+//   }, [categoriaActual, filtroOferta, sortBy, priceRange]);
 
 //   const cambiarCategoria = (slug) => {
 //     const params = new URLSearchParams(searchParams);
@@ -828,12 +841,14 @@ export default Productos;
 //       ? params.delete("categoria")
 //       : params.set("categoria", slug);
 //     setSearchParams(params);
+//     setCurrentPage(1); // Resetear a página 1
 //   };
 
 //   const toggleOferta = () => {
 //     const params = new URLSearchParams(searchParams);
 //     filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
 //     setSearchParams(params);
+//     setCurrentPage(1); // Resetear a página 1
 //   };
 
 //   const toggleWishlist = (id) => {
@@ -861,6 +876,64 @@ export default Productos;
 //   const filteredProductos = sortedProductos().filter(
 //     (p) => p.precio >= priceRange[0] && p.precio <= priceRange[1]
 //   );
+
+//   // Cálculo de productos para la página actual
+//   const indexOfLastItem = currentPage * itemsPerPage;
+//   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+//   const currentProductos = filteredProductos.slice(
+//     indexOfFirstItem,
+//     indexOfLastItem
+//   );
+
+//   // Función para cambiar de página
+//   const paginate = (pageNumber) => {
+//     if (pageNumber < 1 || pageNumber > totalPages) return;
+//     setCurrentPage(pageNumber);
+//     // Scroll suave hacia arriba
+//     window.scrollTo({
+//       top: 0,
+//       behavior: "smooth",
+//     });
+//   };
+
+//   // Función para generar números de página
+//   const getPageNumbers = () => {
+//     const pageNumbers = [];
+//     const maxVisiblePages = 5;
+
+//     if (totalPages <= maxVisiblePages) {
+//       for (let i = 1; i <= totalPages; i++) {
+//         pageNumbers.push(i);
+//       }
+//     } else {
+//       if (currentPage <= 3) {
+//         // Páginas al inicio
+//         for (let i = 1; i <= 5; i++) {
+//           pageNumbers.push(i);
+//         }
+//         pageNumbers.push("...");
+//         pageNumbers.push(totalPages);
+//       } else if (currentPage >= totalPages - 2) {
+//         // Páginas al final
+//         pageNumbers.push(1);
+//         pageNumbers.push("...");
+//         for (let i = totalPages - 4; i <= totalPages; i++) {
+//           pageNumbers.push(i);
+//         }
+//       } else {
+//         // Páginas en el medio
+//         pageNumbers.push(1);
+//         pageNumbers.push("...");
+//         for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+//           pageNumbers.push(i);
+//         }
+//         pageNumbers.push("...");
+//         pageNumbers.push(totalPages);
+//       }
+//     }
+
+//     return pageNumbers;
+//   };
 
 //   const LoadingSkeleton = () => (
 //     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1050,12 +1123,21 @@ export default Productos;
 //           )}
 //         </AnimatePresence>
 
+//         {/* PRODUCTS COUNT */}
+//         {!loading && filteredProductos.length > 0 && (
+//           <div className="mb-4 text-sm text-gray-600">
+//             Mostrando {indexOfFirstItem + 1}-
+//             {Math.min(indexOfLastItem, filteredProductos.length)} de{" "}
+//             {filteredProductos.length} productos
+//           </div>
+//         )}
+
 //         {/* PRODUCTS GRID - Tarjetas más compactas */}
 //         {loading ? (
 //           <LoadingSkeleton />
 //         ) : (
 //           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-//             {filteredProductos.map((producto) => {
+//             {currentProductos.map((producto) => {
 //               const precio = Number(producto.precio || 0);
 //               const precioAntes = Number(producto.precio_antes || 0);
 //               const esOferta = Number(producto.es_oferta) === 1;
@@ -1227,6 +1309,95 @@ export default Productos;
 //           </motion.div>
 //         )}
 
+//         {/* PAGINATION - Funcional */}
+//         {filteredProductos.length > itemsPerPage && (
+//           <motion.div
+//             initial={{ opacity: 0, y: 10 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             className="mt-12 flex flex-col items-center gap-4"
+//           >
+//             {/* Información de página */}
+//             <div className="text-sm text-gray-600">
+//               Página {currentPage} de {totalPages} • {filteredProductos.length}{" "}
+//               productos
+//             </div>
+
+//             {/* Navegación */}
+//             <div className="flex items-center gap-1">
+//               {/* Botón anterior */}
+//               <button
+//                 onClick={() => paginate(currentPage - 1)}
+//                 disabled={currentPage === 1}
+//                 className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm
+//                   ${
+//                     currentPage === 1
+//                       ? "text-gray-400 cursor-not-allowed border border-gray-200"
+//                       : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+//                   }`}
+//               >
+//                 <ChevronLeft size={16} />
+//               </button>
+
+//               {/* Números de página */}
+//               {getPageNumbers().map((pageNumber, index) =>
+//                 pageNumber === "..." ? (
+//                   <span
+//                     key={`dots-${index}`}
+//                     className="w-10 h-10 flex items-center justify-center text-gray-400"
+//                   >
+//                     <MoreHorizontal size={16} />
+//                   </span>
+//                 ) : (
+//                   <button
+//                     key={pageNumber}
+//                     onClick={() => paginate(pageNumber)}
+//                     className={`w-10 h-10 rounded-md font-medium transition text-sm
+//                       ${
+//                         currentPage === pageNumber
+//                           ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md"
+//                           : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+//                       }`}
+//                   >
+//                     {pageNumber}
+//                   </button>
+//                 )
+//               )}
+
+//               {/* Botón siguiente */}
+//               <button
+//                 onClick={() => paginate(currentPage + 1)}
+//                 disabled={currentPage === totalPages}
+//                 className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm
+//                   ${
+//                     currentPage === totalPages
+//                       ? "text-gray-400 cursor-not-allowed border border-gray-200"
+//                       : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+//                   }`}
+//               >
+//                 <ChevronRight size={16} />
+//               </button>
+//             </div>
+
+//             {/* Selector de items por página (opcional) */}
+//             <div className="flex items-center gap-2 text-sm text-gray-600">
+//               <span>Mostrar:</span>
+//               <select
+//                 value={itemsPerPage}
+//                 onChange={(e) => {
+//                   setItemsPerPage(Number(e.target.value));
+//                   setCurrentPage(1); // Resetear a página 1
+//                 }}
+//                 className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+//               >
+//                 <option value={12}>12 productos</option>
+//                 <option value={20}>20 productos</option>
+//                 <option value={32}>32 productos</option>
+//                 <option value={48}>48 productos</option>
+//               </select>
+//             </div>
+//           </motion.div>
+//         )}
+
 //         {/* QUICK VIEW MODAL - Más compacto */}
 //         <AnimatePresence>
 //           {quickView && (
@@ -1326,27 +1497,6 @@ export default Productos;
 //             </motion.div>
 //           )}
 //         </AnimatePresence>
-
-//         {/* PAGINATION - Más compacto */}
-//         {filteredProductos.length > 0 && (
-//           <div className="mt-12 flex justify-center">
-//             <div className="flex items-center gap-1">
-//               {[1, 2, 3, 4, 5].map((page) => (
-//                 <button
-//                   key={page}
-//                   className={`w-8 h-8 rounded-md font-medium transition text-sm
-//                     ${
-//                       page === 1
-//                         ? "bg-red-600 text-white"
-//                         : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600"
-//                     }`}
-//                 >
-//                   {page}
-//                 </button>
-//               ))}
-//             </div>
-//           </div>
-//         )}
 //       </div>
 //     </section>
 //   );
