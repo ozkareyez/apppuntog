@@ -219,31 +219,46 @@ export default function FormularioProducto() {
     setMensaje("");
 
     // Validaciones
-    if (uploadedImages.length === 0) {
+    if (form.imagenes.length === 0) {
       setMensaje("❌ Debes subir al menos una imagen");
       setLoading(false);
       return;
     }
 
+    if (
+      !form.nombre.trim() ||
+      !form.precio.trim() ||
+      !form.categoria_id.trim()
+    ) {
+      setMensaje("❌ Completa los campos requeridos");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // ✅ CORREGIDO: NO enviar el campo 'stock' que no existe en tu tabla
+      // Preparar datos para el backend - AHORA ENVIAMOS OBJETOS COMPLETOS
       const productoData = {
         categoria: form.categoria || null,
         nombre: form.nombre,
         talla: form.talla || null,
         color: form.color || null,
         precio: parseFloat(form.precio),
-        imagen: uploadedImages.length > 0 ? uploadedImages[0].url : null,
+        // Para compatibilidad: enviar primera imagen como 'imagen'
+        imagen: form.imagenes.length > 0 ? form.imagenes[0].url : null,
         categoria_id: parseInt(form.categoria_id),
         precio_antes: form.precio_antes ? parseFloat(form.precio_antes) : null,
         descuento: form.descuento ? parseInt(form.descuento) : null,
         es_oferta: form.es_oferta,
         descripcion: form.descripcion || null,
-        // ❌ NO ENVIAR 'stock' - esa columna no existe en tu tabla
-        imagenes: uploadedImages.map((img) => img.url),
+        // Enviar array de objetos con url y public_id
+        imagenes: form.imagenes.map((img) => ({
+          url: img.url,
+          public_id: img.public_id,
+        })),
       };
 
       console.log("📤 Enviando datos del producto al backend:", productoData);
+      console.log("🔍 Imágenes que se enviarán:", productoData.imagenes);
 
       const res = await fetch(`${API_URL}/api/productos`, {
         method: "POST",
@@ -273,6 +288,7 @@ export default function FormularioProducto() {
       setPreviews([]);
       setUploadedImages([]);
 
+      // Limpiar mensaje después de 5 segundos
       setTimeout(() => setMensaje(""), 5000);
     } catch (error) {
       console.error("❌ Error guardando producto:", error);
