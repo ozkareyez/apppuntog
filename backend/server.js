@@ -5,29 +5,36 @@ import path from "path";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
-import ExcelJS from "exceljs";
 
 /* ================= APP ================= */
 const app = express();
 const PORT = process.env.PORT || 3002;
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= PATH ================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
-  host: process.env.MYSQLHOST,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE,
-  port: process.env.MYSQLPORT,
+  host: process.env.MYSQLHOST || "localhost",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "",
+  database: process.env.MYSQLDATABASE || "tu_base_de_datos",
+  port: process.env.MYSQLPORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
 /* ================= CLOUDINARY CONFIG ================= */
@@ -46,21 +53,60 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = allowedTypes.test(file.mimetype);
-    if (mimetype) {
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase(),
+    );
+
+    if (mimetype && extname) {
       cb(null, true);
     } else {
-      cb(new Error("Solo se permiten imágenes"));
+      cb(new Error("Solo se permiten imágenes (jpeg, jpg, png, gif, webp)"));
     }
   },
 });
 
+/* ================= MIDDLEWARE DE LOGGING ================= */
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.url}`);
+  next();
+});
+
 /* ================= ROOT ================= */
-app.get("/", (_, res) => res.json({ ok: true }));
+app.get("/", (_, res) => {
+  console.log("✅ Root endpoint accedido");
+  res.json({
+    ok: true,
+    message: "Backend funcionando correctamente",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/* ================= HEALTH CHECK ================= */
+app.get("/api/health", (req, res) => {
+  console.log("🔍 Health check solicitado");
+  res.json({
+    ok: true,
+    message: "Backend funcionando correctamente",
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      "GET    /api/productos",
+      "GET    /api/productos/:id",
+      "POST   /api/productos",
+      "GET    /api/categorias",
+      "POST   /api/upload-imagen",
+      "GET    /api/productos-recomendados/:id",
+      "PUT    /api/productos/:id",
+      "DELETE /api/productos/:id",
+      "GET    /api/pedidos",
+      "GET    /api/pedidos-completo",
+    ],
+  });
+});
 
 /* ================= UPLOAD UNA IMAGEN - CLOUDINARY ================= */
 app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
   try {
-    console.log("📤 Recibiendo archivo...");
+    console.log("📤 Recibiendo archivo para upload...");
 
     if (!req.file) {
       return res.status(400).json({
@@ -68,6 +114,10 @@ app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
         message: "No se subió imagen",
       });
     }
+
+    console.log(
+      `📄 Archivo: ${req.file.originalname} (${req.file.size} bytes)`,
+    );
 
     const b64 = req.file.buffer.toString("base64");
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
@@ -97,7 +147,7 @@ app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
   }
 });
 
-/* ================= CREAR PRODUCTO (SIN STOCK) ================= */
+/* ================= CREAR PRODUCTO ================= */
 app.post("/api/productos", async (req, res) => {
   console.log("📥 Creando nuevo producto...");
 
@@ -115,6 +165,13 @@ app.post("/api/productos", async (req, res) => {
     imagenes = [],
   } = req.body;
 
+  console.log("📦 Datos recibidos:", {
+    nombre,
+    precio,
+    categoria_id,
+    imagenesCount: imagenes?.length || 0,
+  });
+
   // Validación
   if (!nombre || !precio || !categoria_id) {
     return res.status(400).json({
@@ -123,7 +180,7 @@ app.post("/api/productos", async (req, res) => {
     });
   }
 
-  if (imagenes.length === 0) {
+  if (!imagenes || imagenes.length === 0) {
     return res.status(400).json({
       ok: false,
       message: "Debe subir al menos una imagen",
@@ -172,7 +229,7 @@ app.post("/api/productos", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error MySQL:", error);
-    console.error("SQL Error details:", error.sqlMessage, error.sql);
+    console.error("SQL Error:", error.sql);
     res.status(500).json({
       ok: false,
       message: error.sqlMessage || error.message,
@@ -183,6 +240,8 @@ app.post("/api/productos", async (req, res) => {
 
 /* ================= TODOS LOS PRODUCTOS ================= */
 app.get("/api/productos", (req, res) => {
+  console.log("📥 Listando productos...");
+
   const { categoria, es_oferta, limit } = req.query;
 
   let query = `
@@ -213,11 +272,19 @@ app.get("/api/productos", (req, res) => {
     params.push(parseInt(limit));
   }
 
+  console.log("🔍 Ejecutando query:", query);
+  console.log("📊 Parámetros:", params);
+
   DB.query(query, params, (err, results) => {
     if (err) {
       console.error("❌ ERROR PRODUCTOS:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({
+        error: "Error al cargar productos",
+        details: err.message,
+      });
     }
+
+    console.log(`✅ ${results.length} productos encontrados`);
 
     const productos = results.map((p) => {
       // Construir array de imágenes
@@ -254,14 +321,13 @@ app.get("/api/productos", (req, res) => {
         categoria_slug: p.categoria_slug,
         activo: Boolean(p.activo),
         imagen: p.imagen,
-        imagenes: imagenesArray, // ✅ ARRAY DE IMÁGENES
+        imagenes: imagenesArray,
         imagen_cloud1: p.imagen_cloud1,
         imagen_cloud2: p.imagen_cloud2,
         imagen_cloud3: p.imagen_cloud3,
       };
     });
 
-    console.log(`✅ Enviando ${productos.length} productos`);
     res.json(productos);
   });
 });
@@ -285,17 +351,23 @@ app.get("/api/productos/:id", (req, res) => {
   DB.query(query, [id], (err, rows) => {
     if (err) {
       console.error("❌ ERROR PRODUCTO:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({
+        error: "Error al cargar producto",
+        details: err.message,
+      });
     }
 
     if (!rows.length) {
       console.log(`❌ Producto ${id} no encontrado`);
-      return res.status(404).json({ error: "Producto no encontrado" });
+      return res.status(404).json({
+        error: "Producto no encontrado",
+        id: id,
+      });
     }
 
     const p = rows[0];
 
-    // ✅ CONSTRUIR ARRAY DE IMÁGENES
+    // Construir array de imágenes
     const imagenesArray = [];
 
     // Agregar imágenes cloud
@@ -330,7 +402,7 @@ app.get("/api/productos/:id", (req, res) => {
       categoria_slug: p.categoria_slug,
       activo: Boolean(p.activo),
       imagen: p.imagen,
-      imagenes: imagenesArray, // ✅ ARRAY SIEMPRE DEFINIDO
+      imagenes: imagenesArray,
       imagen_cloud1: p.imagen_cloud1,
       imagen_cloud2: p.imagen_cloud2,
       imagen_cloud3: p.imagen_cloud3,
@@ -343,7 +415,7 @@ app.get("/api/productos/:id", (req, res) => {
   });
 });
 
-/* ================= CATEGORÍAS ================= */
+/* ================= CATEGORÍAS (CORREGIDO) ================= */
 app.get("/api/categorias", (req, res) => {
   console.log("📥 Solicitando categorías...");
 
@@ -357,28 +429,42 @@ app.get("/api/categorias", (req, res) => {
   DB.query(query, (err, results) => {
     if (err) {
       console.error("❌ ERROR CATEGORÍAS:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({
+        ok: false,
+        error: "Error al cargar categorías",
+        details: err.message,
+      });
     }
 
-    console.log(`✅ Enviando ${results.length} categorías`);
-    res.json(results);
+    console.log(`✅ ${results.length} categorías encontradas`);
+
+    // Si no hay categorías, devolver array vacío
+    const categorias = Array.isArray(results) ? results : [];
+
+    res.json(categorias);
   });
 });
 
-/* ================= PEDIDOS (ENDPOINTS PARA EVITAR 404) ================= */
+/* ================= PEDIDOS (ENDPOINTS SIMPLIFICADOS) ================= */
 app.get("/api/pedidos", (req, res) => {
   console.log("📥 Solicitando pedidos...");
+
+  // Siempre devolver un array válido
   res.json([]);
 });
 
 app.get("/api/pedidos-completo", (req, res) => {
   console.log("📥 Solicitando pedidos completos...");
+
+  // Siempre devolver un array válido
   res.json([]);
 });
 
 /* ================= PRODUCTOS RECOMENDADOS ================= */
 app.get("/api/productos-recomendados/:id", async (req, res) => {
   const { id } = req.params;
+
+  console.log(`🔍 Buscando recomendados para producto ${id}`);
 
   try {
     const [producto] = await DB.promise().query(
@@ -387,7 +473,8 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
     );
 
     if (!producto.length) {
-      return res.status(404).json([]);
+      console.log(`❌ Producto ${id} no encontrado para recomendados`);
+      return res.json([]);
     }
 
     const categoriaId = producto[0].categoria_id;
@@ -440,11 +527,13 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
       };
     });
 
-    console.log(`✅ ${productosConImagenes.length} productos recomendados`);
+    console.log(
+      `✅ ${productosConImagenes.length} productos recomendados encontrados`,
+    );
     res.json(productosConImagenes);
   } catch (error) {
     console.error("❌ ERROR RECOMENDADOS:", error);
-    res.status(500).json([]);
+    res.json([]); // Siempre devolver array
   }
 });
 
@@ -464,6 +553,8 @@ app.put("/api/productos/:id", async (req, res) => {
     descripcion = null,
     imagenes = [],
   } = req.body;
+
+  console.log(`🔄 Actualizando producto ${id}...`);
 
   if (!nombre || !precio || !categoria_id) {
     return res.status(400).json({
@@ -521,6 +612,8 @@ app.put("/api/productos/:id", async (req, res) => {
       });
     }
 
+    console.log(`✅ Producto ${id} actualizado`);
+
     res.json({
       ok: true,
       message: "Producto actualizado correctamente",
@@ -538,6 +631,8 @@ app.put("/api/productos/:id", async (req, res) => {
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
+  console.log(`🗑️ Eliminando producto ${id}...`);
+
   try {
     const [result] = await DB.promise().query(
       "UPDATE productos SET activo = 0 WHERE id = ?",
@@ -550,6 +645,8 @@ app.delete("/api/productos/:id", async (req, res) => {
         message: "Producto no encontrado",
       });
     }
+
+    console.log(`✅ Producto ${id} eliminado (lógicamente)`);
 
     res.json({
       ok: true,
@@ -568,6 +665,8 @@ app.delete("/api/productos/:id", async (req, res) => {
 app.delete("/api/eliminar-imagen-cloudinary", async (req, res) => {
   const { public_id } = req.body;
 
+  console.log(`🗑️ Eliminando imagen Cloudinary: ${public_id}`);
+
   if (!public_id) {
     return res.status(400).json({
       ok: false,
@@ -579,14 +678,16 @@ app.delete("/api/eliminar-imagen-cloudinary", async (req, res) => {
     const result = await cloudinary.uploader.destroy(public_id);
 
     if (result.result === "ok") {
+      console.log("✅ Imagen eliminada de Cloudinary");
       res.json({
         ok: true,
         message: "Imagen eliminada correctamente",
       });
     } else {
+      console.error("❌ Error eliminando de Cloudinary:", result);
       res.status(500).json({
         ok: false,
-        message: "Error al eliminar imagen",
+        message: "Error al eliminar imagen de Cloudinary",
       });
     }
   } catch (error) {
@@ -598,123 +699,61 @@ app.delete("/api/eliminar-imagen-cloudinary", async (req, res) => {
   }
 });
 
-/* ================= EXPORTAR A EXCEL ================= */
-app.get("/api/exportar-productos-excel", async (req, res) => {
-  try {
-    const [productos] = await DB.promise().query(`
-      SELECT 
-        p.id,
-        p.nombre,
-        p.categoria,
-        p.precio,
-        p.precio_antes,
-        p.descuento,
-        p.es_oferta,
-        p.talla,
-        p.color,
-        p.descripcion,
-        p.imagen_cloud1,
-        p.imagen_cloud2,
-        p.imagen_cloud3,
-        c.nombre as categoria_nombre
-      FROM productos p
-      LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.activo = 1
-      ORDER BY p.id DESC
-    `);
+/* ================= MANEJO DE ERRORES GLOBAL ================= */
+app.use((err, req, res, next) => {
+  console.error("❌ ERROR GLOBAL:", err);
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Productos");
-
-    worksheet.columns = [
-      { header: "ID", key: "id", width: 10 },
-      { header: "Nombre", key: "nombre", width: 30 },
-      { header: "Categoría", key: "categoria", width: 20 },
-      { header: "Precio", key: "precio", width: 15 },
-      { header: "Precio Anterior", key: "precio_antes", width: 15 },
-      { header: "Descuento %", key: "descuento", width: 15 },
-      { header: "En Oferta", key: "es_oferta", width: 15 },
-      { header: "Talla", key: "talla", width: 10 },
-      { header: "Color", key: "color", width: 15 },
-      { header: "Descripción", key: "descripcion", width: 40 },
-      { header: "Imagen 1", key: "imagen_cloud1", width: 50 },
-      { header: "Imagen 2", key: "imagen_cloud2", width: 50 },
-      { header: "Imagen 3", key: "imagen_cloud3", width: 50 },
-    ];
-
-    productos.forEach((producto) => {
-      worksheet.addRow(producto);
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      ok: false,
+      message: "Error al subir archivo",
+      error: err.message,
     });
-
-    worksheet.getRow(1).eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "FFFFFF" } };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF6B46C1" },
-      };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-    });
-
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    res.setHeader("Content-Disposition", "attachment; filename=productos.xlsx");
-
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (error) {
-    console.error("❌ ERROR EXPORTAR EXCEL:", error);
-    res.status(500).json({ error: error.message });
   }
-});
 
-/* ================= HEALTH CHECK ================= */
-app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    message: "Backend funcionando correctamente",
-    timestamp: new Date().toISOString(),
-    endpoints: [
-      "GET  /api/productos",
-      "GET  /api/productos/:id",
-      "POST /api/productos",
-      "GET  /api/categorias",
-      "POST /api/upload-imagen",
-      "GET  /api/productos-recomendados/:id",
-      "PUT  /api/productos/:id",
-      "DELETE /api/productos/:id",
-      "GET  /api/pedidos",
-      "GET  /api/pedidos-completo",
-    ],
+  res.status(500).json({
+    ok: false,
+    message: "Error interno del servidor",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
   });
 });
 
 /* ================= 404 HANDLER ================= */
 app.use((req, res) => {
+  console.log(`❌ Endpoint no encontrado: ${req.method} ${req.url}`);
+
   res.status(404).json({
     ok: false,
     message: `Endpoint no encontrado: ${req.method} ${req.url}`,
     availableEndpoints: [
-      "GET  /api/productos",
-      "GET  /api/productos/:id",
-      "POST /api/productos",
-      "GET  /api/categorias",
-      "POST /api/upload-imagen",
-      "GET  /api/productos-recomendados/:id",
-      "PUT  /api/productos/:id",
+      "GET    /api/productos",
+      "GET    /api/productos/:id",
+      "POST   /api/productos",
+      "GET    /api/categorias",
+      "POST   /api/upload-imagen",
+      "GET    /api/productos-recomendados/:id",
+      "PUT    /api/productos/:id",
       "DELETE /api/productos/:id",
-      "GET  /api/pedidos",
-      "GET  /api/pedidos-completo",
+      "GET    /api/pedidos",
+      "GET    /api/pedidos-completo",
+      "GET    /api/health",
     ],
   });
 });
 
 /* ================= SERVER ================= */
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`🚀 Backend funcionando en puerto ${PORT}`),
-);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Backend funcionando en puerto ${PORT}`);
+  console.log(`🌐 URL: http://localhost:${PORT}`);
+  console.log("📋 Endpoints disponibles:");
+  console.log("  GET    /api/productos");
+  console.log("  GET    /api/productos/:id");
+  console.log("  POST   /api/productos");
+  console.log("  GET    /api/categorias");
+  console.log("  POST   /api/upload-imagen");
+  console.log("  GET    /api/productos-recomendados/:id");
+  console.log("  GET    /api/health");
+});
 
 // import express from "express";
 // import mysql from "mysql2";
