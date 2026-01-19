@@ -220,33 +220,30 @@ export default function FormularioProducto() {
 
     // Validaciones
     if (uploadedImages.length === 0) {
-      // Cambiado de form.imagenes a uploadedImages
       setMensaje("❌ Debes subir al menos una imagen");
       setLoading(false);
       return;
     }
 
     try {
-      // Preparar datos para el backend - Enviar URLs como strings
+      // ✅ CORREGIDO: NO enviar el campo 'stock' que no existe en tu tabla
       const productoData = {
         categoria: form.categoria || null,
         nombre: form.nombre,
         talla: form.talla || null,
         color: form.color || null,
         precio: parseFloat(form.precio),
-        // Para compatibilidad: enviar primera imagen como 'imagen'
         imagen: uploadedImages.length > 0 ? uploadedImages[0].url : null,
         categoria_id: parseInt(form.categoria_id),
         precio_antes: form.precio_antes ? parseFloat(form.precio_antes) : null,
         descuento: form.descuento ? parseInt(form.descuento) : null,
         es_oferta: form.es_oferta,
         descripcion: form.descripcion || null,
-        // ✅ CORREGIDO: Enviar array de URLs (strings)
-        imagenes: uploadedImages.map((img) => img.url), // Solo las URLs
+        // ❌ NO ENVIAR 'stock' - esa columna no existe en tu tabla
+        imagenes: uploadedImages.map((img) => img.url),
       };
 
       console.log("📤 Enviando datos del producto al backend:", productoData);
-      console.log("🔍 Imágenes que se enviarán:", productoData.imagenes);
 
       const res = await fetch(`${API_URL}/api/productos`, {
         method: "POST",
@@ -276,7 +273,6 @@ export default function FormularioProducto() {
       setPreviews([]);
       setUploadedImages([]);
 
-      // Limpiar mensaje después de 5 segundos
       setTimeout(() => setMensaje(""), 5000);
     } catch (error) {
       console.error("❌ Error guardando producto:", error);

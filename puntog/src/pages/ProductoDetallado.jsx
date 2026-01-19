@@ -562,18 +562,18 @@ const ProductoDetallado = () => {
                     </span>
                   </div>
                 )}
-
                 <div className="flex items-end gap-3">
                   <span className="text-5xl font-bold text-red-600">
                     ${precio.toLocaleString()}
                   </span>
                 </div>
-
+                // En el render donde aparece stock, cámbialo por algo como
+                "disponible" o quítalo:
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <span>Disponibilidad:</span>
                   <span className="flex items-center gap-1 text-green-600 font-medium">
                     <Check size={16} />
-                    En stock ({producto.stock || 10} unidades)
+                    En stock {/* O simplemente "Disponible" */}
                   </span>
                 </div>
               </div>
