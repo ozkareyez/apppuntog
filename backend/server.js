@@ -5,11 +5,15 @@ import path from "path";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
-import ExcelJS from "exceljs";
 
-/* ================= APP ================= */
+/* ================= CONFIGURACIÓN ================= */
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// Configuración de Cloudinary (IMPORTANTE: Configura esto en tus variables de entorno)
+const CLOUDINARY_CLOUD_NAME =
+  process.env.CLOUDINARY_CLOUD_NAME || "tu_cloud_name";
+const CLOUDINARY_FALLBACK_ID = "punto-g-productos/no-image"; // Cambia esto por tu public_id real
 
 /* ================= MIDDLEWARE ================= */
 app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
@@ -19,7 +23,6 @@ app.use(express.urlencoded({ extended: true }));
 /* ================= PATH ================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
@@ -37,9 +40,53 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+/* ================= FUNCIÓN AUXILIAR: PROCESAR IMÁGENES ================= */
+const procesarImagenesProducto = (producto) => {
+  const imagenes = [];
+
+  // Agregar imágenes Cloudinary si existen
+  if (producto.imagen_cloud1) {
+    imagenes.push({
+      url: producto.imagen_cloud1,
+      public_id: producto.public_id1,
+      type: "cloud",
+    });
+  }
+  if (producto.imagen_cloud2) {
+    imagenes.push({
+      url: producto.imagen_cloud2,
+      public_id: producto.public_id2,
+      type: "cloud",
+    });
+  }
+  if (producto.imagen_cloud3) {
+    imagenes.push({
+      url: producto.imagen_cloud3,
+      public_id: producto.public_id3,
+      type: "cloud",
+    });
+  }
+
+  // ⭐⭐⭐ SOLUCIÓN PRINCIPAL: SI NO HAY IMÁGENES, USAR CLOUDINARY ⭐⭐⭐
+  if (imagenes.length === 0) {
+    const fallbackUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${CLOUDINARY_FALLBACK_ID}`;
+
+    imagenes.push({
+      url: fallbackUrl,
+      public_id: CLOUDINARY_FALLBACK_ID,
+      type: "cloud",
+    });
+
+    console.log(
+      `🔄 Usando imagen por defecto de Cloudinary para producto ${producto.id || "sin ID"}`,
+    );
+  }
+
+  return imagenes;
+};
+
 /* ================= MULTER ================= */
 const storage = multer.memoryStorage();
-
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -68,473 +115,17 @@ const uploadMultiple = multer({
   },
 }).array("imagenes", 3);
 
-/* ================= FUNCIÓN PARA VERIFICAR/CREAR TABLAS ================= */
-const verificarYCrearTablas = async () => {
-  console.log("🔧 Verificando estructura de la base de datos...");
-
-  try {
-    // 1. Verificar tabla 'categorias'
-    const [tablasCategorias] = await DB.promise().query(
-      "SHOW TABLES LIKE 'categorias'",
-    );
-
-    if (tablasCategorias.length === 0) {
-      console.log("📝 Creando tabla 'categorias'...");
-      await DB.promise().query(`
-        CREATE TABLE categorias (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          nombre VARCHAR(100) NOT NULL,
-          slug VARCHAR(100) UNIQUE NOT NULL,
-          descripcion TEXT,
-          activo TINYINT(1) DEFAULT 1,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
-
-      console.log("✅ Tabla 'categorias' creada");
-
-      // Insertar categorías por defecto
-      await DB.promise().query(`
-        INSERT INTO categorias (nombre, slug, descripcion) VALUES
-        ('Lencería', 'lenceria', 'Ropa interior femenina'),
-        ('Juguetes', 'juguetes', 'Productos para adultos'),
-        ('Lubricantes', 'lubricantes', 'Lubricantes y geles íntimos'),
-        ('Accesorios', 'accesorios', 'Accesorios y complementos')
-      `);
-      console.log("✅ 4 categorías insertadas por defecto");
-    } else {
-      console.log("✅ Tabla 'categorias' ya existe");
-
-      // Verificar si hay categorías
-      const [count] = await DB.promise().query(
-        "SELECT COUNT(*) as total FROM categorias",
-      );
-      if (count[0].total === 0) {
-        console.log("📝 Insertando categorías por defecto...");
-        await DB.promise().query(`
-          INSERT INTO categorias (nombre, slug, descripcion) VALUES
-          ('Lencería', 'lenceria', 'Ropa interior femenina'),
-          ('Juguetes', 'juguetes', 'Productos para adultos'),
-          ('Lubricantes', 'lubricantes', 'Lubricantes y geles íntimos'),
-          ('Accesorios', 'accesorios', 'Accesorios y complementos')
-        `);
-      }
-    }
-
-    console.log("🎉 Base de datos verificada y lista");
-  } catch (error) {
-    console.error("❌ Error verificando tablas:", error.message);
-  }
-};
-
-// Ejecutar al inicio
-verificarYCrearTablas();
-
-/* ================= ROOT ================= */
-app.get("/", (_, res) =>
-  res.json({ ok: true, message: "Backend Punto G funcionando" }),
-);
-
-/* ================= HEALTH CHECK ================= */
-app.get("/api/health", async (req, res) => {
-  try {
-    await DB.promise().query("SELECT 1");
-    res.json({
-      ok: true,
-      message: "✅ Backend y base de datos funcionando",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      message: "❌ Error de conexión a la base de datos",
-      error: error.message,
-    });
-  }
-});
-
-/* ================= CATEGORÍAS - ENDPOINT SIMPLE ================= */
-app.get("/api/categorias", async (req, res) => {
-  console.log("📥 Solicitando categorías...");
-  try {
-    const [results] = await DB.promise().query(`
-      SELECT id, nombre, slug, descripcion, activo
-      FROM categorias 
-      WHERE activo = 1 
-      ORDER BY nombre
-    `);
-
-    console.log(`✅ ${results.length} categorías encontradas`);
-
-    res.json(results);
-  } catch (error) {
-    console.error("❌ Error en /api/categorias:", error.message);
-
-    // Datos de emergencia
-    res.json([
-      { id: 1, nombre: "Lencería", slug: "lenceria" },
-      { id: 2, nombre: "Juguetes", slug: "juguetes" },
-      { id: 3, nombre: "Lubricantes", slug: "lubricantes" },
-      { id: 4, nombre: "Accesorios", slug: "accesorios" },
-    ]);
-  }
-});
-
-/* ================= PRODUCTOS - VERSIÓN COMPATIBLE CON TU ESTRUCTURA ================= */
-app.get("/api/productos", (req, res) => {
-  const { categoria, es_oferta, limit } = req.query;
-
-  console.log("📥 Productos solicitados - Categoría:", categoria || "todas");
-
-  // Query SIMPLE y COMPATIBLE
-  let query = "SELECT * FROM productos WHERE activo = 1";
-  const params = [];
-
-  if (categoria && categoria !== "todas") {
-    console.log(`🔍 Filtrando por categoría: "${categoria}"`);
-
-    // Mapeo de slug a valores de la base de datos
-    let categoriaValor = "";
-
-    if (categoria === "lenceria") categoriaValor = "categoria2";
-    else if (categoria === "juguetes") categoriaValor = "categoria1";
-    else if (categoria === "lubricantes") categoriaValor = "categoria3";
-    else if (categoria === "accesorios") categoriaValor = "categoria4";
-
-    if (categoriaValor) {
-      query += " AND categoria = ?";
-      params.push(categoriaValor);
-      console.log(`✅ Mapeo: "${categoria}" -> "${categoriaValor}"`);
-    } else {
-      // Si no es una categoría conocida, buscar directo
-      query += " AND categoria LIKE ?";
-      params.push(`%${categoria}%`);
-    }
-  }
-
-  if (es_oferta === "true") {
-    query += " AND es_oferta = 1";
-  }
-
-  query += " ORDER BY id DESC";
-
-  if (limit) {
-    query += " LIMIT ?";
-    params.push(parseInt(limit));
-  }
-
-  console.log("📊 Query:", query);
-  console.log("📊 Parámetros:", params);
-
-  DB.query(query, params, (err, results) => {
-    if (err) {
-      console.error("❌ ERROR PRODUCTOS:", err);
-      return res.status(500).json({ error: err.message });
-    }
-
-    console.log(`✅ ${results.length} productos encontrados`);
-
-    const productos = results.map((p) => {
-      // Determinar categoría amigable basada en p.categoria
-      let categoria_nombre = "Sin categoría";
-      let categoria_slug = "sin-categoria";
-      let categoria_id = 0;
-
-      if (p.categoria === "categoria1") {
-        categoria_nombre = "Juguetes";
-        categoria_slug = "juguetes";
-        categoria_id = 2;
-      } else if (p.categoria === "categoria2") {
-        categoria_nombre = "Lencería";
-        categoria_slug = "lenceria";
-        categoria_id = 1;
-      } else if (p.categoria === "categoria3") {
-        categoria_nombre = "Lubricantes";
-        categoria_slug = "lubricantes";
-        categoria_id = 3;
-      } else if (p.categoria === "categoria4") {
-        categoria_nombre = "Accesorios";
-        categoria_slug = "accesorios";
-        categoria_id = 4;
-      }
-
-      // Construir array de imágenes
-      const imagenes = [];
-
-      if (p.imagen_cloud1 && p.imagen_cloud1 !== "null") {
-        imagenes.push({
-          url: p.imagen_cloud1,
-          public_id: p.public_id1,
-          type: "cloud",
-        });
-      }
-      if (p.imagen_cloud2 && p.imagen_cloud2 !== "null") {
-        imagenes.push({
-          url: p.imagen_cloud2,
-          public_id: p.public_id2,
-          type: "cloud",
-        });
-      }
-      if (p.imagen_cloud3 && p.imagen_cloud3 !== "null") {
-        imagenes.push({
-          url: p.imagen_cloud3,
-          public_id: p.public_id3,
-          type: "cloud",
-        });
-      }
-
-      if (imagenes.length === 0 && p.imagen && p.imagen !== "null") {
-        imagenes.push({
-          url: p.imagen,
-          public_id: null,
-          type: "local",
-        });
-      }
-
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        descripcion: p.descripcion,
-        descripcion_breve: p.descripcion_breve,
-        precio: Number(p.precio) || 0,
-        precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-        descuento: p.descuento ? Number(p.descuento) : 0,
-        es_oferta: Boolean(p.es_oferta),
-        categoria: p.categoria,
-        talla: p.talla,
-        color: p.color,
-        categoria_id: categoria_id,
-        categoria_nombre: categoria_nombre,
-        categoria_slug: categoria_slug,
-        stock: p.stock || 10,
-        activo: Boolean(p.activo),
-        imagen: p.imagen,
-        imagenes: imagenes,
-        imagen_cloud1: p.imagen_cloud1,
-        imagen_cloud2: p.imagen_cloud2,
-        imagen_cloud3: p.imagen_cloud3,
-        created_at: p.created_at,
-      };
-    });
-
-    res.json(productos);
-  });
-});
-
-/* ================= PRODUCTO INDIVIDUAL CON ARRAY DE IMÁGENES ================= */
-app.get("/api/productos/:id", (req, res) => {
-  const query = `
-    SELECT * FROM productos 
-    WHERE id = ? AND activo = 1
-  `;
-
-  DB.query(query, [req.params.id], (err, rows) => {
-    if (err) {
-      console.error("❌ ERROR PRODUCTO:", err);
-      return res.status(500).json({ error: err.message });
-    }
-
-    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
-
-    const p = rows[0];
-
-    // Determinar categoría amigable
-    let categoria_nombre = "Sin categoría";
-    let categoria_slug = "sin-categoria";
-    let categoria_id = 0;
-
-    if (p.categoria === "categoria1") {
-      categoria_nombre = "Juguetes";
-      categoria_slug = "juguetes";
-      categoria_id = 2;
-    } else if (p.categoria === "categoria2") {
-      categoria_nombre = "Lencería";
-      categoria_slug = "lenceria";
-      categoria_id = 1;
-    } else if (p.categoria === "categoria3") {
-      categoria_nombre = "Lubricantes";
-      categoria_slug = "lubricantes";
-      categoria_id = 3;
-    } else if (p.categoria === "categoria4") {
-      categoria_nombre = "Accesorios";
-      categoria_slug = "accesorios";
-      categoria_id = 4;
-    }
-
-    // Construir array de imágenes
-    const imagenes = [];
-
-    if (p.imagen_cloud1 && p.imagen_cloud1 !== "null") {
-      imagenes.push({
-        url: p.imagen_cloud1,
-        public_id: p.public_id1,
-        type: "cloud",
-      });
-    }
-    if (p.imagen_cloud2 && p.imagen_cloud2 !== "null") {
-      imagenes.push({
-        url: p.imagen_cloud2,
-        public_id: p.public_id2,
-        type: "cloud",
-      });
-    }
-    if (p.imagen_cloud3 && p.imagen_cloud3 !== "null") {
-      imagenes.push({
-        url: p.imagen_cloud3,
-        public_id: p.public_id3,
-        type: "cloud",
-      });
-    }
-
-    if (imagenes.length === 0 && p.imagen && p.imagen !== "null") {
-      imagenes.push({
-        url: p.imagen,
-        public_id: null,
-        type: "local",
-      });
-    }
-
-    const producto = {
-      id: p.id,
-      nombre: p.nombre,
-      descripcion: p.descripcion,
-      descripcion_breve: p.descripcion_breve,
-      precio: Number(p.precio),
-      precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-      descuento: p.descuento ? Number(p.descuento) : 0,
-      es_oferta: Boolean(p.es_oferta),
-      categoria: p.categoria,
-      talla: p.talla,
-      color: p.color,
-      categoria_id: categoria_id,
-      categoria_nombre: categoria_nombre,
-      categoria_slug: categoria_slug,
-      stock: p.stock || 10,
-      activo: Boolean(p.activo),
-      imagen: p.imagen,
-      imagenes: imagenes,
-      imagen_cloud1: p.imagen_cloud1,
-      imagen_cloud2: p.imagen_cloud2,
-      imagen_cloud3: p.imagen_cloud3,
-    };
-
-    console.log(`✅ Producto ${p.id} enviado con ${imagenes.length} imágenes`);
-    res.json(producto);
-  });
-});
+/* ================= ENDPOINTS ================= */
 
 /* ================= UPLOAD MÚLTIPLES IMÁGENES - CLOUDINARY ================= */
-/* ================= CREAR PRODUCTO CON 3 IMÁGENES - VERSIÓN CORREGIDA ================= */
-app.post("/api/productos", async (req, res) => {
-  console.log("📥 Recibiendo datos del producto:", req.body);
-
-  const {
-    categoria = null,
-    nombre,
-    talla = null,
-    color = null,
-    precio,
-    categoria_id,
-    precio_antes = null,
-    descuento = null,
-    es_oferta = 0,
-    descripcion = null,
-    imagenes = [], // Array de objetos {url, public_id}
-  } = req.body;
-
-  // Validación
-  if (!nombre || !precio || !categoria_id) {
-    return res.status(400).json({
-      ok: false,
-      message: "Faltan campos obligatorios: nombre, precio, categoria_id",
-    });
-  }
-
-  console.log("📸 Imágenes recibidas:", imagenes);
-
-  // Preparar datos para los campos de imágenes
-  const imagen_cloud1 = imagenes.length > 0 ? imagenes[0].url : null;
-  const imagen_cloud2 = imagenes.length > 1 ? imagenes[1].url : null;
-  const imagen_cloud3 = imagenes.length > 2 ? imagenes[2].url : null;
-  const public_id1 = imagenes.length > 0 ? imagenes[0].public_id : null;
-  const public_id2 = imagenes.length > 1 ? imagenes[1].public_id : null;
-  const public_id3 = imagenes.length > 2 ? imagenes[2].public_id : null;
-
-  // Para compatibilidad: mantener el campo imagen con la primera imagen
-  const imagen = imagenes.length > 0 ? imagenes[0].url : null;
-
+app.post("/api/upload-imagenes", uploadMultiple, async (req, res) => {
   try {
-    console.log("💾 Insertando en la base de datos...");
+    console.log("📤 Recibiendo múltiples archivos...");
 
-    // Consulta SQL CORREGIDA: sin descripcion_breve y sin stock
-    const sql = `
-      INSERT INTO productos
-      (categoria, nombre, talla, color, precio, imagen, categoria_id,
-       precio_antes, descuento, es_oferta, descripcion,
-       imagen_cloud1, imagen_cloud2, imagen_cloud3,
-       public_id1, public_id2, public_id3)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    const params = [
-      categoria,
-      nombre,
-      talla,
-      color,
-      precio,
-      imagen,
-      categoria_id,
-      precio_antes,
-      descuento,
-      es_oferta,
-      descripcion,
-      // NO descripcion_breve
-      // NO stock
-      imagen_cloud1,
-      imagen_cloud2,
-      imagen_cloud3,
-      public_id1,
-      public_id2,
-      public_id3,
-    ];
-
-    console.log("📊 Ejecutando SQL:", sql);
-    console.log("📊 Parámetros:", params);
-
-    const [result] = await DB.promise().query(sql, params);
-
-    console.log(
-      `✅ Producto creado con ID: ${result.insertId}, ${imagenes.length} imágenes`,
-    );
-
-    res.status(201).json({
-      ok: true,
-      producto_id: result.insertId,
-    });
-  } catch (error) {
-    console.error("❌ Error MySQL:", error);
-    console.error("❌ Código de error:", error.code);
-    console.error("❌ Mensaje SQL:", error.sqlMessage);
-
-    res.status(500).json({
-      ok: false,
-      message: error.sqlMessage || error.message,
-      code: error.code,
-      sqlState: error.sqlState,
-    });
-  }
-});
-
-/* ================= UPLOAD UNA IMAGEN - CLOUDINARY ================= */
-app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
-  try {
-    console.log("📤 Recibiendo archivo...");
-
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         ok: false,
-        message: "No se subió imagen",
+        message: "No se subieron imágenes",
       });
     }
 
@@ -549,30 +140,164 @@ app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
       });
     }
 
-    const b64 = req.file.buffer.toString("base64");
-    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+    const uploadPromises = req.files.map((file) => {
+      const b64 = file.buffer.toString("base64");
+      const dataURI = `data:${file.mimetype};base64,${b64}`;
 
-    console.log("☁️ Subiendo a Cloudinary...");
-
-    const result = await cloudinary.uploader.upload(dataURI, {
-      folder: "punto-g-productos",
+      return cloudinary.uploader.upload(dataURI, {
+        folder: "punto-g-productos",
+      });
     });
 
-    console.log("✅ Imagen subida a Cloudinary:", result.secure_url);
+    const results = await Promise.all(uploadPromises);
 
     res.json({
       ok: true,
-      url: result.secure_url,
-      public_id: result.public_id,
+      imagenes: results.map((result) => ({
+        url: result.secure_url,
+        public_id: result.public_id,
+      })),
     });
   } catch (error) {
-    console.error("❌ ERROR Cloudinary:", error);
+    console.error("❌ ERROR Cloudinary múltiples:", error);
     res.status(500).json({
       ok: false,
-      message: "Error al subir imagen a Cloudinary",
-      error: error.message,
+      message: error.message || "Error al subir imágenes",
     });
   }
+});
+
+/* ================= PRODUCTOS CON ARRAY DE IMÁGENES (CORREGIDO) ================= */
+app.get("/api/productos", (req, res) => {
+  const { categoria, es_oferta, limit } = req.query;
+
+  let query = `
+    SELECT 
+      p.*,
+      c.nombre as categoria_nombre,
+      c.slug as categoria_slug
+    FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+  `;
+
+  const params = [];
+  const conditions = ["p.activo = 1"];
+
+  if (categoria && categoria !== "todas") {
+    conditions.push("c.slug = ?");
+    params.push(categoria);
+  }
+
+  if (es_oferta === "true") {
+    conditions.push("p.es_oferta = 1");
+  }
+
+  if (conditions.length) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += " ORDER BY p.id DESC";
+
+  if (limit) {
+    query += " LIMIT ?";
+    params.push(parseInt(limit));
+  }
+
+  DB.query(query, params, (err, results) => {
+    if (err) {
+      console.error("❌ ERROR PRODUCTOS:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    const productos = results.map((p) => {
+      // Usar la función auxiliar para procesar imágenes
+      const imagenes = procesarImagenesProducto(p);
+      const primeraImagen = imagenes.length > 0 ? imagenes[0].url : "";
+
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        descripcion_breve: p.descripcion_breve,
+        precio: Number(p.precio),
+        precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+        descuento: p.descuento ? Number(p.descuento) : 0,
+        es_oferta: Boolean(p.es_oferta),
+        categoria: p.categoria,
+        talla: p.talla,
+        color: p.color,
+        categoria_id: p.categoria_id,
+        categoria_nombre: p.categoria_nombre,
+        categoria_slug: p.categoria_slug,
+        stock: p.stock || 10,
+        activo: Boolean(p.activo),
+        imagen: primeraImagen, // ⭐⭐ SIEMPRE URL DE CLOUDINARY ⭐⭐
+        imagenes: imagenes,
+        imagen_cloud1: p.imagen_cloud1,
+        imagen_cloud2: p.imagen_cloud2,
+        imagen_cloud3: p.imagen_cloud3,
+      };
+    });
+
+    res.json(productos);
+  });
+});
+
+/* ================= PRODUCTO INDIVIDUAL CON ARRAY DE IMÁGENES (CORREGIDO) ================= */
+app.get("/api/productos/:id", (req, res) => {
+  const query = `
+    SELECT 
+      p.*,
+      c.nombre as categoria_nombre,
+      c.slug as categoria_slug
+    FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    WHERE p.id = ? AND p.activo = 1
+  `;
+
+  DB.query(query, [req.params.id], (err, rows) => {
+    if (err) {
+      console.error("❌ ERROR PRODUCTO:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!rows.length) return res.status(404).json({ error: "No encontrado" });
+
+    const p = rows[0];
+
+    // Usar la función auxiliar para procesar imágenes
+    const imagenes = procesarImagenesProducto(p);
+    const primeraImagen = imagenes.length > 0 ? imagenes[0].url : "";
+
+    const producto = {
+      id: p.id,
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      descripcion_breve: p.descripcion_breve,
+      precio: Number(p.precio),
+      precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+      descuento: p.descuento ? Number(p.descuento) : 0,
+      es_oferta: Boolean(p.es_oferta),
+      categoria: p.categoria,
+      talla: p.talla,
+      color: p.color,
+      categoria_id: p.categoria_id,
+      categoria_nombre: p.categoria_nombre,
+      categoria_slug: p.categoria_slug,
+      stock: p.stock || 10,
+      activo: Boolean(p.activo),
+      imagen: primeraImagen, // ⭐⭐ SIEMPRE URL DE CLOUDINARY ⭐⭐
+      imagenes: imagenes,
+      imagen_cloud1: p.imagen_cloud1,
+      imagen_cloud2: p.imagen_cloud2,
+      imagen_cloud3: p.imagen_cloud3,
+    };
+
+    console.log(
+      `✅ Producto ${p.id} enviado con ${imagenes.length} imágenes (Cloudinary)`,
+    );
+    res.json(producto);
+  });
 });
 
 /* ================= CREAR PRODUCTO CON 3 IMÁGENES ================= */
@@ -589,11 +314,10 @@ app.post("/api/productos", async (req, res) => {
     es_oferta = 0,
     descripcion = null,
     descripcion_breve = null,
-    // stock = 10,
-    imagenes = [], // Array de objetos {url, public_id}
+    stock = 10,
+    imagenes = [],
   } = req.body;
 
-  // Validación
   if (!nombre || !precio || !categoria_id) {
     return res.status(400).json({
       ok: false,
@@ -601,7 +325,6 @@ app.post("/api/productos", async (req, res) => {
     });
   }
 
-  // Preparar datos para los campos de imágenes
   const imagen_cloud1 = imagenes.length > 0 ? imagenes[0].url : null;
   const imagen_cloud2 = imagenes.length > 1 ? imagenes[1].url : null;
   const imagen_cloud3 = imagenes.length > 2 ? imagenes[2].url : null;
@@ -609,8 +332,11 @@ app.post("/api/productos", async (req, res) => {
   const public_id2 = imagenes.length > 1 ? imagenes[1].public_id : null;
   const public_id3 = imagenes.length > 2 ? imagenes[2].public_id : null;
 
-  // Para compatibilidad: mantener el campo imagen con la primera imagen
-  const imagen = imagenes.length > 0 ? imagenes[0].url : null;
+  // Siempre usar Cloudinary para la imagen principal
+  const imagen =
+    imagenes.length > 0
+      ? imagenes[0].url
+      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${CLOUDINARY_FALLBACK_ID}`;
 
   try {
     const [result] = await DB.promise().query(
@@ -643,10 +369,6 @@ app.post("/api/productos", async (req, res) => {
       ],
     );
 
-    console.log(
-      `✅ Producto creado con ID: ${result.insertId}, ${imagenes.length} imágenes`,
-    );
-
     res.status(201).json({
       ok: true,
       producto_id: result.insertId,
@@ -660,24 +382,20 @@ app.post("/api/productos", async (req, res) => {
   }
 });
 
-/* ================= PRODUCTOS RECOMENDADOS CON ARRAY DE IMÁGENES ================= */
+/* ================= PRODUCTOS RECOMENDADOS (CORREGIDO) ================= */
 app.get("/api/productos-recomendados/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 1️⃣ Obtener la categoría del producto actual
     const [producto] = await DB.promise().query(
-      "SELECT categoria FROM productos WHERE id = ? AND activo = 1",
+      "SELECT categoria_id FROM productos WHERE id = ? AND activo = 1",
       [id],
     );
 
-    if (!producto.length) {
-      return res.status(404).json([]);
-    }
+    if (!producto.length) return res.status(404).json([]);
 
-    const categoriaOriginal = producto[0].categoria;
+    const categoriaId = producto[0].categoria_id;
 
-    // 2️⃣ Buscar productos de la misma categoría
     const [recomendados] = await DB.promise().query(
       `
       SELECT 
@@ -694,68 +412,18 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
         p.es_oferta,
         p.precio_antes
       FROM productos p
-      WHERE p.categoria = ?
+      WHERE p.categoria_id = ?
         AND p.id != ?
         AND p.activo = 1
       ORDER BY RAND()
       LIMIT 10
       `,
-      [categoriaOriginal, id],
+      [categoriaId, id],
     );
 
-    // Procesar imágenes
     const productosConImagenes = recomendados.map((p) => {
-      const imagenes = [];
-
-      // Agregar imágenes Cloudinary
-      if (p.imagen_cloud1) {
-        imagenes.push({
-          url: p.imagen_cloud1,
-          public_id: p.public_id1,
-          type: "cloud",
-        });
-      }
-      if (p.imagen_cloud2) {
-        imagenes.push({
-          url: p.imagen_cloud2,
-          public_id: p.public_id2,
-          type: "cloud",
-        });
-      }
-      if (p.imagen_cloud3) {
-        imagenes.push({
-          url: p.imagen_cloud3,
-          public_id: p.public_id3,
-          type: "cloud",
-        });
-      }
-
-      // Si no hay imágenes cloud, usar el campo imagen
-      if (imagenes.length === 0 && p.imagen) {
-        imagenes.push({
-          url: p.imagen,
-          public_id: null,
-          type: "local",
-        });
-      }
-
-      // Determinar categoría amigable
-      let categoria_nombre = "Sin categoría";
-      let categoria_slug = "sin-categoria";
-
-      if (p.categoria === "categoria1") {
-        categoria_nombre = "Juguetes";
-        categoria_slug = "juguetes";
-      } else if (p.categoria === "categoria2") {
-        categoria_nombre = "Lencería";
-        categoria_slug = "lenceria";
-      } else if (p.categoria === "categoria3") {
-        categoria_nombre = "Lubricantes";
-        categoria_slug = "lubricantes";
-      } else if (p.categoria === "categoria4") {
-        categoria_nombre = "Accesorios";
-        categoria_slug = "accesorios";
-      }
+      const imagenes = procesarImagenesProducto(p);
+      const primeraImagen = imagenes.length > 0 ? imagenes[0].url : "";
 
       return {
         id: p.id,
@@ -763,18 +431,11 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
         precio: Number(p.precio),
         es_oferta: Boolean(p.es_oferta),
         precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-        categoria_nombre: categoria_nombre,
-        categoria_slug: categoria_slug,
-        // Para compatibilidad
-        imagen: p.imagen,
-        // Array de imágenes
+        imagen: primeraImagen, // ⭐⭐ SIEMPRE URL DE CLOUDINARY ⭐⭐
         imagenes: imagenes,
       };
     });
 
-    console.log(
-      `✅ ${productosConImagenes.length} productos recomendados enviados`,
-    );
     res.json(productosConImagenes);
   } catch (error) {
     console.error("❌ ERROR RECOMENDADOS:", error);
@@ -782,179 +443,10 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
   }
 });
 
-/* ================= ELIMINAR IMÁGENES DE CLOUDINARY ================= */
-app.delete("/api/eliminar-imagen-cloudinary", async (req, res) => {
-  const { public_id } = req.body;
-
-  if (!public_id) {
-    return res.status(400).json({
-      ok: false,
-      message: "Se requiere public_id",
-    });
-  }
-
-  try {
-    const result = await cloudinary.uploader.destroy(public_id);
-
-    if (result.result === "ok") {
-      // Buscar y actualizar el campo correspondiente en la base de datos
-      const queries = [
-        `UPDATE productos SET imagen_cloud1 = NULL, public_id1 = NULL WHERE public_id1 = ?`,
-        `UPDATE productos SET imagen_cloud2 = NULL, public_id2 = NULL WHERE public_id2 = ?`,
-        `UPDATE productos SET imagen_cloud3 = NULL, public_id3 = NULL WHERE public_id3 = ?`,
-      ];
-
-      for (const query of queries) {
-        await DB.promise().query(query, [public_id]);
-      }
-
-      res.json({
-        ok: true,
-        message: "Imagen eliminada correctamente",
-      });
-    } else {
-      res.status(500).json({
-        ok: false,
-        message: "Error al eliminar imagen de Cloudinary",
-      });
-    }
-  } catch (error) {
-    console.error("❌ ERROR ELIMINAR IMAGEN:", error);
-    res.status(500).json({
-      ok: false,
-      message: error.message,
-    });
-  }
-});
-
-/* ================= MANTENER COMPATIBILIDAD - ENDPOINTS EXISTENTES ================= */
-
-/* ================= PEDIDOS ================= */
-app.get("/api/pedidos", (req, res) => res.json([]));
-
-app.get("/api/pedidos-completo", (req, res) => res.json([]));
-
-/* ================= ESTADÍSTICAS ================= */
-app.get("/api/estadisticas", async (req, res) => {
-  try {
-    const [totalProductos] = await DB.promise().query(
-      "SELECT COUNT(*) as total FROM productos WHERE activo = 1",
-    );
-    const [totalCategorias] = await DB.promise().query(
-      "SELECT COUNT(*) as total FROM categorias WHERE activo = 1",
-    );
-    const [totalOfertas] = await DB.promise().query(
-      "SELECT COUNT(*) as total FROM productos WHERE es_oferta = 1 AND activo = 1",
-    );
-
-    res.json({
-      ok: true,
-      productos: totalProductos[0].total,
-      categorias: totalCategorias[0].total,
-      ofertas: totalOfertas[0].total,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("❌ Error estadísticas:", error);
-    res.status(500).json({
-      ok: false,
-      message: "Error al obtener estadísticas",
-    });
-  }
-});
-
-/* ================= ACTUALIZAR PRODUCTO ================= */
-app.put("/api/productos/:id", async (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
-
-  try {
-    const [result] = await DB.promise().query(
-      "UPDATE productos SET ? WHERE id = ?",
-      [updates, id],
-    );
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
-    }
-
-    res.json({ ok: true, message: "Producto actualizado" });
-  } catch (error) {
-    console.error("❌ Error actualizando producto:", error);
-    res.status(500).json({ ok: false, message: error.message });
-  }
-});
-
-/* ================= ELIMINAR PRODUCTO (lógico) ================= */
-app.delete("/api/productos/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const [result] = await DB.promise().query(
-      "UPDATE productos SET activo = 0 WHERE id = ?",
-      [id],
-    );
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
-    }
-
-    res.json({ ok: true, message: "Producto eliminado" });
-  } catch (error) {
-    console.error("❌ Error eliminando producto:", error);
-    res.status(500).json({ ok: false, message: error.message });
-  }
-});
-
-/* ================= MANEJO DE ERRORES ================= */
-app.use((err, req, res, next) => {
-  console.error("❌ ERROR:", err);
-  res.status(500).json({
-    ok: false,
-    message: "Error interno del servidor",
-    error: err.message,
-  });
-});
-
-/* ================= 404 HANDLER ================= */
-app.use((req, res) => {
-  res.status(404).json({
-    ok: false,
-    message: `Endpoint no encontrado: ${req.method} ${req.url}`,
-    endpoints_disponibles: [
-      "GET    /",
-      "GET    /api/health",
-      "GET    /api/categorias",
-      "GET    /api/productos",
-      "GET    /api/productos/:id",
-      "POST   /api/productos",
-      "PUT    /api/productos/:id",
-      "DELETE /api/productos/:id",
-      "POST   /api/upload-imagen",
-      "POST   /api/upload-imagenes",
-      "DELETE /api/eliminar-imagen-cloudinary",
-      "GET    /api/productos-recomendados/:id",
-      "GET    /api/estadisticas",
-    ],
-  });
-});
-
 /* ================= SERVER ================= */
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor backend Punto G iniciado en puerto ${PORT}`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
-  console.log("📊 Endpoints disponibles:");
-  console.log("   GET  /api/health");
-  console.log("   GET  /api/categorias");
-  console.log("   GET  /api/productos");
-  console.log("   GET  /api/productos/:id");
-  console.log("   POST /api/upload-imagen");
-  console.log("✅ Backend listo para usar");
-});
+app.listen(PORT, "0.0.0.0", () =>
+  console.log("🚀 Backend funcionando correctamente - SOLO CLOUDINARY"),
+);
 
 // import express from "express";
 // import mysql from "mysql2";
