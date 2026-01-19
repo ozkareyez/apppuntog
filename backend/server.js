@@ -541,8 +541,8 @@ app.post("/api/productos", async (req, res) => {
     descuento = null,
     es_oferta = 0,
     descripcion = null,
-    descripcion_breve = null,
-    stock = 10,
+    // descripcion_breve = null,
+    // stock = 10,
     imagenes = [], // Array de objetos {url, public_id}
   } = req.body;
 
