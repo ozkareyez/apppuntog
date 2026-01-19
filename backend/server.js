@@ -207,7 +207,7 @@ app.get("/api/categorias", async (req, res) => {
   try {
     // Intentar obtener categorías de la base de datos
     const [results] = await DB.promise().query(`
-      SELECT id, nombre, slug
+      SELECT id, nombre,
       FROM categorias 
       WHERE activo = 1 
       ORDER BY nombre
