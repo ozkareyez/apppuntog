@@ -201,13 +201,14 @@ app.get("/api/health", async (req, res) => {
 });
 
 /* ================= CATEGORÍAS (SIEMPRE FUNCIONA) ================= */
+/* ================= CATEGORÍAS (SIEMPRE FUNCIONA) ================= */
 app.get("/api/categorias", async (req, res) => {
   console.log("📥 Solicitando categorías...");
 
   try {
     // Intentar obtener categorías de la base de datos
     const [results] = await DB.promise().query(`
-      SELECT id, nombre,
+      SELECT id, nombre  // ✅ SIN coma extra
       FROM categorias 
       WHERE activo = 1 
       ORDER BY nombre
@@ -217,7 +218,18 @@ app.get("/api/categorias", async (req, res) => {
 
     // Si hay resultados, devolverlos
     if (results && results.length > 0) {
-      return res.json(results);
+      // ✅ Agregar slug dinámico (mismo que en el frontend)
+      const categoriasConSlug = results.map((cat) => ({
+        ...cat,
+        slug: cat.nombre
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      }));
+
+      return res.json(categoriasConSlug);
     }
 
     // Si no hay resultados, devolver categorías por defecto
@@ -225,9 +237,9 @@ app.get("/api/categorias", async (req, res) => {
     const categoriasPorDefecto = [
       { id: 1, nombre: "Lencería", slug: "lenceria" },
       { id: 2, nombre: "Juguetes", slug: "juguetes" },
-      { id: 3, nombre: "Cosméticos", slug: "cosmeticos" },
-      { id: 4, nombre: "Masajes", slug: "masajes" },
-      { id: 5, nombre: "Accesorios", slug: "accesorios" },
+      { id: 3, nombre: "Lubricantes", slug: "lubricantes" },
+
+      { id: 4, nombre: "Accesorios", slug: "accesorios" },
     ];
 
     res.json(categoriasPorDefecto);
@@ -238,7 +250,8 @@ app.get("/api/categorias", async (req, res) => {
     const categoriasPorDefecto = [
       { id: 1, nombre: "Lencería", slug: "lenceria" },
       { id: 2, nombre: "Juguetes", slug: "juguetes" },
-      { id: 3, nombre: "Cosméticos", slug: "cosmeticos" },
+      { id: 3, nombre: "Lubricantes", slug: "lubricantes" },
+      { id: 4, nombre: "Accesorios", slug: "accesorios" },
     ];
 
     res.json(categoriasPorDefecto);
