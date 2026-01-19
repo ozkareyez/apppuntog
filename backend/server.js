@@ -425,56 +425,103 @@ app.get("/api/productos/:id", (req, res) => {
 });
 
 /* ================= UPLOAD MÚLTIPLES IMÁGENES - CLOUDINARY ================= */
-app.post("/api/upload-imagenes", uploadMultiple, async (req, res) => {
-  try {
-    console.log("📤 Recibiendo múltiples archivos...");
+/* ================= CREAR PRODUCTO CON 3 IMÁGENES - VERSIÓN CORREGIDA ================= */
+app.post("/api/productos", async (req, res) => {
+  console.log("📥 Recibiendo datos del producto:", req.body);
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        message: "No se subieron imágenes",
-      });
-    }
+  const {
+    categoria = null,
+    nombre,
+    talla = null,
+    color = null,
+    precio,
+    categoria_id,
+    precio_antes = null,
+    descuento = null,
+    es_oferta = 0,
+    descripcion = null,
+    imagenes = [], // Array de objetos {url, public_id}
+  } = req.body;
 
-    console.log(`📄 Archivos recibidos: ${req.files.length}`);
-
-    if (
-      !process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET
-    ) {
-      return res.status(500).json({
-        ok: false,
-        message: "Cloudinary no está configurado correctamente",
-      });
-    }
-
-    const uploadPromises = req.files.map((file) => {
-      const b64 = file.buffer.toString("base64");
-      const dataURI = `data:${file.mimetype};base64,${b64}`;
-
-      return cloudinary.uploader.upload(dataURI, {
-        folder: "punto-g-productos",
-      });
+  // Validación
+  if (!nombre || !precio || !categoria_id) {
+    return res.status(400).json({
+      ok: false,
+      message: "Faltan campos obligatorios: nombre, precio, categoria_id",
     });
+  }
 
-    console.log("☁️ Subiendo imágenes a Cloudinary...");
-    const results = await Promise.all(uploadPromises);
+  console.log("📸 Imágenes recibidas:", imagenes);
 
-    console.log(`✅ ${results.length} imágenes subidas exitosamente`);
+  // Preparar datos para los campos de imágenes
+  const imagen_cloud1 = imagenes.length > 0 ? imagenes[0].url : null;
+  const imagen_cloud2 = imagenes.length > 1 ? imagenes[1].url : null;
+  const imagen_cloud3 = imagenes.length > 2 ? imagenes[2].url : null;
+  const public_id1 = imagenes.length > 0 ? imagenes[0].public_id : null;
+  const public_id2 = imagenes.length > 1 ? imagenes[1].public_id : null;
+  const public_id3 = imagenes.length > 2 ? imagenes[2].public_id : null;
 
-    res.json({
+  // Para compatibilidad: mantener el campo imagen con la primera imagen
+  const imagen = imagenes.length > 0 ? imagenes[0].url : null;
+
+  try {
+    console.log("💾 Insertando en la base de datos...");
+
+    // Consulta SQL CORREGIDA: sin descripcion_breve y sin stock
+    const sql = `
+      INSERT INTO productos
+      (categoria, nombre, talla, color, precio, imagen, categoria_id,
+       precio_antes, descuento, es_oferta, descripcion,
+       imagen_cloud1, imagen_cloud2, imagen_cloud3,
+       public_id1, public_id2, public_id3)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [
+      categoria,
+      nombre,
+      talla,
+      color,
+      precio,
+      imagen,
+      categoria_id,
+      precio_antes,
+      descuento,
+      es_oferta,
+      descripcion,
+      // NO descripcion_breve
+      // NO stock
+      imagen_cloud1,
+      imagen_cloud2,
+      imagen_cloud3,
+      public_id1,
+      public_id2,
+      public_id3,
+    ];
+
+    console.log("📊 Ejecutando SQL:", sql);
+    console.log("📊 Parámetros:", params);
+
+    const [result] = await DB.promise().query(sql, params);
+
+    console.log(
+      `✅ Producto creado con ID: ${result.insertId}, ${imagenes.length} imágenes`,
+    );
+
+    res.status(201).json({
       ok: true,
-      imagenes: results.map((result) => ({
-        url: result.secure_url,
-        public_id: result.public_id,
-      })),
+      producto_id: result.insertId,
     });
   } catch (error) {
-    console.error("❌ ERROR Cloudinary múltiples:", error);
+    console.error("❌ Error MySQL:", error);
+    console.error("❌ Código de error:", error.code);
+    console.error("❌ Mensaje SQL:", error.sqlMessage);
+
     res.status(500).json({
       ok: false,
-      message: error.message || "Error al subir imágenes",
+      message: error.sqlMessage || error.message,
+      code: error.code,
+      sqlState: error.sqlState,
     });
   }
 });
@@ -541,7 +588,7 @@ app.post("/api/productos", async (req, res) => {
     descuento = null,
     es_oferta = 0,
     descripcion = null,
-    // descripcion_breve = null,
+    descripcion_breve = null,
     // stock = 10,
     imagenes = [], // Array de objetos {url, public_id}
   } = req.body;
