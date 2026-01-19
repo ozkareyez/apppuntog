@@ -151,7 +151,7 @@ const Footer = () => {
                 <Phone className="text-red-500 mt-1" size={18} />
                 <div>
                   <p className="font-medium text-gray-800">Atención 24/7</p>
-                  <p className="text-gray-600 text-sm">+57 300 123 4567</p>
+                  <p className="text-gray-600 text-sm">+57 318 370 4240</p>
                 </div>
               </div>
 

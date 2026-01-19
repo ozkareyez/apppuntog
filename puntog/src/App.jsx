@@ -36,7 +36,7 @@ function App() {
     <>
       {/* ================= WHATSAPP ================= */}
       <FloatingWhatsApp
-        phoneNumber="+573147041149"
+        phoneNumber="+573183704240"
         accountName="Punto G"
         chatMessage="Hola 👋 ¿en qué te ayudamos?"
         avatar="/imagenes/logo.png"

@@ -176,7 +176,7 @@ export default function ContactForm() {
                     <div className="space-y-3">
                       <button className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium hover:shadow-lg transition flex items-center justify-center gap-2">
                         <MessageSquare size={18} />
-                        WhatsApp: +57 300 123 4567
+                        WhatsApp: +57 318 370 4240
                       </button>
                       <button className="w-full py-3 px-4 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition flex items-center justify-center gap-2">
                         <Mail size={18} />
@@ -192,7 +192,7 @@ export default function ContactForm() {
                     Horarios de atención
                   </h4>
                   <p className="text-gray-600 text-sm">
-                    Lunes a Viernes: 8am - 8pm
+                    Lunes a Viernes: 8am - 6pm
                   </p>
                   <p className="text-gray-600 text-sm">Sábados: 9am - 2pm</p>
                 </div>

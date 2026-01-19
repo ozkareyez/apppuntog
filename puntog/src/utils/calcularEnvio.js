@@ -3,5 +3,7 @@ export function calcularEnvio({ ciudad, total }) {
 
   if (!ciudad) return 0;
 
-  return ciudad.toLowerCase() === "cali" ? 5000 : 16000;
+  return ciudad.toLowerCase() === "cali"
+    ? "Pendiente verificar costo segun zona"
+    : 16000;
 }
