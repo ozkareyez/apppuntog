@@ -540,7 +540,7 @@ const Productos = () => {
                         </p>
                       </div>
                       <span className="text-xs text-gray-500">
-                        {producto.stock || 10} unid.
+                        {producto.stock} unid.
                       </span>
                     </div>
 
