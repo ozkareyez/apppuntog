@@ -582,62 +582,74 @@ app.put("/api/productos/:id", async (req, res) => {
 });
 
 /* ================= ELIMINAR PRODUCTO ================= */
+/* ================= ELIMINAR PRODUCTO ================= */
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
-  console.log(`🗑️ Solicitando eliminación del producto ID: ${id}`);
+  console.log(`🗑️ SOLICITANDO ELIMINAR PRODUCTO ID: ${id}`);
+  console.log(`📅 ${new Date().toISOString()}`);
+  console.log(`📝 Headers:`, req.headers);
 
   try {
-    // Primero verificar si el producto existe
-    const [checkProduct] = await DB.promise().query(
+    // Verificar si el producto existe
+    const [producto] = await DB.promise().query(
       "SELECT id, nombre FROM productos WHERE id = ?",
       [id],
     );
 
-    if (!checkProduct.length) {
-      console.log(`❌ Producto ${id} no encontrado para eliminar`);
+    if (!producto.length) {
+      console.log(`❌ Producto ${id} no encontrado`);
       return res.status(404).json({
         ok: false,
         message: "Producto no encontrado",
       });
     }
 
-    // Opción 1: Eliminar físicamente (DELETE)
-    const [deleteResult] = await DB.promise().query(
+    console.log(`✅ Producto encontrado: ${producto[0].nombre}`);
+
+    // OPCIÓN 1: Eliminar físicamente (DELETE real)
+    const [result] = await DB.promise().query(
       "DELETE FROM productos WHERE id = ?",
       [id],
     );
 
-    // Opción 2: Si prefieres marcar como inactivo (soft delete), usa esto:
-    // const [deleteResult] = await DB.promise().query(
+    // OPCIÓN 2: Si prefieres soft delete (marcar como inactivo)
+    // const [result] = await DB.promise().query(
     //   "UPDATE productos SET activo = 0 WHERE id = ?",
     //   [id]
     // );
 
-    if (deleteResult.affectedRows === 0) {
-      console.log(`❌ No se pudo eliminar el producto ${id}`);
+    console.log(`✅ Filas afectadas: ${result.affectedRows}`);
+
+    if (result.affectedRows === 0) {
+      console.log(`⚠️ No se eliminó ninguna fila`);
       return res.status(500).json({
         ok: false,
         message: "No se pudo eliminar el producto",
       });
     }
 
-    console.log(`✅ Producto ${id} eliminado correctamente`);
-    console.log(`📝 Detalles: ${checkProduct[0].nombre}`);
+    console.log(`🎉 Producto ${id} eliminado exitosamente`);
 
     res.json({
       ok: true,
       message: "Producto eliminado correctamente",
-      producto: checkProduct[0].nombre,
-      affectedRows: deleteResult.affectedRows,
+      producto_id: id,
+      producto_nombre: producto[0].nombre,
+      affectedRows: result.affectedRows,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("❌ Error eliminando producto:", error);
+    console.error(`💥 ERROR ELIMINANDO PRODUCTO ${id}:`, error);
+    console.error(`📌 SQL Message:`, error.sqlMessage);
+    console.error(`📌 SQL Query:`, error.sql);
+
     res.status(500).json({
       ok: false,
-      message: "Error al eliminar producto",
+      message: "Error interno del servidor",
       error: error.message,
       sqlMessage: error.sqlMessage,
+      code: error.code,
     });
   }
 });
