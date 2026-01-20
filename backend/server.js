@@ -57,6 +57,29 @@ const upload = multer({
 /* ================= ROOT ================= */
 app.get("/", (_, res) => res.json({ ok: true }));
 
+/* ================= DEPARTAMENTOS ================= */
+app.get("/api/departamentos", (_, res) => {
+  DB.query("SELECT id, nombre FROM departamentos", (err, rows) => {
+    if (err) return res.status(500).json(err);
+    res.json(rows);
+  });
+});
+
+/* ================= CIUDADES ================= */
+app.get("/api/ciudades", (req, res) => {
+  const { departamento_id } = req.query;
+  if (!departamento_id) return res.json([]);
+
+  DB.query(
+    "SELECT id, nombre FROM ciudades WHERE departamento_id = ? ORDER BY nombre",
+    [departamento_id],
+    (err, rows) => {
+      if (err) return res.status(500).json([]);
+      res.json(rows);
+    },
+  );
+});
+
 /* ================= UPLOAD UNA IMAGEN - CLOUDINARY ================= */
 app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
   try {
