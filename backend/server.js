@@ -582,74 +582,128 @@ app.put("/api/productos/:id", async (req, res) => {
 });
 
 /* ================= ELIMINAR PRODUCTO ================= */
-/* ================= ELIMINAR PRODUCTO ================= */
+/* ================= ELIMINAR PRODUCTO - VERSIÓN MEJORADA ================= */
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
-  console.log(`🗑️ SOLICITANDO ELIMINAR PRODUCTO ID: ${id}`);
+  console.log(`\n=== ELIMINACIÓN DE PRODUCTO ID: ${id} ===`);
   console.log(`📅 ${new Date().toISOString()}`);
-  console.log(`📝 Headers:`, req.headers);
+  console.log(`👤 IP: ${req.ip}`);
+  console.log(`📝 User-Agent: ${req.headers["user-agent"]}`);
 
   try {
-    // Verificar si el producto existe
-    const [producto] = await DB.promise().query(
-      "SELECT id, nombre FROM productos WHERE id = ?",
+    // Verificar si el producto existe ANTES de eliminar
+    const [productoExistente] = await DB.promise().query(
+      "SELECT id, nombre, imagen_cloud1, imagen_cloud2, imagen_cloud3 FROM productos WHERE id = ?",
       [id],
     );
 
-    if (!producto.length) {
-      console.log(`❌ Producto ${id} no encontrado`);
+    if (!productoExistente.length) {
+      console.log(`❌ Producto ${id} no encontrado en la base de datos`);
       return res.status(404).json({
         ok: false,
         message: "Producto no encontrado",
+        details: `El producto con ID ${id} no existe`,
       });
     }
 
-    console.log(`✅ Producto encontrado: ${producto[0].nombre}`);
+    const producto = productoExistente[0];
+    console.log(`✅ Producto encontrado: "${producto.nombre}"`);
 
-    // OPCIÓN 1: Eliminar físicamente (DELETE real)
+    // Obtener public_ids de Cloudinary para eliminar imágenes
+    const imagenesParaEliminar = [];
+    if (
+      producto.imagen_cloud1 &&
+      producto.imagen_cloud1.includes("cloudinary.com")
+    ) {
+      imagenesParaEliminar.push(producto.imagen_cloud1);
+    }
+    if (
+      producto.imagen_cloud2 &&
+      producto.imagen_cloud2.includes("cloudinary.com")
+    ) {
+      imagenesParaEliminar.push(producto.imagen_cloud2);
+    }
+    if (
+      producto.imagen_cloud3 &&
+      producto.imagen_cloud3.includes("cloudinary.com")
+    ) {
+      imagenesParaEliminar.push(producto.imagen_cloud3);
+    }
+
+    console.log(`🖼️ Imágenes encontradas: ${imagenesParaEliminar.length}`);
+
+    // Paso 1: Eliminar imágenes de Cloudinary si existen
+    if (imagenesParaEliminar.length > 0) {
+      console.log("☁️ Eliminando imágenes de Cloudinary...");
+      for (const imagenUrl of imagenesParaEliminar) {
+        try {
+          // Extraer public_id de la URL de Cloudinary
+          const urlParts = imagenUrl.split("/");
+          const publicIdWithExtension = urlParts.slice(-2).join("/");
+          const publicId = publicIdWithExtension.split(".")[0];
+
+          console.log(`   Eliminando: ${publicId}`);
+          const result = await cloudinary.uploader.destroy(publicId);
+          console.log(`   Resultado: ${result.result}`);
+        } catch (cloudinaryError) {
+          console.warn(
+            `   ⚠️ Error eliminando imagen: ${cloudinaryError.message}`,
+          );
+          // Continuamos aunque falle la eliminación de imágenes
+        }
+      }
+    }
+
+    // Paso 2: Eliminar el producto de la base de datos
+    console.log(`🗑️ Eliminando producto de la base de datos...`);
     const [result] = await DB.promise().query(
       "DELETE FROM productos WHERE id = ?",
       [id],
     );
 
-    // OPCIÓN 2: Si prefieres soft delete (marcar como inactivo)
-    // const [result] = await DB.promise().query(
-    //   "UPDATE productos SET activo = 0 WHERE id = ?",
-    //   [id]
-    // );
-
-    console.log(`✅ Filas afectadas: ${result.affectedRows}`);
+    console.log(`📊 Filas afectadas: ${result.affectedRows}`);
 
     if (result.affectedRows === 0) {
-      console.log(`⚠️ No se eliminó ninguna fila`);
+      console.log(`❌ No se eliminó ninguna fila`);
       return res.status(500).json({
         ok: false,
-        message: "No se pudo eliminar el producto",
+        message: "Error al eliminar el producto de la base de datos",
+        sqlMessage: "No rows affected",
       });
     }
 
     console.log(`🎉 Producto ${id} eliminado exitosamente`);
+    console.log(`📝 Nombre: ${producto.nombre}`);
+    console.log(`🖼️ Imágenes eliminadas: ${imagenesParaEliminar.length}`);
+    console.log(`=== FIN ELIMINACIÓN ===\n`);
 
     res.json({
       ok: true,
-      message: "Producto eliminado correctamente",
+      message: "Producto eliminado permanentemente",
       producto_id: id,
-      producto_nombre: producto[0].nombre,
+      producto_nombre: producto.nombre,
+      imagenes_eliminadas: imagenesParaEliminar.length,
       affectedRows: result.affectedRows,
       timestamp: new Date().toISOString(),
+      details: {
+        eliminado_de_bd: true,
+        imagenes_cloudinary_eliminadas: imagenesParaEliminar.length,
+      },
     });
   } catch (error) {
-    console.error(`💥 ERROR ELIMINANDO PRODUCTO ${id}:`, error);
+    console.error(`💥 ERROR CRÍTICO ELIMINANDO PRODUCTO ${id}:`, error);
     console.error(`📌 SQL Message:`, error.sqlMessage);
     console.error(`📌 SQL Query:`, error.sql);
+    console.error(`📌 Stack Trace:`, error.stack);
 
     res.status(500).json({
       ok: false,
-      message: "Error interno del servidor",
+      message: "Error interno del servidor al eliminar producto",
       error: error.message,
       sqlMessage: error.sqlMessage,
       code: error.code,
+      timestamp: new Date().toISOString(),
     });
   }
 });
