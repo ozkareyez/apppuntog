@@ -16,122 +16,40 @@ import {
   Shield,
   Star,
   ImageOff,
-  Database,
-  Server,
-  Globe,
-  Eye,
-  ExternalLink,
   Edit,
-  Save,
   X,
-  Upload,
-  Plus,
-  Minus,
+  Save,
+  Eye,
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
-// Componente optimizado para manejar imágenes
-const ProductoImagen = ({ src, alt, className = "w-16 h-16", onError }) => {
+// Componente optimizado para imágenes
+const ProductoImagen = ({ src, alt, className = "w-16 h-16" }) => {
   const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Función para normalizar URL
-  const normalizeImageUrl = useCallback((url) => {
-    if (
-      !url ||
-      url === "null" ||
-      url === "undefined" ||
-      url === "http://null" ||
-      url === "https://null"
-    ) {
-      return null;
-    }
+  const handleError = () => {
+    setError(true);
+  };
 
-    // Si es una URL de Cloudinary que sabemos que no existe, devolver null
-    const problematicImages = [
-      "fdfifkqpzegbgyfsrrnd.jpg",
-      "p4puk9ymkntqpuamlrlh.jpg",
-      "suy42v9xtemxywo2fhov.jpg",
-      "wfohwilzzyvw4yoxcs6y.jpg",
-      "rvv0zhltrws0enfscvlc.jpg",
-      "gk3gm0mlglhj9bd3ebwu.jpg",
-      "z0pbd7dggiclp8t4jqlk.jpg",
-      "y3vgyp4ewx3hdd8kwmat.jpg",
-    ];
-
-    const hasProblematicImage = problematicImages.some((problemImg) =>
-      url.includes(problemImg),
-    );
-
-    if (hasProblematicImage) {
-      console.log(`⚠️ Imagen problemática detectada: ${url}`);
-      return null;
-    }
-
-    // Convertir http a https
-    if (url.startsWith("http://")) {
-      return url.replace("http://", "https://");
-    }
-
-    return url;
-  }, []);
-
-  const imageUrl = normalizeImageUrl(src);
-  const finalSrc = error || !imageUrl ? "/imagenes/no-image.png" : imageUrl;
+  const imageUrl = src && !src.includes("null") ? src : null;
+  const finalSrc = error || !imageUrl ? "/placeholder-image.jpg" : imageUrl;
 
   return (
     <div className="relative">
-      {/* Estado de carga */}
-      {loading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-        </div>
-      )}
-
-      {/* Imagen */}
       <img
         src={finalSrc}
         alt={alt}
-        className={`${className} rounded-lg object-cover border border-gray-200 ${
-          loading ? "opacity-0" : "opacity-100"
-        }`}
-        onLoad={() => {
-          setLoading(false);
-          setError(false);
-        }}
-        onError={(e) => {
-          setError(true);
-          setLoading(false);
-          if (onError) onError(src, finalSrc);
-
-          // Solo mostrar warning si no es la imagen por defecto
-          if (finalSrc !== "/imagenes/no-image.png") {
-            console.warn(`❌ Error cargando imagen: ${src} → ${finalSrc}`);
-          }
-
-          // Forzar cambio a imagen por defecto
-          e.target.src = "/imagenes/no-image.png";
-        }}
+        className={`${className} rounded-lg object-cover border border-gray-200 bg-gray-100`}
+        onError={handleError}
         loading="lazy"
-        referrerPolicy="no-referrer"
       />
-
-      {/* Indicador de error */}
-      {error && !loading && (
-        <div className="absolute inset-0 bg-gray-100 rounded-lg flex flex-col items-center justify-center p-2">
-          <ImageOff className="w-4 h-4 text-gray-400 mb-1" />
-          <span className="text-[10px] text-gray-500 text-center">
-            Sin imagen
-          </span>
-        </div>
-      )}
-
-      {/* Indicador de imagen por defecto */}
-      {!imageUrl && !loading && !error && (
-        <div className="absolute inset-0 bg-gray-50 rounded-lg flex items-center justify-center">
-          <span className="text-xs text-gray-400">Sin foto</span>
+      {error && (
+        <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
+          <ImageOff className="w-4 h-4 text-gray-400" />
         </div>
       )}
     </div>
@@ -147,66 +65,42 @@ export default function EliminarProducto() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [sortBy, setSortBy] = useState("id_desc");
 
-  // Estados para eliminación
+  // Estados para acciones
   const [productoToDelete, setProductoToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  // Estados para edición
   const [productoToEdit, setProductoToEdit] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editing, setEditing] = useState(false);
+
+  // Formulario de edición
   const [editForm, setEditForm] = useState({
     nombre: "",
     descripcion: "",
     precio: 0,
-    precio_antes: 0,
     stock: 0,
+    categoria_id: "",
     es_oferta: false,
     destacado: false,
-    nuevo: false,
     activo: true,
-    categoria_id: "",
   });
 
   // Estados generales
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [apiStatus, setApiStatus] = useState({
-    online: false,
-    responseTime: 0,
-  });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   /* ================= CARGAR DATOS ================= */
   const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      setSuccessMessage(null);
-
-      console.log(`🔄 Cargando datos de: ${API_URL}`);
-
-      // Verificar estado del API
-      const startTime = Date.now();
-      const testRes = await fetch(`${API_URL}/`, { method: "HEAD" });
-      const responseTime = Date.now() - startTime;
-
-      setApiStatus({
-        online: testRes.ok,
-        responseTime,
-        status: testRes.status,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (!testRes.ok) {
-        throw new Error(`API offline (${testRes.status})`);
-      }
 
       // Cargar productos
       const productosRes = await fetch(`${API_URL}/api/productos`);
 
       if (!productosRes.ok) {
-        throw new Error(`Error ${productosRes.status} cargando productos`);
+        throw new Error(`Error ${productosRes.status}`);
       }
 
       const productosData = await productosRes.json();
@@ -215,43 +109,26 @@ export default function EliminarProducto() {
         throw new Error("Formato de datos inválido");
       }
 
-      // Limpiar y preparar productos
-      const productosLimpios = productosData.map((producto) => {
-        // Seleccionar la mejor imagen disponible
-        const imagenesDisponibles = [
-          producto.imagen_cloud1,
-          producto.imagen_cloud2,
-          producto.imagen_cloud3,
-          producto.imagen,
-        ].filter((img) => img && !img.includes("null"));
-
-        // Usar primera imagen válida o null
-        const imagenPrincipal =
-          imagenesDisponibles.length > 0 ? imagenesDisponibles[0] : null;
-
-        return {
-          id: producto.id,
-          nombre: producto.nombre || "Sin nombre",
-          descripcion: producto.descripcion,
-          precio: Number(producto.precio) || 0,
-          precio_antes: producto.precio_antes
-            ? Number(producto.precio_antes)
-            : null,
-          stock: parseInt(producto.stock) || 0,
-          es_oferta: producto.es_oferta == 1,
-          destacado: producto.destacado == 1,
-          nuevo: producto.nuevo == 1,
-          categoria_id: producto.categoria_id,
-          categoria_nombre: producto.categoria_nombre || "Sin categoría",
-          imagen: imagenPrincipal,
-          imagenes: imagenesDisponibles,
-          activo: producto.activo == 1,
-          creado: producto.created_at || producto.fecha_creacion,
-        };
-      });
+      // Preparar productos
+      const productosLimpios = productosData.map((producto) => ({
+        id: producto.id,
+        nombre: producto.nombre || "Sin nombre",
+        descripcion: producto.descripcion,
+        precio: Number(producto.precio) || 0,
+        precio_antes: producto.precio_antes
+          ? Number(producto.precio_antes)
+          : null,
+        stock: parseInt(producto.stock) || 0,
+        es_oferta: producto.es_oferta == 1,
+        destacado: producto.destacado == 1,
+        nuevo: producto.nuevo == 1,
+        categoria_id: producto.categoria_id,
+        categoria_nombre: producto.categoria_nombre || "Sin categoría",
+        imagen: producto.imagen,
+        activo: producto.activo == 1,
+      }));
 
       setProductos(productosLimpios);
-      console.log(`✅ ${productosLimpios.length} productos cargados`);
 
       // Cargar categorías
       try {
@@ -264,15 +141,10 @@ export default function EliminarProducto() {
         console.warn("Error cargando categorías:", catError);
       }
 
-      setSuccessMessage(
-        `✅ ${productosLimpios.length} productos cargados correctamente`,
-      );
+      setSuccessMessage(`${productosLimpios.length} productos cargados`);
     } catch (error) {
-      console.error("❌ Error cargando datos:", error);
-      setError(
-        `Error: ${error.message}. Verifica la conexión con el servidor.`,
-      );
-      setProductos([]);
+      console.error("Error cargando datos:", error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -292,8 +164,7 @@ export default function EliminarProducto() {
       filtered = filtered.filter(
         (p) =>
           p.nombre.toLowerCase().includes(term) ||
-          (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
-          p.categoria_nombre.toLowerCase().includes(term),
+          (p.descripcion && p.descripcion.toLowerCase().includes(term)),
       );
     }
 
@@ -333,10 +204,6 @@ export default function EliminarProducto() {
           return a.precio - b.precio;
         case "precio_desc":
           return b.precio - a.precio;
-        case "stock_asc":
-          return a.stock - b.stock;
-        case "stock_desc":
-          return b.stock - a.stock;
         default:
           return 0;
       }
@@ -344,6 +211,14 @@ export default function EliminarProducto() {
 
     return filtered;
   }, [productos, searchTerm, selectedCategory, statusFilter, sortBy]);
+
+  /* ================= PAGINACIÓN ================= */
+  const paginatedProductos = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return productosFiltrados.slice(startIndex, startIndex + itemsPerPage);
+  }, [productosFiltrados, currentPage]);
+
+  const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage);
 
   /* ================= ELIMINAR PRODUCTO ================= */
   const confirmarEliminacion = (producto) => {
@@ -354,73 +229,34 @@ export default function EliminarProducto() {
   const eliminarProducto = async () => {
     if (!productoToDelete) return;
 
-    setDeleting(true);
+    setActionLoading(true);
     setError(null);
 
     try {
-      const productoId = productoToDelete.id;
-
-      console.log(`🗑️ Enviando DELETE para producto ID: ${productoId}`);
-
-      const response = await fetch(`${API_URL}/api/productos/${productoId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+      const response = await fetch(
+        `${API_URL}/api/productos/${productoToDelete.id}`,
+        {
+          method: "DELETE",
         },
-      });
+      );
 
-      // Manejo mejorado de la respuesta
       if (!response.ok) {
-        // Si la respuesta no es exitosa, intentamos obtener el mensaje de error
-        const errorText = await response.text();
-        let errorMessage = `Error ${response.status}: No se pudo eliminar`;
-
-        try {
-          const errorData = errorText ? JSON.parse(errorText) : {};
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(`Error ${response.status}`);
       }
 
-      // Intentamos parsear la respuesta como JSON
-      let data;
-      try {
-        const responseText = await response.text();
-        data = responseText ? JSON.parse(responseText) : { ok: true };
-      } catch {
-        data = { ok: true }; // Si no hay JSON válido, asumimos éxito
-      }
+      // Éxito - eliminar del estado local
+      setProductos((prev) => prev.filter((p) => p.id !== productoToDelete.id));
+      setSuccessMessage(`Producto eliminado: ${productoToDelete.nombre}`);
 
-      // Verificamos que la eliminación fue exitosa
-      if (data.ok !== false) {
-        // Éxito - eliminar del estado local
-        setProductos((prev) => prev.filter((p) => p.id !== productoId));
+      setShowDeleteModal(false);
+      setProductoToDelete(null);
 
-        setSuccessMessage(
-          `✅ Producto "${productoToDelete.nombre}" eliminado exitosamente`,
-        );
-
-        // Cerrar modal y resetear
-        setShowDeleteModal(false);
-        setProductoToDelete(null);
-
-        // Auto-ocultar mensaje de éxito
-        setTimeout(() => setSuccessMessage(null), 5000);
-      } else {
-        throw new Error(data.message || "Error al eliminar el producto");
-      }
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      console.error("❌ Error eliminando producto:", error);
-      setError(`Error al eliminar: ${error.message}`);
-
-      // Auto-ocultar error
-      setTimeout(() => setError(null), 5000);
+      console.error("Error eliminando producto:", error);
+      setError(error.message);
     } finally {
-      setDeleting(false);
+      setActionLoading(false);
     }
   };
 
@@ -431,13 +267,11 @@ export default function EliminarProducto() {
       nombre: producto.nombre || "",
       descripcion: producto.descripcion || "",
       precio: producto.precio || 0,
-      precio_antes: producto.precio_antes || 0,
       stock: producto.stock || 0,
+      categoria_id: producto.categoria_id || "",
       es_oferta: producto.es_oferta || false,
       destacado: producto.destacado || false,
-      nuevo: producto.nuevo || false,
       activo: producto.activo !== false,
-      categoria_id: producto.categoria_id || "",
     });
     setShowEditModal(true);
   };
@@ -458,826 +292,587 @@ export default function EliminarProducto() {
   const actualizarProducto = async () => {
     if (!productoToEdit) return;
 
-    setEditing(true);
+    setActionLoading(true);
     setError(null);
 
     try {
-      const productoId = productoToEdit.id;
-
-      console.log(`✏️ Enviando PUT para producto ID: ${productoId}`);
-
-      const datosActualizados = {
-        ...editForm,
-        es_oferta: editForm.es_oferta ? 1 : 0,
-        destacado: editForm.destacado ? 1 : 0,
-        nuevo: editForm.nuevo ? 1 : 0,
-        activo: editForm.activo ? 1 : 0,
-      };
-
-      const response = await fetch(`${API_URL}/api/productos/${productoId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+      const response = await fetch(
+        `${API_URL}/api/productos/${productoToEdit.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...editForm,
+            es_oferta: editForm.es_oferta ? 1 : 0,
+            destacado: editForm.destacado ? 1 : 0,
+            activo: editForm.activo ? 1 : 0,
+          }),
         },
-        body: JSON.stringify(datosActualizados),
-      });
+      );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Error ${response.status}: No se pudo actualizar`;
-
-        try {
-          const errorData = errorText ? JSON.parse(errorText) : {};
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(`Error ${response.status}`);
       }
 
-      const data = await response.json();
+      // Actualizar en estado local
+      const categoriaNombre =
+        categorias.find((c) => c.id == editForm.categoria_id)?.nombre ||
+        "Sin categoría";
 
-      if (data.ok !== false) {
-        // Actualizar en el estado local
-        const categoriaNombre =
-          categorias.find((c) => c.id == editForm.categoria_id)?.nombre ||
-          "Sin categoría";
+      setProductos((prev) =>
+        prev.map((p) =>
+          p.id === productoToEdit.id
+            ? {
+                ...p,
+                nombre: editForm.nombre,
+                descripcion: editForm.descripcion,
+                precio: editForm.precio,
+                stock: editForm.stock,
+                es_oferta: editForm.es_oferta,
+                destacado: editForm.destacado,
+                activo: editForm.activo,
+                categoria_id: editForm.categoria_id,
+                categoria_nombre: categoriaNombre,
+              }
+            : p,
+        ),
+      );
 
-        setProductos((prev) =>
-          prev.map((p) =>
-            p.id === productoId
-              ? {
-                  ...p,
-                  nombre: editForm.nombre,
-                  descripcion: editForm.descripcion,
-                  precio: editForm.precio,
-                  precio_antes: editForm.precio_antes,
-                  stock: editForm.stock,
-                  es_oferta: editForm.es_oferta,
-                  destacado: editForm.destacado,
-                  nuevo: editForm.nuevo,
-                  activo: editForm.activo,
-                  categoria_id: editForm.categoria_id,
-                  categoria_nombre: categoriaNombre,
-                }
-              : p,
-          ),
-        );
+      setSuccessMessage(`Producto actualizado: ${editForm.nombre}`);
+      setShowEditModal(false);
+      setProductoToEdit(null);
 
-        setSuccessMessage(
-          `✅ Producto "${editForm.nombre}" actualizado exitosamente`,
-        );
-
-        setShowEditModal(false);
-        setProductoToEdit(null);
-
-        setTimeout(() => setSuccessMessage(null), 5000);
-      } else {
-        throw new Error(data.message || "Error al actualizar el producto");
-      }
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      console.error("❌ Error actualizando producto:", error);
-      setError(`Error al actualizar: ${error.message}`);
-      setTimeout(() => setError(null), 5000);
+      console.error("Error actualizando producto:", error);
+      setError(error.message);
     } finally {
-      setEditing(false);
+      setActionLoading(false);
     }
-  };
-
-  /* ================= ESTADÍSTICAS ================= */
-  const stats = {
-    total: productos.length,
-    conStock: productos.filter((p) => p.stock > 0).length,
-    enOferta: productos.filter((p) => p.es_oferta).length,
-    sinStock: productos.filter((p) => p.stock <= 0).length,
-    destacados: productos.filter((p) => p.destacado).length,
   };
 
   /* ================= RENDER ================= */
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-700">Cargando productos...</p>
-          <p className="text-sm text-gray-500 mt-2">Conectando al servidor</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+          <p className="mt-2 text-gray-600">Cargando productos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-4">
       {/* HEADER */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-xl font-bold text-gray-900">
               Administrar Productos
             </h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Server
-                  className={`w-4 h-4 ${apiStatus.online ? "text-green-500" : "text-red-500"}`}
-                />
-                <span className="text-sm text-gray-600">
-                  {apiStatus.online ? "✅ Conectado" : "❌ Desconectado"}
-                </span>
-              </div>
-              <span className="text-sm text-gray-500">|</span>
-              <span className="text-sm text-gray-600">
-                {productos.length} productos
-              </span>
-            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              {productos.length} productos • {productosFiltrados.length}{" "}
+              filtrados
+            </p>
           </div>
 
           <button
             onClick={cargarDatos}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={16} />
             Actualizar
           </button>
         </div>
 
         {/* MENSAJES */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <p className="text-sm text-green-800">{successMessage}</p>
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <p className="text-sm text-green-700">{successMessage}</p>
             </div>
           </div>
         )}
 
-        {/* ESTADÍSTICAS */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          {[
-            {
-              label: "Total",
-              value: stats.total,
-              icon: Package,
-              color: "bg-blue-100 text-blue-800",
-            },
-            {
-              label: "Con Stock",
-              value: stats.conStock,
-              icon: CheckCircle,
-              color: "bg-green-100 text-green-800",
-            },
-            {
-              label: "En Oferta",
-              value: stats.enOferta,
-              icon: Tag,
-              color: "bg-amber-100 text-amber-800",
-            },
-            {
-              label: "Sin Stock",
-              value: stats.sinStock,
-              icon: XCircle,
-              color: "bg-red-100 text-red-800",
-            },
-            {
-              label: "Destacados",
-              value: stats.destacados,
-              icon: Star,
-              color: "bg-purple-100 text-purple-800",
-            },
-          ].map((stat, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-lg border border-gray-200 p-3"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-lg font-bold">{stat.value}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <stat.icon className="w-4 h-4" />
-                </div>
-              </div>
+        {/* FILTROS MINIMALISTAS */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* FILTROS */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
-            />
-          </div>
+            <div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="todos">Todas categorías</option>
+                {categorias.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="relative">
-            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm appearance-none"
-            >
-              <option value="todos">Todas las categorías</option>
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.nombre}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="todos">Todos</option>
+                <option value="con_stock">Con stock</option>
+                <option value="sin_stock">Sin stock</option>
+                <option value="oferta">En oferta</option>
+              </select>
+            </div>
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm appearance-none"
-            >
-              <option value="todos">Todos los estados</option>
-              <option value="oferta">En oferta</option>
-              <option value="destacados">Destacados</option>
-              <option value="con_stock">Con stock</option>
-              <option value="sin_stock">Sin stock</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-
-          <div className="relative">
-            <BarChart3 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm appearance-none"
-            >
-              <option value="id_desc">Más recientes</option>
-              <option value="nombre_asc">Nombre A-Z</option>
-              <option value="nombre_desc">Nombre Z-A</option>
-              <option value="precio_asc">Precio menor</option>
-              <option value="precio_desc">Precio mayor</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="id_desc">Más recientes</option>
+                <option value="nombre_asc">Nombre A-Z</option>
+                <option value="nombre_desc">Nombre Z-A</option>
+                <option value="precio_asc">Precio menor</option>
+                <option value="precio_desc">Precio mayor</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TABLA DE PRODUCTOS */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {productosFiltrados.length === 0 ? (
+      {/* TABLA DE PRODUCTOS - RESPONSIVE */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {paginatedProductos.length === 0 ? (
           <div className="text-center py-12">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-700 font-medium">No hay productos</p>
-            <p className="text-gray-500 text-sm mt-1">
-              {productos.length === 0
-                ? "La base de datos está vacía"
-                : "No hay resultados con los filtros actuales"}
-            </p>
+            <p className="text-gray-600">No hay productos</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Producto
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Categoría
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Precio
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Stock
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {productosFiltrados.map((producto) => (
-                  <tr
-                    key={producto.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <ProductoImagen
-                          src={producto.imagen}
-                          alt={producto.nombre}
-                          className="w-12 h-12"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">
-                            {producto.nombre}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            ID: {producto.id}
-                          </p>
-                          {producto.descripcion && (
-                            <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-                              {producto.descripcion}
+          <>
+            {/* DESKTOP */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      Producto
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      Categoría
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      Precio
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      Stock
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedProductos.map((producto) => (
+                    <tr key={producto.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <ProductoImagen
+                            src={producto.imagen}
+                            alt={producto.nombre}
+                            className="w-10 h-10"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {producto.nombre}
                             </p>
-                          )}
+                            <p className="text-xs text-gray-500">
+                              ID: {producto.id}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-700">
-                        {producto.categoria_nombre}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-bold text-gray-900">
-                          ${producto.precio.toLocaleString()}
-                        </p>
-                        {producto.precio_antes &&
-                          producto.precio_antes > producto.precio && (
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-gray-700">
+                          {producto.categoria_nombre}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-bold text-gray-900">
+                            ${producto.precio.toLocaleString()}
+                          </p>
+                          {producto.precio_antes && (
                             <p className="text-xs text-gray-400 line-through">
                               ${producto.precio_antes.toLocaleString()}
                             </p>
                           )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                            producto.stock > 10
+                              ? "bg-green-100 text-green-800"
+                              : producto.stock > 0
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {producto.stock} unidades
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => iniciarEdicion(producto)}
+                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => confirmarEliminacion(producto)}
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* MOBILE */}
+            <div className="md:hidden">
+              {paginatedProductos.map((producto) => (
+                <div key={producto.id} className="border-b border-gray-200 p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <ProductoImagen
+                        src={producto.imagen}
+                        alt={producto.nombre}
+                        className="w-12 h-12"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {producto.nombre}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {producto.categoria_nombre}
+                        </p>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => iniciarEdicion(producto)}
+                        className="p-1.5 bg-blue-100 text-blue-600 rounded"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => confirmarEliminacion(producto)}
+                        className="p-1.5 bg-red-100 text-red-600 rounded"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Precio</p>
+                      <p className="font-bold">
+                        ${producto.precio.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Stock</p>
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                          producto.stock > 10
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                          producto.stock > 0
                             ? "bg-green-100 text-green-800"
-                            : producto.stock > 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                            : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {producto.stock > 10
-                          ? "✓"
-                          : producto.stock > 0
-                            ? "⚠"
-                            : "✗"}
                         {producto.stock} unidades
                       </span>
-                      <div className="flex gap-1 mt-1">
-                        {producto.es_oferta && (
-                          <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-800 rounded">
-                            Oferta
-                          </span>
-                        )}
-                        {producto.destacado && (
-                          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded">
-                            Destacado
-                          </span>
-                        )}
-                        {producto.nuevo && (
-                          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
-                            Nuevo
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => iniciarEdicion(producto)}
-                          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
-                          title="Editar producto"
-                        >
-                          <Edit size={14} />
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => confirmarEliminacion(producto)}
-                          className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center gap-1"
-                          title="Eliminar permanentemente"
-                        >
-                          <Trash2 size={14} />
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+
+                  {producto.es_oferta && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                        En oferta
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* PAGINACIÓN */}
-      {productosFiltrados.length > 0 && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Mostrando {productosFiltrados.length} de {productos.length}{" "}
-            productos
-          </p>
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center">
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-              Anterior
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-50"
+            >
+              <ChevronLeft size={16} />
             </button>
-            <span className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm">
-              1
+
+            <span className="text-sm text-gray-600">
+              Página {currentPage} de {totalPages}
             </span>
-            <button className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-              Siguiente
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-gray-300 disabled:opacity-50"
+            >
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* MODAL DE ELIMINACIÓN */}
-      <AnimatePresence>
-        {showDeleteModal && productoToDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-md"
-            >
-              {/* Header */}
-              <div className="bg-red-600 p-4 rounded-t-xl">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-6 h-6 text-white" />
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Eliminar Producto
-                    </h3>
-                    <p className="text-red-100 text-sm">
-                      Esta acción no se puede deshacer
-                    </p>
-                  </div>
-                </div>
+      {/* MODAL ELIMINAR */}
+      {showDeleteModal && productoToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+                <h3 className="text-lg font-bold">Eliminar Producto</h3>
               </div>
 
-              {/* Body */}
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <ProductoImagen
-                    src={productoToDelete.imagen}
-                    alt={productoToDelete.nombre}
-                    className="w-16 h-16"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-900">
-                      {productoToDelete.nombre}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      ID: {productoToDelete.id}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Categoría: {productoToDelete.categoria_nombre}
-                    </p>
-                    <p className="text-red-600 font-bold mt-1">
-                      ${Number(productoToDelete.precio || 0).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
+              <p className="text-gray-600 mb-6">
+                ¿Eliminar <strong>{productoToDelete.nombre}</strong>? Esta
+                acción no se puede deshacer.
+              </p>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-red-600 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-red-800">
-                        ¿Estás completamente seguro?
-                      </p>
-                      <ul className="text-red-700 text-sm mt-2 space-y-1">
-                        <li>• El producto será eliminado PERMANENTEMENTE</li>
-                        <li>• Se borrará de la base de datos</li>
-                        <li>• Las imágenes se eliminarán de Cloudinary</li>
-                        <li>• Esta acción NO se puede revertir</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-gray-200 flex gap-3">
+              <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setShowDeleteModal(false);
                     setProductoToDelete(null);
                   }}
-                  disabled={deleting}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  disabled={actionLoading}
+                  className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={eliminarProducto}
-                  disabled={deleting}
-                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={actionLoading}
+                  className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {deleting ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Eliminando...
-                    </>
+                  {actionLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
-                    "Eliminar Permanentemente"
+                    "Eliminar"
                   )}
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* MODAL DE EDICIÓN */}
-      <AnimatePresence>
-        {showEditModal && productoToEdit && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-2xl my-8"
-            >
-              {/* Header */}
-              <div className="bg-blue-600 p-4 rounded-t-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Edit className="w-6 h-6 text-white" />
-                    <div>
-                      <h3 className="text-lg font-bold text-white">
-                        Editar Producto
-                      </h3>
-                      <p className="text-blue-100 text-sm">
-                        ID: {productoToEdit.id} - {productoToEdit.nombre}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setProductoToEdit(null);
-                    }}
-                    className="text-white hover:text-blue-100"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Columna izquierda */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre del Producto *
-                      </label>
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={editForm.nombre}
-                        onChange={handleEditChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Descripción
-                      </label>
-                      <textarea
-                        name="descripcion"
-                        value={editForm.descripcion}
-                        onChange={handleEditChange}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Categoría *
-                      </label>
-                      <select
-                        name="categoria_id"
-                        value={editForm.categoria_id}
-                        onChange={handleEditChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Seleccionar categoría</option>
-                        {categorias.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio Actual *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            name="precio"
-                            value={editForm.precio}
-                            onChange={handleEditChange}
-                            min="0"
-                            step="0.01"
-                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio Anterior (si aplica)
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            name="precio_antes"
-                            value={editForm.precio_antes}
-                            onChange={handleEditChange}
-                            min="0"
-                            step="0.01"
-                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Columna derecha */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Stock Disponible *
-                      </label>
-                      <input
-                        type="number"
-                        name="stock"
-                        value={editForm.stock}
-                        onChange={handleEditChange}
-                        min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Etiquetas
-                      </label>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            name="es_oferta"
-                            checked={editForm.es_oferta}
-                            onChange={handleEditChange}
-                            className="rounded text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">
-                            En Oferta
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            name="destacado"
-                            checked={editForm.destacado}
-                            onChange={handleEditChange}
-                            className="rounded text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">
-                            Destacado
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            name="nuevo"
-                            checked={editForm.nuevo}
-                            onChange={handleEditChange}
-                            className="rounded text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">Nuevo</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          name="activo"
-                          checked={editForm.activo}
-                          onChange={handleEditChange}
-                          className="rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Producto Activo
-                        </span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Si está desactivado, no será visible en la tienda
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Vista Previa
-                      </h4>
-                      <div className="flex items-center gap-3">
-                        <ProductoImagen
-                          src={productoToEdit.imagen}
-                          alt={editForm.nombre}
-                          className="w-12 h-12"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {editForm.nombre || "Nombre del producto"}
-                          </p>
-                          <p className="text-lg font-bold text-blue-600">
-                            ${editForm.precio.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-gray-200 flex gap-3">
+      {/* MODAL EDITAR */}
+      {showEditModal && productoToEdit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg w-full max-w-md my-8">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold">Editar Producto</h3>
                 <button
                   onClick={() => {
                     setShowEditModal(false);
                     setProductoToEdit(null);
                   }}
-                  disabled={editing}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={editForm.nombre}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descripción
+                  </label>
+                  <textarea
+                    name="descripcion"
+                    value={editForm.descripcion}
+                    onChange={handleEditChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Precio
+                    </label>
+                    <input
+                      type="number"
+                      name="precio"
+                      value={editForm.precio}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Stock
+                    </label>
+                    <input
+                      type="number"
+                      name="stock"
+                      value={editForm.stock}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría
+                  </label>
+                  <select
+                    name="categoria_id"
+                    value={editForm.categoria_id}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="es_oferta"
+                      checked={editForm.es_oferta}
+                      onChange={handleEditChange}
+                      className="rounded"
+                    />
+                    <span className="text-sm">En oferta</span>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="destacado"
+                      checked={editForm.destacado}
+                      onChange={handleEditChange}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Destacado</span>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="activo"
+                      checked={editForm.activo}
+                      onChange={handleEditChange}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Activo</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setProductoToEdit(null);
+                  }}
+                  disabled={actionLoading}
+                  className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={actualizarProducto}
-                  disabled={editing}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={actionLoading}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {editing ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Actualizando...
-                    </>
+                  {actionLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
                     <>
                       <Save size={16} />
-                      Guardar Cambios
+                      Guardar
                     </>
                   )}
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
