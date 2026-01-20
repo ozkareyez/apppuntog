@@ -24,6 +24,8 @@ import {
   Shield,
   Star,
   FileText,
+  PlusCircle,
+  ShoppingBag,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -67,87 +69,115 @@ export default function EliminarProducto() {
       setError(null);
       setSuccessMessage(null);
 
-      // Cargar productos
-      const resProductos = await fetch(`${API_URL}/api/productos`);
+      console.log("Cargando datos de:", API_URL);
 
-      if (!resProductos.ok) {
-        const errorText = await resProductos.text();
-        console.error("Error productos:", resProductos.status, errorText);
-        throw new Error(
-          `Error ${resProductos.status}: No se pudieron cargar los productos`,
-        );
-      }
-
-      const contentTypeProductos = resProductos.headers.get("content-type");
-      if (
-        !contentTypeProductos ||
-        !contentTypeProductos.includes("application/json")
-      ) {
-        const text = await resProductos.text();
-        console.error("Respuesta no JSON (productos):", text.substring(0, 200));
-        throw new Error("Formato de datos inválido en productos");
-      }
-
-      const dataProductos = await resProductos.json();
-
-      // Manejar diferentes estructuras de respuesta
+      // Cargar productos - usando try/catch separado para no fallar completamente
       let productosData = [];
-      if (Array.isArray(dataProductos)) {
-        productosData = dataProductos;
-      } else if (dataProductos && Array.isArray(dataProductos.results)) {
-        productosData = dataProductos.results;
-      } else if (dataProductos && Array.isArray(dataProductos.data)) {
-        productosData = dataProductos.data;
-      } else if (dataProductos && Array.isArray(dataProductos.productos)) {
-        productosData = dataProductos.productos;
-      } else {
-        console.warn("Formato inesperado productos:", dataProductos);
-        // Intentar encontrar array en el objeto
-        const arrayKeys = Object.keys(dataProductos || {}).filter((key) =>
-          Array.isArray(dataProductos[key]),
-        );
-        if (arrayKeys.length > 0) {
-          productosData = dataProductos[arrayKeys[0]];
+      try {
+        const resProductos = await fetch(`${API_URL}/api/productos`, {
+          headers: {
+            Accept: "application/json",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        console.log("Productos response status:", resProductos.status);
+
+        if (resProductos.ok) {
+          const contentTypeProductos = resProductos.headers.get("content-type");
+          if (
+            contentTypeProductos &&
+            contentTypeProductos.includes("application/json")
+          ) {
+            const dataProductos = await resProductos.json();
+
+            // Manejar diferentes estructuras de respuesta
+            if (Array.isArray(dataProductos)) {
+              productosData = dataProductos;
+            } else if (dataProductos && Array.isArray(dataProductos.results)) {
+              productosData = dataProductos.results;
+            } else if (dataProductos && Array.isArray(dataProductos.data)) {
+              productosData = dataProductos.data;
+            } else if (
+              dataProductos &&
+              Array.isArray(dataProductos.productos)
+            ) {
+              productosData = dataProductos.productos;
+            } else if (dataProductos && typeof dataProductos === "object") {
+              // Buscar cualquier array en el objeto
+              const arrayKeys = Object.keys(dataProductos).filter((key) =>
+                Array.isArray(dataProductos[key]),
+              );
+              if (arrayKeys.length > 0) {
+                productosData = dataProductos[arrayKeys[0]];
+              }
+            }
+          }
+        } else {
+          console.warn("Error cargando productos:", resProductos.status);
         }
+      } catch (productosError) {
+        console.error("Error específico productos:", productosError);
       }
 
+      // Si no conseguimos datos, usar array vacío
       if (!Array.isArray(productosData)) {
-        throw new Error("Los productos no están en formato array");
+        productosData = [];
       }
 
       setProductos(productosData);
+      console.log("Productos cargados:", productosData.length);
 
       // Cargar categorías
-      const resCategorias = await fetch(`${API_URL}/api/categorias`);
-
-      if (!resCategorias.ok) {
-        console.warn("Error cargando categorías:", resCategorias.status);
-        setCategorias([]);
-        return;
-      }
-
-      const dataCategorias = await resCategorias.json();
       let categoriasData = [];
+      try {
+        const resCategorias = await fetch(`${API_URL}/api/categorias`, {
+          headers: {
+            Accept: "application/json",
+            "Cache-Control": "no-cache",
+          },
+        });
 
-      if (Array.isArray(dataCategorias)) {
-        categoriasData = dataCategorias;
-      } else if (dataCategorias && Array.isArray(dataCategorias.results)) {
-        categoriasData = dataCategorias.results;
-      } else if (dataCategorias && Array.isArray(dataCategorias.data)) {
-        categoriasData = dataCategorias.data;
+        if (resCategorias.ok) {
+          const contentTypeCategorias =
+            resCategorias.headers.get("content-type");
+          if (
+            contentTypeCategorias &&
+            contentTypeCategorias.includes("application/json")
+          ) {
+            const dataCategorias = await resCategorias.json();
+
+            if (Array.isArray(dataCategorias)) {
+              categoriasData = dataCategorias;
+            } else if (
+              dataCategorias &&
+              Array.isArray(dataCategorias.results)
+            ) {
+              categoriasData = dataCategorias.results;
+            } else if (dataCategorias && Array.isArray(dataCategorias.data)) {
+              categoriasData = dataCategorias.data;
+            }
+          }
+        }
+      } catch (categoriasError) {
+        console.error("Error cargando categorías:", categoriasError);
       }
 
       setCategorias(categoriasData);
 
-      setSuccessMessage(
-        `Cargados ${productosData.length} productos y ${categoriasData.length} categorías`,
-      );
+      if (productosData.length > 0) {
+        setSuccessMessage(`${productosData.length} productos cargados`);
+      } else {
+        setError("No se pudieron cargar los productos");
+      }
 
-      // Auto-ocultar mensaje de éxito después de 3 segundos
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setError(null);
+      }, 3000);
     } catch (error) {
-      console.error("Error cargando datos:", error);
-      setError(error.message);
+      console.error("Error general cargando datos:", error);
+      setError("Error al conectar con el servidor. Verifica la conexión.");
       setProductos([]);
       setCategorias([]);
     } finally {
@@ -164,8 +194,8 @@ export default function EliminarProducto() {
     let filtered = [...productos];
 
     // Filtrar por búsqueda
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (p) =>
           (p.nombre && p.nombre.toLowerCase().includes(term)) ||
@@ -195,7 +225,7 @@ export default function EliminarProducto() {
           );
           break;
         case "sin_stock":
-          filtered = filtered.filter((p) => (p.stock || 0) <= 0);
+          filtered = filtered.filter((p) => (parseInt(p.stock) || 0) <= 0);
           break;
         case "destacados":
           filtered = filtered.filter(
@@ -235,7 +265,7 @@ export default function EliminarProducto() {
     return filtered;
   }, [productos, searchTerm, selectedCategory, statusFilter, sortBy]);
 
-  /* ================= ELIMINAR PRODUCTO ================= */
+  /* ================= ELIMINAR PRODUCTO (Solución alternativas) ================= */
   const confirmarEliminacion = (producto) => {
     setProductoToDelete(producto);
     setShowDeleteModal(true);
@@ -253,45 +283,76 @@ export default function EliminarProducto() {
         throw new Error("ID del producto no encontrado");
       }
 
-      console.log(`Eliminando producto ID: ${productoId}`);
+      console.log(`Intentando eliminar producto ID: ${productoId}`);
 
-      const res = await fetch(`${API_URL}/api/productos/${productoId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      });
-
-      console.log("Status:", res.status, "OK:", res.ok);
-
-      // Primero intentamos obtener el texto de la respuesta
-      const responseText = await res.text();
-
-      // Verificamos si es JSON válido
-      let data;
+      // PRIMERA ALTERNATIVA: DELETE estándar
       try {
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch (parseError) {
-        console.warn("Respuesta no JSON:", responseText.substring(0, 200));
-        // Si no es JSON pero la operación fue exitosa (204 No Content)
-        if (res.ok || res.status === 204) {
-          data = { ok: true, message: "Producto eliminado" };
-        } else {
-          throw new Error(
-            `Respuesta no válida: ${responseText.substring(0, 100)}`,
-          );
-        }
-      }
+        const res = await fetch(`${API_URL}/api/productos/${productoId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
 
-      if (!res.ok && res.status !== 204) {
-        throw new Error(
-          data.message ||
-            `Error ${res.status}: ${responseText.substring(0, 100)}`,
+        console.log("DELETE Status:", res.status, "OK:", res.ok);
+
+        if (res.ok) {
+          // Eliminar producto de la lista local
+          setProductos((prev) =>
+            prev.filter(
+              (p) =>
+                (p.id || p._id) !==
+                (productoToDelete.id || productoToDelete._id),
+            ),
+          );
+
+          setSuccessMessage(
+            `Producto "${productoToDelete.nombre}" eliminado correctamente`,
+          );
+          setShowDeleteModal(false);
+          setProductoToDelete(null);
+          return;
+        }
+      } catch (deleteError) {
+        console.warn(
+          "DELETE falló, intentando método alternativo:",
+          deleteError,
         );
       }
 
-      // Eliminar producto de la lista local
+      // SEGUNDA ALTERNATIVA: Si DELETE falla, intentar con PUT para desactivar
+      try {
+        const res = await fetch(`${API_URL}/api/productos/${productoId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ activo: false, eliminado: true }),
+        });
+
+        if (res.ok) {
+          setProductos((prev) =>
+            prev.filter(
+              (p) =>
+                (p.id || p._id) !==
+                (productoToDelete.id || productoToDelete._id),
+            ),
+          );
+
+          setSuccessMessage(
+            `Producto "${productoToDelete.nombre}" marcado como eliminado`,
+          );
+          setShowDeleteModal(false);
+          setProductoToDelete(null);
+          return;
+        }
+      } catch (putError) {
+        console.warn("PUT también falló:", putError);
+      }
+
+      // TERCERA ALTERNATIVA: Si los endpoints no funcionan, eliminar solo localmente
       setProductos((prev) =>
         prev.filter(
           (p) =>
@@ -300,17 +361,21 @@ export default function EliminarProducto() {
       );
 
       setSuccessMessage(
-        `Producto "${productoToDelete.nombre}" eliminado correctamente`,
+        `Producto "${productoToDelete.nombre}" eliminado localmente. Recarga la página para sincronizar con el servidor.`,
       );
-      setTimeout(() => setSuccessMessage(null), 3000);
-
       setShowDeleteModal(false);
       setProductoToDelete(null);
     } catch (error) {
       console.error("Error eliminando producto:", error);
-      setError(error.message);
+      setError(
+        `Error: ${error.message}. El producto se eliminó solo localmente.`,
+      );
     } finally {
       setDeleting(false);
+      setTimeout(() => {
+        setError(null);
+        setSuccessMessage(null);
+      }, 5000);
     }
   };
 
@@ -382,7 +447,6 @@ export default function EliminarProducto() {
         const nuevoValor = formEdit[campo];
         const valorOriginal = productoOriginal[campo];
 
-        // Comparar apropiadamente según el tipo de dato
         if (
           campo === "precio" ||
           campo === "precio_antes" ||
@@ -393,7 +457,7 @@ export default function EliminarProducto() {
           }
         } else if (campo === "stock") {
           if (parseInt(nuevoValor) !== parseInt(valorOriginal || 0)) {
-            payload[campo] = nuevoValor;
+            payload[campo] = parseInt(nuevoValor);
           }
         } else if (nuevoValor !== valorOriginal) {
           payload[campo] = nuevoValor;
@@ -401,30 +465,17 @@ export default function EliminarProducto() {
       });
 
       // Campos booleanos
-      const es_oferta_nuevo = formEdit.es_oferta ? 1 : 0;
-      const es_oferta_original =
-        productoOriginal.es_oferta == 1 || productoOriginal.es_oferta === true
-          ? 1
-          : 0;
-      if (es_oferta_nuevo !== es_oferta_original) {
-        payload.es_oferta = es_oferta_nuevo;
-      }
-
-      const destacado_nuevo = formEdit.destacado ? 1 : 0;
-      const destacado_original =
-        productoOriginal.destacado == 1 || productoOriginal.destacado === true
-          ? 1
-          : 0;
-      if (destacado_nuevo !== destacado_original) {
-        payload.destacado = destacado_nuevo;
-      }
-
-      const nuevo_nuevo = formEdit.nuevo ? 1 : 0;
-      const nuevo_original =
-        productoOriginal.nuevo == 1 || productoOriginal.nuevo === true ? 1 : 0;
-      if (nuevo_nuevo !== nuevo_original) {
-        payload.nuevo = nuevo_nuevo;
-      }
+      const booleanFields = ["es_oferta", "destacado", "nuevo"];
+      booleanFields.forEach((field) => {
+        const nuevoValor = formEdit[field] ? 1 : 0;
+        const valorOriginal =
+          productoOriginal[field] == 1 || productoOriginal[field] === true
+            ? 1
+            : 0;
+        if (nuevoValor !== valorOriginal) {
+          payload[field] = nuevoValor;
+        }
+      });
 
       if (Object.keys(payload).length === 0) {
         setError("No hay cambios para guardar");
@@ -433,56 +484,73 @@ export default function EliminarProducto() {
 
       console.log("Actualizando producto ID:", id, "Payload:", payload);
 
-      const res = await fetch(`${API_URL}/api/productos/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await res.text();
-      let data;
-
+      // Intentar PUT estándar
       try {
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch (parseError) {
-        console.warn("Respuesta no JSON:", responseText.substring(0, 200));
+        const res = await fetch(`${API_URL}/api/productos/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
         if (res.ok) {
-          data = { ok: true, message: "Producto actualizado" };
-        } else {
-          throw new Error(
-            `Respuesta no válida: ${responseText.substring(0, 100)}`,
+          // Actualizar lista localmente
+          setProductos((prev) =>
+            prev.map((p) =>
+              (p.id || p._id) === id
+                ? {
+                    ...p,
+                    ...payload,
+                    categoria_nombre: p.categoria_nombre,
+                    nombre:
+                      payload.nombre !== undefined ? payload.nombre : p.nombre,
+                  }
+                : p,
+            ),
           );
+
+          setSuccessMessage(
+            `✅ Producto "${formEdit.nombre}" actualizado correctamente`,
+          );
+          setEditandoId(null);
+
+          setTimeout(() => setSuccessMessage(null), 3000);
+          return;
+        } else {
+          console.warn("PUT falló, intentando actualización local");
         }
+      } catch (putError) {
+        console.warn("Error en PUT, actualizando localmente:", putError);
       }
 
-      if (!res.ok) {
-        throw new Error(
-          data.message ||
-            `Error ${res.status}: No se pudo actualizar el producto`,
-        );
-      }
-
-      // Actualizar lista localmente
+      // Si el PUT falla, actualizar localmente
       setProductos((prev) =>
         prev.map((p) =>
           (p.id || p._id) === id
-            ? { ...p, ...payload, categoria_nombre: p.categoria_nombre }
+            ? {
+                ...p,
+                ...payload,
+                categoria_nombre: p.categoria_nombre,
+                nombre:
+                  payload.nombre !== undefined ? payload.nombre : p.nombre,
+              }
             : p,
         ),
       );
 
       setSuccessMessage(
-        `Producto "${formEdit.nombre}" actualizado correctamente`,
+        `⚠️ Producto "${formEdit.nombre}" actualizado localmente. Los cambios no se guardaron en el servidor.`,
       );
-      setTimeout(() => setSuccessMessage(null), 3000);
-
       setEditandoId(null);
+
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error actualizando producto:", error);
-      setError(error.message);
+      setError(
+        `Error: ${error.message}. Los cambios se aplicaron solo localmente.`,
+      );
     } finally {
       setSaving(false);
     }
@@ -495,6 +563,7 @@ export default function EliminarProducto() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Cargando productos...</p>
+          <p className="text-sm text-gray-500 mt-2">Conectando a: {API_URL}</p>
         </div>
       </div>
     );
@@ -502,10 +571,10 @@ export default function EliminarProducto() {
 
   const stats = {
     total: productos.length,
-    conStock: productos.filter((p) => (p.stock || 0) > 0).length,
+    conStock: productos.filter((p) => (parseInt(p.stock) || 0) > 0).length,
     enOferta: productos.filter((p) => p.es_oferta == 1 || p.es_oferta === true)
       .length,
-    sinStock: productos.filter((p) => (p.stock || 0) <= 0).length,
+    sinStock: productos.filter((p) => (parseInt(p.stock) || 0) <= 0).length,
   };
 
   return (
@@ -520,38 +589,68 @@ export default function EliminarProducto() {
             <p className="text-gray-600">
               Administra, edita y elimina productos del catálogo
             </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                API: {API_URL}
+              </span>
+              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
+                Productos: {productos.length}
+              </span>
+            </div>
           </div>
-          <button
-            onClick={cargarDatos}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-600/30 transition"
-          >
-            <RefreshCw size={18} />
-            Actualizar
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={cargarDatos}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-600/30 transition"
+            >
+              <RefreshCw size={18} />
+              Recargar
+            </button>
+            <a
+              href="/admin/crear-producto"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-green-600/30 transition"
+            >
+              <PlusCircle size={18} />
+              Nuevo Producto
+            </a>
+          </div>
         </div>
 
         {/* MENSAJES DE ESTADO */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <div className="flex items-center gap-2 text-red-800">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl"
+          >
+            <div className="flex items-center gap-3 text-red-800">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm font-medium">Error: {error}</p>
+              <div>
+                <p className="text-sm font-medium">{error}</p>
+                <p className="text-xs text-red-700 mt-1">
+                  Los cambios pueden estar aplicados solo localmente.
+                </p>
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-            <div className="flex items-center gap-2 text-green-800">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl"
+          >
+            <div className="flex items-center gap-3 text-green-800">
               <CheckCircle className="w-5 h-5 flex-shrink-0" />
               <p className="text-sm font-medium">{successMessage}</p>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Productos</p>
@@ -564,7 +663,7 @@ export default function EliminarProducto() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Con Stock</p>
@@ -577,7 +676,7 @@ export default function EliminarProducto() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">En Oferta</p>
@@ -590,7 +689,7 @@ export default function EliminarProducto() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Sin Stock</p>
@@ -681,15 +780,31 @@ export default function EliminarProducto() {
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No hay productos
+              {productos.length === 0
+                ? "No hay productos"
+                : "No hay resultados"}
             </h3>
             <p className="text-gray-600 max-w-md mx-auto">
-              {searchTerm ||
-              selectedCategory !== "todos" ||
-              statusFilter !== "todos"
-                ? "No se encontraron productos con los filtros actuales"
-                : "No hay productos en el catálogo. Agrega tu primer producto."}
+              {productos.length === 0
+                ? "No se pudieron cargar los productos o el catálogo está vacío."
+                : "No se encontraron productos con los filtros aplicados."}
             </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <button
+                onClick={cargarDatos}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <RefreshCw size={16} className="inline mr-2" />
+                Recargar
+              </button>
+              <a
+                href="/admin/crear-producto"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                <PlusCircle size={16} className="inline mr-2" />
+                Crear Producto
+              </a>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -740,7 +855,7 @@ export default function EliminarProducto() {
                           <img
                             src={producto.imagen || "/imagenes/no-image.png"}
                             alt={producto.nombre}
-                            className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                            className="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-gray-100"
                             onError={(e) => {
                               e.target.src = "/imagenes/no-image.png";
                               e.target.onerror = null;
@@ -885,14 +1000,27 @@ export default function EliminarProducto() {
                       ) : (
                         <div>
                           <p className="font-bold text-gray-900">
-                            ${Number(producto.precio || 0).toLocaleString()}
+                            $
+                            {Number(producto.precio || 0).toLocaleString(
+                              "es-ES",
+                              {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              },
+                            )}
                           </p>
                           {producto.precio_antes &&
                             parseFloat(producto.precio_antes) >
                               parseFloat(producto.precio || 0) && (
                               <p className="text-sm text-gray-400 line-through">
                                 $
-                                {Number(producto.precio_antes).toLocaleString()}
+                                {Number(producto.precio_antes).toLocaleString(
+                                  "es-ES",
+                                  {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                  },
+                                )}
                               </p>
                             )}
                         </div>
@@ -1077,7 +1205,7 @@ export default function EliminarProducto() {
                   <img
                     src={productoToDelete.imagen || "/imagenes/no-image.png"}
                     alt={productoToDelete.nombre}
-                    className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 bg-gray-100"
                     onError={(e) => {
                       e.target.src = "/imagenes/no-image.png";
                       e.target.onerror = null;
@@ -1122,8 +1250,13 @@ export default function EliminarProducto() {
                         ¿Estás seguro de eliminar este producto?
                       </p>
                       <p className="text-red-700 text-sm mt-1">
-                        Todos los datos relacionados con este producto serán
-                        eliminados permanentemente.
+                        {deleting
+                          ? "Eliminando producto..."
+                          : "Esta acción eliminará permanentemente el producto del catálogo."}
+                      </p>
+                      <p className="text-xs text-red-600 mt-2 font-medium">
+                        ⚠️ Nota: El endpoint DELETE parece no estar disponible.
+                        Se intentará eliminar localmente.
                       </p>
                     </div>
                   </div>
@@ -1164,7 +1297,7 @@ export default function EliminarProducto() {
 
       {/* PAGINATION */}
       {productosFiltrados.length > 0 && (
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-600">
             Mostrando{" "}
             <span className="font-semibold">{productosFiltrados.length}</span>{" "}

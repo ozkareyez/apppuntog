@@ -321,7 +321,7 @@ app.get("/api/productos/:id", (req, res) => {
       c.slug as categoria_slug
     FROM productos p
     LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.id = ? AND p.activo = 1
+    WHERE p.id = ?
   `;
 
   DB.query(query, [id], (err, rows) => {
@@ -372,6 +372,10 @@ app.get("/api/productos/:id", (req, res) => {
       imagen_cloud1: p.imagen_cloud1,
       imagen_cloud2: p.imagen_cloud2,
       imagen_cloud3: p.imagen_cloud3,
+      stock: p.stock || 0,
+      destacado: p.destacado || 0,
+      nuevo: p.nuevo || 0,
+      created_at: p.created_at,
     };
 
     console.log(
@@ -420,7 +424,7 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
 
   try {
     const [producto] = await DB.promise().query(
-      "SELECT categoria_id FROM productos WHERE id = ? AND activo = 1",
+      "SELECT categoria_id FROM productos WHERE id = ?",
       [id],
     );
 
@@ -441,13 +445,15 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
         p.imagen_cloud2,
         p.imagen_cloud3,
         p.es_oferta,
-        p.precio_antes
+        p.precio_antes,
+        p.categoria,
+        p.categoria_id
       FROM productos p
       WHERE p.categoria_id = ?
         AND p.id != ?
         AND p.activo = 1
       ORDER BY RAND()
-      LIMIT 10
+      LIMIT 6
       `,
       [categoriaId, id],
     );
@@ -472,6 +478,8 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
         precio: Number(p.precio),
         es_oferta: Boolean(p.es_oferta),
         precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+        categoria: p.categoria,
+        categoria_id: p.categoria_id,
         imagen: p.imagen,
         imagenes: imagenes,
       };
@@ -488,68 +496,64 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
 /* ================= ACTUALIZAR PRODUCTO ================= */
 app.put("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
-  const {
-    categoria = null,
-    nombre,
-    talla = null,
-    color = null,
-    precio,
-    categoria_id,
-    precio_antes = null,
-    descuento = null,
-    es_oferta = 0,
-    descripcion = null,
-    imagenes = [],
-  } = req.body;
+  const updateData = req.body;
 
-  if (!nombre || !precio || !categoria_id) {
+  console.log(`📝 Actualizando producto ID: ${id}`, updateData);
+
+  // Validar que exista el ID
+  if (!id) {
     return res.status(400).json({
       ok: false,
-      message: "Faltan campos obligatorios: nombre, precio, categoria_id",
+      message: "Se requiere el ID del producto",
     });
   }
 
-  const imagen_cloud1 = imagenes.length > 0 ? imagenes[0] : null;
-  const imagen_cloud2 = imagenes.length > 1 ? imagenes[1] : null;
-  const imagen_cloud3 = imagenes.length > 2 ? imagenes[2] : null;
-  const imagen = imagenes.length > 0 ? imagenes[0] : null;
+  // Construir la consulta dinámicamente
+  const allowedFields = [
+    "nombre",
+    "precio",
+    "precio_antes",
+    "descuento",
+    "descripcion",
+    "categoria_id",
+    "es_oferta",
+    "stock",
+    "destacado",
+    "nuevo",
+    "categoria",
+    "talla",
+    "color",
+    "imagen",
+    "imagen_cloud1",
+    "imagen_cloud2",
+    "imagen_cloud3",
+  ];
+
+  const updateFields = [];
+  const updateValues = [];
+
+  // Solo incluir campos que estén presentes en el request
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) {
+      updateFields.push(`${field} = ?`);
+      updateValues.push(updateData[field]);
+    }
+  });
+
+  if (updateFields.length === 0) {
+    return res.status(400).json({
+      ok: false,
+      message: "No hay campos para actualizar",
+    });
+  }
+
+  // Agregar el ID al final de los valores
+  updateValues.push(id);
+
+  const query = `UPDATE productos SET ${updateFields.join(", ")} WHERE id = ?`;
 
   try {
-    const [result] = await DB.promise().query(
-      `UPDATE productos SET
-        categoria = ?,
-        nombre = ?,
-        talla = ?,
-        color = ?,
-        precio = ?,
-        imagen = ?,
-        categoria_id = ?,
-        precio_antes = ?,
-        descuento = ?,
-        es_oferta = ?,
-        descripcion = ?,
-        imagen_cloud1 = ?,
-        imagen_cloud2 = ?,
-        imagen_cloud3 = ?
-      WHERE id = ?`,
-      [
-        categoria,
-        nombre,
-        talla,
-        color,
-        precio,
-        imagen,
-        categoria_id,
-        precio_antes,
-        descuento,
-        es_oferta,
-        descripcion,
-        imagen_cloud1,
-        imagen_cloud2,
-        imagen_cloud3,
-        id,
-      ],
-    );
+    const [result] = await DB.promise().query(query, updateValues);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -558,15 +562,21 @@ app.put("/api/productos/:id", async (req, res) => {
       });
     }
 
+    console.log(
+      `✅ Producto ${id} actualizado. Campos: ${updateFields.length}`,
+    );
+
     res.json({
       ok: true,
       message: "Producto actualizado correctamente",
+      affectedRows: result.affectedRows,
     });
   } catch (error) {
     console.error("❌ Error actualizando producto:", error);
     res.status(500).json({
       ok: false,
       message: error.message,
+      sqlMessage: error.sqlMessage,
     });
   }
 });
@@ -575,28 +585,59 @@ app.put("/api/productos/:id", async (req, res) => {
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
+  console.log(`🗑️ Solicitando eliminación del producto ID: ${id}`);
+
   try {
-    const [result] = await DB.promise().query(
-      "UPDATE productos SET activo = 0 WHERE id = ?",
+    // Primero verificar si el producto existe
+    const [checkProduct] = await DB.promise().query(
+      "SELECT id, nombre FROM productos WHERE id = ?",
       [id],
     );
 
-    if (result.affectedRows === 0) {
+    if (!checkProduct.length) {
+      console.log(`❌ Producto ${id} no encontrado para eliminar`);
       return res.status(404).json({
         ok: false,
         message: "Producto no encontrado",
       });
     }
 
+    // Opción 1: Eliminar físicamente (DELETE)
+    const [deleteResult] = await DB.promise().query(
+      "DELETE FROM productos WHERE id = ?",
+      [id],
+    );
+
+    // Opción 2: Si prefieres marcar como inactivo (soft delete), usa esto:
+    // const [deleteResult] = await DB.promise().query(
+    //   "UPDATE productos SET activo = 0 WHERE id = ?",
+    //   [id]
+    // );
+
+    if (deleteResult.affectedRows === 0) {
+      console.log(`❌ No se pudo eliminar el producto ${id}`);
+      return res.status(500).json({
+        ok: false,
+        message: "No se pudo eliminar el producto",
+      });
+    }
+
+    console.log(`✅ Producto ${id} eliminado correctamente`);
+    console.log(`📝 Detalles: ${checkProduct[0].nombre}`);
+
     res.json({
       ok: true,
       message: "Producto eliminado correctamente",
+      producto: checkProduct[0].nombre,
+      affectedRows: deleteResult.affectedRows,
     });
   } catch (error) {
     console.error("❌ Error eliminando producto:", error);
     res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Error al eliminar producto",
+      error: error.message,
+      sqlMessage: error.sqlMessage,
     });
   }
 });
@@ -707,191 +748,18 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
-/* ================= PRODUCTO POR ID ================= */
-app.get("/api/productos/:id", (req, res) => {
-  const { id } = req.params;
-
-  console.log(`🔍 Solicitando producto ID: ${id}`);
-
-  const query = `
-    SELECT 
-      p.*,
-      c.nombre as categoria_nombre,
-      c.slug as categoria_slug
-    FROM productos p
-    LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.id = ?
-  `;
-
-  DB.query(query, [id], (err, rows) => {
-    if (err) {
-      console.error("❌ ERROR PRODUCTO:", err);
-      return res.status(500).json({ error: err.message });
-    }
-
-    if (!rows.length) {
-      console.log(`❌ Producto ${id} no encontrado`);
-      return res.status(404).json({ error: "Producto no encontrado" });
-    }
-
-    const p = rows[0];
-
-    // Construir array de imágenes
-    const imagenesArray = [];
-
-    if (p.imagen_cloud1 && p.imagen_cloud1 !== "null") {
-      imagenesArray.push(p.imagen_cloud1);
-    }
-    if (p.imagen_cloud2 && p.imagen_cloud2 !== "null") {
-      imagenesArray.push(p.imagen_cloud2);
-    }
-    if (p.imagen_cloud3 && p.imagen_cloud3 !== "null") {
-      imagenesArray.push(p.imagen_cloud3);
-    }
-
-    // Si no hay imágenes en los campos cloud, usar imagen principal
-    if (imagenesArray.length === 0 && p.imagen && p.imagen !== "null") {
-      imagenesArray.push(p.imagen);
-    }
-
-    const producto = {
-      id: p.id,
-      nombre: p.nombre,
-      descripcion: p.descripcion,
-      descripcion_breve: p.descripcion_breve,
-      precio: Number(p.precio),
-      precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-      descuento: p.descuento ? Number(p.descuento) : 0,
-      es_oferta: Boolean(p.es_oferta),
-      categoria: p.categoria,
-      categoria_id: p.categoria_id,
-      categoria_nombre: p.categoria_nombre || p.categoria,
-      categoria_slug: p.categoria_slug || `categoria${p.categoria_id}`,
-      activo: Boolean(p.activo),
-      talla: p.talla,
-      color: p.color,
-      imagen: p.imagen,
-      imagenes: imagenesArray,
-      imagen_cloud1: p.imagen_cloud1,
-      imagen_cloud2: p.imagen_cloud2,
-      imagen_cloud3: p.imagen_cloud3,
-      stock: p.stock || 0,
-      created_at: p.created_at,
-    };
-
-    console.log(
-      `✅ Producto ${id} enviado con ${imagenesArray.length} imágenes`,
-    );
-    res.json(producto);
-  });
-});
-
-/* ================= PRODUCTOS RECOMENDADOS ================= */
-app.get("/api/productos-recomendados/:id", async (req, res) => {
-  const { id } = req.params;
-
-  console.log(`🔍 Solicitando recomendados para ID: ${id}`);
-
-  try {
-    // Primero obtener la categoría del producto actual
-    const [producto] = await DB.promise().query(
-      "SELECT categoria_id FROM productos WHERE id = ?",
-      [id],
-    );
-
-    if (!producto.length) {
-      console.log(`❌ Producto ${id} no encontrado para recomendados`);
-      return res.status(404).json([]);
-    }
-
-    const categoriaId = producto[0].categoria_id;
-
-    // Buscar productos de la misma categoría (excluyendo el actual)
-    const [recomendados] = await DB.promise().query(
-      `
-      SELECT 
-        p.id, 
-        p.nombre, 
-        p.precio,
-        p.imagen,
-        p.imagen_cloud1,
-        p.imagen_cloud2,
-        p.imagen_cloud3,
-        p.es_oferta,
-        p.precio_antes,
-        p.categoria,
-        p.categoria_id
-      FROM productos p
-      WHERE p.categoria_id = ?
-        AND p.id != ?
-        AND p.activo = 1
-      ORDER BY RAND()
-      LIMIT 6
-      `,
-      [categoriaId, id],
-    );
-
-    const productosConImagenes = recomendados.map((p) => {
-      const imagenes = [];
-
-      if (p.imagen_cloud1 && p.imagen_cloud1 !== "null")
-        imagenes.push(p.imagen_cloud1);
-      if (p.imagen_cloud2 && p.imagen_cloud2 !== "null")
-        imagenes.push(p.imagen_cloud2);
-      if (p.imagen_cloud3 && p.imagen_cloud3 !== "null")
-        imagenes.push(p.imagen_cloud3);
-
-      if (imagenes.length === 0 && p.imagen && p.imagen !== "null") {
-        imagenes.push(p.imagen);
-      }
-
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        precio: Number(p.precio),
-        es_oferta: Boolean(p.es_oferta),
-        precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
-        categoria: p.categoria,
-        categoria_id: p.categoria_id,
-        imagen: p.imagen,
-        imagenes: imagenes,
-      };
-    });
-
-    console.log(
-      `✅ ${productosConImagenes.length} productos recomendados enviados`,
-    );
-    res.json(productosConImagenes);
-  } catch (error) {
-    console.error("❌ ERROR RECOMENDADOS:", error);
-    res.status(500).json([]);
-  }
-});
-
-// En tu backend (Node.js/Express ejemplo)
-router.delete("/api/productos/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    await Producto.destroy({ where: { id } }); // Sequelize
-    // o: await Producto.findByIdAndDelete(id); // Mongoose
-    res.status(200).json({ ok: true, message: "Producto eliminado" });
-  } catch (error) {
-    res.status(500).json({ ok: false, message: error.message });
-  }
-});
-
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend funcionando en puerto ${PORT}`);
   console.log("🔗 Endpoints disponibles:");
   console.log(`   GET  /api/categorias`);
-  console.log(`   GET  /api/productos?categoria=categoria2 (Lencería)`);
-  console.log(`   GET  /api/productos?categoria=categoria3 (Lubricantes)`);
-  console.log(`   GET  /api/productos?categoria=categoria1 (Juguetes)`);
-  console.log(`   GET  /api/productos?categoria=Juguetes`);
-  console.log(`   GET  /api/productos?categoria=Lencería`);
-  console.log(`   GET  /api/productos?categoria=Lubricantes`);
-  console.log(`   GET  /api/productos?categoria=Accesorios`);
+  console.log(`   GET  /api/productos`);
+  console.log(`   GET  /api/productos/:id`);
+  console.log(`   POST /api/productos`);
+  console.log(`   PUT  /api/productos/:id`);
+  console.log(`   DELETE /api/productos/:id`);
+  console.log(`   POST /api/upload-imagen`);
+  console.log(`   GET  /api/exportar-productos-excel`);
 });
 
 // import express from "express";
