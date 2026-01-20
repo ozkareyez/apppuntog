@@ -21,6 +21,12 @@ import {
   Globe,
   Eye,
   ExternalLink,
+  Edit,
+  Save,
+  X,
+  Upload,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -145,6 +151,25 @@ export default function EliminarProducto() {
   const [productoToDelete, setProductoToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Estados para edición
+  const [productoToEdit, setProductoToEdit] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nombre: "",
+    descripcion: "",
+    precio: 0,
+    precio_antes: 0,
+    stock: 0,
+    es_oferta: false,
+    destacado: false,
+    nuevo: false,
+    activo: true,
+    categoria_id: "",
+  });
+
+  // Estados generales
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [apiStatus, setApiStatus] = useState({
@@ -345,21 +370,38 @@ export default function EliminarProducto() {
         },
       });
 
-      const responseText = await response.text();
-      let data;
+      // Manejo mejorado de la respuesta
+      if (!response.ok) {
+        // Si la respuesta no es exitosa, intentamos obtener el mensaje de error
+        const errorText = await response.text();
+        let errorMessage = `Error ${response.status}: No se pudo eliminar`;
 
-      try {
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        data = { ok: false, message: "Respuesta no válida" };
+        try {
+          const errorData = errorText ? JSON.parse(errorText) : {};
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+
+        throw new Error(errorMessage);
       }
 
-      if (response.ok && data.ok) {
+      // Intentamos parsear la respuesta como JSON
+      let data;
+      try {
+        const responseText = await response.text();
+        data = responseText ? JSON.parse(responseText) : { ok: true };
+      } catch {
+        data = { ok: true }; // Si no hay JSON válido, asumimos éxito
+      }
+
+      // Verificamos que la eliminación fue exitosa
+      if (data.ok !== false) {
         // Éxito - eliminar del estado local
         setProductos((prev) => prev.filter((p) => p.id !== productoId));
 
         setSuccessMessage(
-          `✅ Producto "${productoToDelete.nombre}" eliminado permanentemente de la base de datos`,
+          `✅ Producto "${productoToDelete.nombre}" eliminado exitosamente`,
         );
 
         // Cerrar modal y resetear
@@ -369,9 +411,7 @@ export default function EliminarProducto() {
         // Auto-ocultar mensaje de éxito
         setTimeout(() => setSuccessMessage(null), 5000);
       } else {
-        throw new Error(
-          data.message || `Error ${response.status}: No se pudo eliminar`,
-        );
+        throw new Error(data.message || "Error al eliminar el producto");
       }
     } catch (error) {
       console.error("❌ Error eliminando producto:", error);
@@ -381,6 +421,128 @@ export default function EliminarProducto() {
       setTimeout(() => setError(null), 5000);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  /* ================= EDITAR PRODUCTO ================= */
+  const iniciarEdicion = (producto) => {
+    setProductoToEdit(producto);
+    setEditForm({
+      nombre: producto.nombre || "",
+      descripcion: producto.descripcion || "",
+      precio: producto.precio || 0,
+      precio_antes: producto.precio_antes || 0,
+      stock: producto.stock || 0,
+      es_oferta: producto.es_oferta || false,
+      destacado: producto.destacado || false,
+      nuevo: producto.nuevo || false,
+      activo: producto.activo !== false,
+      categoria_id: producto.categoria_id || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+            ? parseFloat(value) || 0
+            : value,
+    }));
+  };
+
+  const actualizarProducto = async () => {
+    if (!productoToEdit) return;
+
+    setEditing(true);
+    setError(null);
+
+    try {
+      const productoId = productoToEdit.id;
+
+      console.log(`✏️ Enviando PUT para producto ID: ${productoId}`);
+
+      const datosActualizados = {
+        ...editForm,
+        es_oferta: editForm.es_oferta ? 1 : 0,
+        destacado: editForm.destacado ? 1 : 0,
+        nuevo: editForm.nuevo ? 1 : 0,
+        activo: editForm.activo ? 1 : 0,
+      };
+
+      const response = await fetch(`${API_URL}/api/productos/${productoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(datosActualizados),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Error ${response.status}: No se pudo actualizar`;
+
+        try {
+          const errorData = errorText ? JSON.parse(errorText) : {};
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (data.ok !== false) {
+        // Actualizar en el estado local
+        const categoriaNombre =
+          categorias.find((c) => c.id == editForm.categoria_id)?.nombre ||
+          "Sin categoría";
+
+        setProductos((prev) =>
+          prev.map((p) =>
+            p.id === productoId
+              ? {
+                  ...p,
+                  nombre: editForm.nombre,
+                  descripcion: editForm.descripcion,
+                  precio: editForm.precio,
+                  precio_antes: editForm.precio_antes,
+                  stock: editForm.stock,
+                  es_oferta: editForm.es_oferta,
+                  destacado: editForm.destacado,
+                  nuevo: editForm.nuevo,
+                  activo: editForm.activo,
+                  categoria_id: editForm.categoria_id,
+                  categoria_nombre: categoriaNombre,
+                }
+              : p,
+          ),
+        );
+
+        setSuccessMessage(
+          `✅ Producto "${editForm.nombre}" actualizado exitosamente`,
+        );
+
+        setShowEditModal(false);
+        setProductoToEdit(null);
+
+        setTimeout(() => setSuccessMessage(null), 5000);
+      } else {
+        throw new Error(data.message || "Error al actualizar el producto");
+      }
+    } catch (error) {
+      console.error("❌ Error actualizando producto:", error);
+      setError(`Error al actualizar: ${error.message}`);
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -413,7 +575,7 @@ export default function EliminarProducto() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              Eliminar Productos
+              Administrar Productos
             </h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -606,7 +768,7 @@ export default function EliminarProducto() {
                     Stock
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                    Acción
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -692,14 +854,24 @@ export default function EliminarProducto() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => confirmarEliminacion(producto)}
-                        className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center gap-1"
-                        title="Eliminar permanentemente"
-                      >
-                        <Trash2 size={14} />
-                        Eliminar
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => iniciarEdicion(producto)}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                          title="Editar producto"
+                        >
+                          <Edit size={14} />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => confirmarEliminacion(producto)}
+                          className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center gap-1"
+                          title="Eliminar permanentemente"
+                        >
+                          <Trash2 size={14} />
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -730,7 +902,7 @@ export default function EliminarProducto() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMACIÓN */}
+      {/* MODAL DE ELIMINACIÓN */}
       <AnimatePresence>
         {showDeleteModal && productoToDelete && (
           <motion.div
@@ -826,6 +998,279 @@ export default function EliminarProducto() {
                     </>
                   ) : (
                     "Eliminar Permanentemente"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE EDICIÓN */}
+      <AnimatePresence>
+        {showEditModal && productoToEdit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl w-full max-w-2xl my-8"
+            >
+              {/* Header */}
+              <div className="bg-blue-600 p-4 rounded-t-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Edit className="w-6 h-6 text-white" />
+                    <div>
+                      <h3 className="text-lg font-bold text-white">
+                        Editar Producto
+                      </h3>
+                      <p className="text-blue-100 text-sm">
+                        ID: {productoToEdit.id} - {productoToEdit.nombre}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setProductoToEdit(null);
+                    }}
+                    className="text-white hover:text-blue-100"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Columna izquierda */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre del Producto *
+                      </label>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={editForm.nombre}
+                        onChange={handleEditChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Descripción
+                      </label>
+                      <textarea
+                        name="descripcion"
+                        value={editForm.descripcion}
+                        onChange={handleEditChange}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Categoría *
+                      </label>
+                      <select
+                        name="categoria_id"
+                        value={editForm.categoria_id}
+                        onChange={handleEditChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Seleccionar categoría</option>
+                        {categorias.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio Actual *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            name="precio"
+                            value={editForm.precio}
+                            onChange={handleEditChange}
+                            min="0"
+                            step="0.01"
+                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio Anterior (si aplica)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            name="precio_antes"
+                            value={editForm.precio_antes}
+                            onChange={handleEditChange}
+                            min="0"
+                            step="0.01"
+                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Columna derecha */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Stock Disponible *
+                      </label>
+                      <input
+                        type="number"
+                        name="stock"
+                        value={editForm.stock}
+                        onChange={handleEditChange}
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Etiquetas
+                      </label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="es_oferta"
+                            checked={editForm.es_oferta}
+                            onChange={handleEditChange}
+                            className="rounded text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            En Oferta
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="destacado"
+                            checked={editForm.destacado}
+                            onChange={handleEditChange}
+                            className="rounded text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Destacado
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="nuevo"
+                            checked={editForm.nuevo}
+                            onChange={handleEditChange}
+                            className="rounded text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">Nuevo</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          name="activo"
+                          checked={editForm.activo}
+                          onChange={handleEditChange}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Producto Activo
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Si está desactivado, no será visible en la tienda
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Vista Previa
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        <ProductoImagen
+                          src={productoToEdit.imagen}
+                          alt={editForm.nombre}
+                          className="w-12 h-12"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {editForm.nombre || "Nombre del producto"}
+                          </p>
+                          <p className="text-lg font-bold text-blue-600">
+                            ${editForm.precio.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setProductoToEdit(null);
+                  }}
+                  disabled={editing}
+                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={actualizarProducto}
+                  disabled={editing}
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {editing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Actualizando...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Guardar Cambios
+                    </>
                   )}
                 </button>
               </div>
