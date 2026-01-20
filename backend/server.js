@@ -12,9 +12,18 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+/* ================= MIDDLEWARE ================= */
+// En tu server.js
+app.use(
+  cors({
+    origin: "*", // Permite todos los orígenes temporalmente
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    credentials: true,
+  }),
+);
+
+app.options("*", cors()); // Para preflight requests
 
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
