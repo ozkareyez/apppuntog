@@ -228,11 +228,14 @@ app.get("/api/productos", (req, res) => {
 
   const params = [];
 
-  // 🔥 FILTRO POR CATEGORÍA CORREGIDO - usa slug: categoria1, categoria2, categoria3
+  // 🔥 FILTRO POR CATEGORÍA CORREGIDO - FUNCIONA TANTO CON SLUG COMO CON NOMBRE
   if (categoria && categoria !== "todas") {
-    query += " AND c.slug = ?";
-    params.push(categoria);
-    console.log(`✅ Aplicando filtro categoría: "${categoria}"`);
+    // Intentar primero por slug, luego por nombre
+    query += " AND (c.slug = ? OR c.nombre = ?)";
+    params.push(categoria, categoria);
+    console.log(
+      `✅ Aplicando filtro categoría (slug o nombre): "${categoria}"`,
+    );
   }
 
   // Filtro por ofertas
@@ -704,6 +707,167 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
+/* ================= PRODUCTO POR ID ================= */
+app.get("/api/productos/:id", (req, res) => {
+  const { id } = req.params;
+
+  console.log(`🔍 Solicitando producto ID: ${id}`);
+
+  const query = `
+    SELECT 
+      p.*,
+      c.nombre as categoria_nombre,
+      c.slug as categoria_slug
+    FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    WHERE p.id = ?
+  `;
+
+  DB.query(query, [id], (err, rows) => {
+    if (err) {
+      console.error("❌ ERROR PRODUCTO:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!rows.length) {
+      console.log(`❌ Producto ${id} no encontrado`);
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    const p = rows[0];
+
+    // Construir array de imágenes
+    const imagenesArray = [];
+
+    if (p.imagen_cloud1 && p.imagen_cloud1 !== "null") {
+      imagenesArray.push(p.imagen_cloud1);
+    }
+    if (p.imagen_cloud2 && p.imagen_cloud2 !== "null") {
+      imagenesArray.push(p.imagen_cloud2);
+    }
+    if (p.imagen_cloud3 && p.imagen_cloud3 !== "null") {
+      imagenesArray.push(p.imagen_cloud3);
+    }
+
+    // Si no hay imágenes en los campos cloud, usar imagen principal
+    if (imagenesArray.length === 0 && p.imagen && p.imagen !== "null") {
+      imagenesArray.push(p.imagen);
+    }
+
+    const producto = {
+      id: p.id,
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      descripcion_breve: p.descripcion_breve,
+      precio: Number(p.precio),
+      precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+      descuento: p.descuento ? Number(p.descuento) : 0,
+      es_oferta: Boolean(p.es_oferta),
+      categoria: p.categoria,
+      categoria_id: p.categoria_id,
+      categoria_nombre: p.categoria_nombre || p.categoria,
+      categoria_slug: p.categoria_slug || `categoria${p.categoria_id}`,
+      activo: Boolean(p.activo),
+      talla: p.talla,
+      color: p.color,
+      imagen: p.imagen,
+      imagenes: imagenesArray,
+      imagen_cloud1: p.imagen_cloud1,
+      imagen_cloud2: p.imagen_cloud2,
+      imagen_cloud3: p.imagen_cloud3,
+      stock: p.stock || 0,
+      created_at: p.created_at,
+    };
+
+    console.log(
+      `✅ Producto ${id} enviado con ${imagenesArray.length} imágenes`,
+    );
+    res.json(producto);
+  });
+});
+
+/* ================= PRODUCTOS RECOMENDADOS ================= */
+app.get("/api/productos-recomendados/:id", async (req, res) => {
+  const { id } = req.params;
+
+  console.log(`🔍 Solicitando recomendados para ID: ${id}`);
+
+  try {
+    // Primero obtener la categoría del producto actual
+    const [producto] = await DB.promise().query(
+      "SELECT categoria_id FROM productos WHERE id = ?",
+      [id],
+    );
+
+    if (!producto.length) {
+      console.log(`❌ Producto ${id} no encontrado para recomendados`);
+      return res.status(404).json([]);
+    }
+
+    const categoriaId = producto[0].categoria_id;
+
+    // Buscar productos de la misma categoría (excluyendo el actual)
+    const [recomendados] = await DB.promise().query(
+      `
+      SELECT 
+        p.id, 
+        p.nombre, 
+        p.precio,
+        p.imagen,
+        p.imagen_cloud1,
+        p.imagen_cloud2,
+        p.imagen_cloud3,
+        p.es_oferta,
+        p.precio_antes,
+        p.categoria,
+        p.categoria_id
+      FROM productos p
+      WHERE p.categoria_id = ?
+        AND p.id != ?
+        AND p.activo = 1
+      ORDER BY RAND()
+      LIMIT 6
+      `,
+      [categoriaId, id],
+    );
+
+    const productosConImagenes = recomendados.map((p) => {
+      const imagenes = [];
+
+      if (p.imagen_cloud1 && p.imagen_cloud1 !== "null")
+        imagenes.push(p.imagen_cloud1);
+      if (p.imagen_cloud2 && p.imagen_cloud2 !== "null")
+        imagenes.push(p.imagen_cloud2);
+      if (p.imagen_cloud3 && p.imagen_cloud3 !== "null")
+        imagenes.push(p.imagen_cloud3);
+
+      if (imagenes.length === 0 && p.imagen && p.imagen !== "null") {
+        imagenes.push(p.imagen);
+      }
+
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        precio: Number(p.precio),
+        es_oferta: Boolean(p.es_oferta),
+        precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
+        categoria: p.categoria,
+        categoria_id: p.categoria_id,
+        imagen: p.imagen,
+        imagenes: imagenes,
+      };
+    });
+
+    console.log(
+      `✅ ${productosConImagenes.length} productos recomendados enviados`,
+    );
+    res.json(productosConImagenes);
+  } catch (error) {
+    console.error("❌ ERROR RECOMENDADOS:", error);
+    res.status(500).json([]);
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend funcionando en puerto ${PORT}`);
@@ -712,6 +876,10 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   GET  /api/productos?categoria=categoria2 (Lencería)`);
   console.log(`   GET  /api/productos?categoria=categoria3 (Lubricantes)`);
   console.log(`   GET  /api/productos?categoria=categoria1 (Juguetes)`);
+  console.log(`   GET  /api/productos?categoria=Juguetes`);
+  console.log(`   GET  /api/productos?categoria=Lencería`);
+  console.log(`   GET  /api/productos?categoria=Lubricantes`);
+  console.log(`   GET  /api/productos?categoria=Accesorios`);
 });
 
 // import express from "express";
