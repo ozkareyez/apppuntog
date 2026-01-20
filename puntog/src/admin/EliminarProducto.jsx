@@ -57,31 +57,105 @@ export default function EliminarProducto() {
   });
   const [saving, setSaving] = useState(false);
   const [expandedDesc, setExpandedDesc] = useState(null);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   /* ================= CARGAR DATOS ================= */
-  useEffect(() => {
-    const cargarDatos = async () => {
-      try {
-        setLoading(true);
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccessMessage(null);
 
-        // Cargar productos
-        const resProductos = await fetch(`${API_URL}/api/productos`);
-        const dataProductos = await resProductos.json();
-        setProductos(Array.isArray(dataProductos) ? dataProductos : []);
+      // Cargar productos
+      const resProductos = await fetch(`${API_URL}/api/productos`);
 
-        // Cargar categorías
-        const resCategorias = await fetch(`${API_URL}/api/categorias`);
-        const dataCategorias = await resCategorias.json();
-        setCategorias(Array.isArray(dataCategorias) ? dataCategorias : []);
-      } catch (error) {
-        console.error("Error cargando datos:", error);
-        setProductos([]);
-        setCategorias([]);
-      } finally {
-        setLoading(false);
+      if (!resProductos.ok) {
+        const errorText = await resProductos.text();
+        console.error("Error productos:", resProductos.status, errorText);
+        throw new Error(
+          `Error ${resProductos.status}: No se pudieron cargar los productos`,
+        );
       }
-    };
 
+      const contentTypeProductos = resProductos.headers.get("content-type");
+      if (
+        !contentTypeProductos ||
+        !contentTypeProductos.includes("application/json")
+      ) {
+        const text = await resProductos.text();
+        console.error("Respuesta no JSON (productos):", text.substring(0, 200));
+        throw new Error("Formato de datos inválido en productos");
+      }
+
+      const dataProductos = await resProductos.json();
+
+      // Manejar diferentes estructuras de respuesta
+      let productosData = [];
+      if (Array.isArray(dataProductos)) {
+        productosData = dataProductos;
+      } else if (dataProductos && Array.isArray(dataProductos.results)) {
+        productosData = dataProductos.results;
+      } else if (dataProductos && Array.isArray(dataProductos.data)) {
+        productosData = dataProductos.data;
+      } else if (dataProductos && Array.isArray(dataProductos.productos)) {
+        productosData = dataProductos.productos;
+      } else {
+        console.warn("Formato inesperado productos:", dataProductos);
+        // Intentar encontrar array en el objeto
+        const arrayKeys = Object.keys(dataProductos || {}).filter((key) =>
+          Array.isArray(dataProductos[key]),
+        );
+        if (arrayKeys.length > 0) {
+          productosData = dataProductos[arrayKeys[0]];
+        }
+      }
+
+      if (!Array.isArray(productosData)) {
+        throw new Error("Los productos no están en formato array");
+      }
+
+      setProductos(productosData);
+
+      // Cargar categorías
+      const resCategorias = await fetch(`${API_URL}/api/categorias`);
+
+      if (!resCategorias.ok) {
+        console.warn("Error cargando categorías:", resCategorias.status);
+        setCategorias([]);
+        return;
+      }
+
+      const dataCategorias = await resCategorias.json();
+      let categoriasData = [];
+
+      if (Array.isArray(dataCategorias)) {
+        categoriasData = dataCategorias;
+      } else if (dataCategorias && Array.isArray(dataCategorias.results)) {
+        categoriasData = dataCategorias.results;
+      } else if (dataCategorias && Array.isArray(dataCategorias.data)) {
+        categoriasData = dataCategorias.data;
+      }
+
+      setCategorias(categoriasData);
+
+      setSuccessMessage(
+        `Cargados ${productosData.length} productos y ${categoriasData.length} categorías`,
+      );
+
+      // Auto-ocultar mensaje de éxito después de 3 segundos
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+      setError(error.message);
+      setProductos([]);
+      setCategorias([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     cargarDatos();
   }, []);
 
@@ -94,9 +168,10 @@ export default function EliminarProducto() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.nombre.toLowerCase().includes(term) ||
-          p.descripcion?.toLowerCase().includes(term) ||
-          p.categoria_nombre?.toLowerCase().includes(term)
+          (p.nombre && p.nombre.toLowerCase().includes(term)) ||
+          (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
+          (p.categoria_nombre &&
+            p.categoria_nombre.toLowerCase().includes(term)),
       );
     }
 
@@ -105,7 +180,9 @@ export default function EliminarProducto() {
       filtered = filtered.filter(
         (p) =>
           p.categoria_id == selectedCategory ||
-          p.categoria_nombre?.toLowerCase() === selectedCategory.toLowerCase()
+          (p.categoria_nombre &&
+            p.categoria_nombre.toLowerCase() ===
+              selectedCategory.toLowerCase()),
       );
     }
 
@@ -113,32 +190,43 @@ export default function EliminarProducto() {
     if (statusFilter !== "todos") {
       switch (statusFilter) {
         case "oferta":
-          filtered = filtered.filter((p) => p.es_oferta == 1);
+          filtered = filtered.filter(
+            (p) => p.es_oferta == 1 || p.es_oferta === true,
+          );
           break;
         case "sin_stock":
           filtered = filtered.filter((p) => (p.stock || 0) <= 0);
           break;
         case "destacados":
-          filtered = filtered.filter((p) => p.destacado == 1);
+          filtered = filtered.filter(
+            (p) => p.destacado == 1 || p.destacado === true,
+          );
           break;
       }
     }
 
     // Ordenar
     filtered.sort((a, b) => {
+      const nombreA = (a.nombre || "").toString().toLowerCase();
+      const nombreB = (b.nombre || "").toString().toLowerCase();
+      const precioA = parseFloat(a.precio) || 0;
+      const precioB = parseFloat(b.precio) || 0;
+      const stockA = parseInt(a.stock) || 0;
+      const stockB = parseInt(b.stock) || 0;
+
       switch (sortBy) {
         case "nombre_asc":
-          return a.nombre.localeCompare(b.nombre);
+          return nombreA.localeCompare(nombreB);
         case "nombre_desc":
-          return b.nombre.localeCompare(a.nombre);
+          return nombreB.localeCompare(nombreA);
         case "precio_asc":
-          return (a.precio || 0) - (b.precio || 0);
+          return precioA - precioB;
         case "precio_desc":
-          return (b.precio || 0) - (a.precio || 0);
+          return precioB - precioA;
         case "stock_asc":
-          return (a.stock || 0) - (b.stock || 0);
+          return stockA - stockB;
         case "stock_desc":
-          return (b.stock || 0) - (a.stock || 0);
+          return stockB - stockA;
         default:
           return 0;
       }
@@ -157,26 +245,70 @@ export default function EliminarProducto() {
     if (!productoToDelete) return;
 
     setDeleting(true);
+    setError(null);
+
     try {
-      const res = await fetch(
-        `${API_URL}/api/productos/${productoToDelete.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
-        throw new Error(data.message || "Error al eliminar");
+      const productoId = productoToDelete.id || productoToDelete._id;
+      if (!productoId) {
+        throw new Error("ID del producto no encontrado");
       }
 
-      setProductos((prev) => prev.filter((p) => p.id !== productoToDelete.id));
+      console.log(`Eliminando producto ID: ${productoId}`);
+
+      const res = await fetch(`${API_URL}/api/productos/${productoId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
+      console.log("Status:", res.status, "OK:", res.ok);
+
+      // Primero intentamos obtener el texto de la respuesta
+      const responseText = await res.text();
+
+      // Verificamos si es JSON válido
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.warn("Respuesta no JSON:", responseText.substring(0, 200));
+        // Si no es JSON pero la operación fue exitosa (204 No Content)
+        if (res.ok || res.status === 204) {
+          data = { ok: true, message: "Producto eliminado" };
+        } else {
+          throw new Error(
+            `Respuesta no válida: ${responseText.substring(0, 100)}`,
+          );
+        }
+      }
+
+      if (!res.ok && res.status !== 204) {
+        throw new Error(
+          data.message ||
+            `Error ${res.status}: ${responseText.substring(0, 100)}`,
+        );
+      }
+
+      // Eliminar producto de la lista local
+      setProductos((prev) =>
+        prev.filter(
+          (p) =>
+            (p.id || p._id) !== (productoToDelete.id || productoToDelete._id),
+        ),
+      );
+
+      setSuccessMessage(
+        `Producto "${productoToDelete.nombre}" eliminado correctamente`,
+      );
+      setTimeout(() => setSuccessMessage(null), 3000);
+
       setShowDeleteModal(false);
       setProductoToDelete(null);
     } catch (error) {
-      console.error(error);
-      alert("No se pudo eliminar el producto: " + error.message);
+      console.error("Error eliminando producto:", error);
+      setError(error.message);
     } finally {
       setDeleting(false);
     }
@@ -184,7 +316,7 @@ export default function EliminarProducto() {
 
   /* ================= INICIAR EDICIÓN ================= */
   const iniciarEdicion = (producto) => {
-    setEditandoId(producto.id);
+    setEditandoId(producto.id || producto._id);
     setFormEdit({
       nombre: producto.nombre || "",
       precio: producto.precio || "",
@@ -192,10 +324,10 @@ export default function EliminarProducto() {
       descuento: producto.descuento || "",
       descripcion: producto.descripcion || "",
       categoria_id: producto.categoria_id || "",
-      es_oferta: producto.es_oferta == 1,
-      stock: producto.stock || 0,
-      destacado: producto.destacado == 1,
-      nuevo: producto.nuevo == 1,
+      es_oferta: producto.es_oferta == 1 || producto.es_oferta === true,
+      stock: parseInt(producto.stock) || 0,
+      destacado: producto.destacado == 1 || producto.destacado === true,
+      nuevo: producto.nuevo == 1 || producto.nuevo === true,
     });
   };
 
@@ -217,65 +349,140 @@ export default function EliminarProducto() {
 
   /* ================= ACTUALIZAR PRODUCTO ================= */
   const actualizarProducto = async (id) => {
-    // Preparar payload solo con campos modificados
-    const productoOriginal = productos.find((p) => p.id === id);
-    const payload = {};
-
-    // Solo incluir campos que hayan cambiado
-    const campos = [
-      "nombre",
-      "precio",
-      "precio_antes",
-      "descuento",
-      "descripcion",
-      "categoria_id",
-      "stock",
-    ];
-    campos.forEach((campo) => {
-      if (formEdit[campo] != productoOriginal[campo]) {
-        payload[campo] = formEdit[campo];
-      }
-    });
-
-    // Campos booleanos
-    if (formEdit.es_oferta != (productoOriginal.es_oferta == 1)) {
-      payload.es_oferta = formEdit.es_oferta ? 1 : 0;
-    }
-    if (formEdit.destacado != (productoOriginal.destacado == 1)) {
-      payload.destacado = formEdit.destacado ? 1 : 0;
-    }
-    if (formEdit.nuevo != (productoOriginal.nuevo == 1)) {
-      payload.nuevo = formEdit.nuevo ? 1 : 0;
-    }
-
-    if (Object.keys(payload).length === 0) {
-      alert("No hay cambios para guardar");
+    if (!id) {
+      setError("ID del producto no válido");
       return;
     }
 
     setSaving(true);
+    setError(null);
+
     try {
+      const productoOriginal = productos.find((p) => (p.id || p._id) === id);
+
+      if (!productoOriginal) {
+        throw new Error("Producto no encontrado");
+      }
+
+      // Preparar payload
+      const payload = {};
+
+      // Campos básicos
+      const campos = [
+        "nombre",
+        "precio",
+        "precio_antes",
+        "descuento",
+        "descripcion",
+        "categoria_id",
+        "stock",
+      ];
+
+      campos.forEach((campo) => {
+        const nuevoValor = formEdit[campo];
+        const valorOriginal = productoOriginal[campo];
+
+        // Comparar apropiadamente según el tipo de dato
+        if (
+          campo === "precio" ||
+          campo === "precio_antes" ||
+          campo === "descuento"
+        ) {
+          if (parseFloat(nuevoValor) !== parseFloat(valorOriginal || 0)) {
+            payload[campo] = nuevoValor;
+          }
+        } else if (campo === "stock") {
+          if (parseInt(nuevoValor) !== parseInt(valorOriginal || 0)) {
+            payload[campo] = nuevoValor;
+          }
+        } else if (nuevoValor !== valorOriginal) {
+          payload[campo] = nuevoValor;
+        }
+      });
+
+      // Campos booleanos
+      const es_oferta_nuevo = formEdit.es_oferta ? 1 : 0;
+      const es_oferta_original =
+        productoOriginal.es_oferta == 1 || productoOriginal.es_oferta === true
+          ? 1
+          : 0;
+      if (es_oferta_nuevo !== es_oferta_original) {
+        payload.es_oferta = es_oferta_nuevo;
+      }
+
+      const destacado_nuevo = formEdit.destacado ? 1 : 0;
+      const destacado_original =
+        productoOriginal.destacado == 1 || productoOriginal.destacado === true
+          ? 1
+          : 0;
+      if (destacado_nuevo !== destacado_original) {
+        payload.destacado = destacado_nuevo;
+      }
+
+      const nuevo_nuevo = formEdit.nuevo ? 1 : 0;
+      const nuevo_original =
+        productoOriginal.nuevo == 1 || productoOriginal.nuevo === true ? 1 : 0;
+      if (nuevo_nuevo !== nuevo_original) {
+        payload.nuevo = nuevo_nuevo;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        setError("No hay cambios para guardar");
+        return;
+      }
+
+      console.log("Actualizando producto ID:", id, "Payload:", payload);
+
       const res = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data;
 
-      if (!res.ok || !data.ok) {
-        throw new Error(data.message || "Error al actualizar");
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.warn("Respuesta no JSON:", responseText.substring(0, 200));
+        if (res.ok) {
+          data = { ok: true, message: "Producto actualizado" };
+        } else {
+          throw new Error(
+            `Respuesta no válida: ${responseText.substring(0, 100)}`,
+          );
+        }
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          data.message ||
+            `Error ${res.status}: No se pudo actualizar el producto`,
+        );
       }
 
       // Actualizar lista localmente
       setProductos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...payload } : p))
+        prev.map((p) =>
+          (p.id || p._id) === id
+            ? { ...p, ...payload, categoria_nombre: p.categoria_nombre }
+            : p,
+        ),
       );
+
+      setSuccessMessage(
+        `Producto "${formEdit.nombre}" actualizado correctamente`,
+      );
+      setTimeout(() => setSuccessMessage(null), 3000);
 
       setEditandoId(null);
     } catch (error) {
-      console.error(error);
-      alert("Error al actualizar: " + error.message);
+      console.error("Error actualizando producto:", error);
+      setError(error.message);
     } finally {
       setSaving(false);
     }
@@ -284,7 +491,7 @@ export default function EliminarProducto() {
   /* ================= RENDER ================= */
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Cargando productos...</p>
@@ -296,7 +503,8 @@ export default function EliminarProducto() {
   const stats = {
     total: productos.length,
     conStock: productos.filter((p) => (p.stock || 0) > 0).length,
-    enOferta: productos.filter((p) => p.es_oferta == 1).length,
+    enOferta: productos.filter((p) => p.es_oferta == 1 || p.es_oferta === true)
+      .length,
     sinStock: productos.filter((p) => (p.stock || 0) <= 0).length,
   };
 
@@ -314,13 +522,32 @@ export default function EliminarProducto() {
             </p>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={cargarDatos}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-600/30 transition"
           >
             <RefreshCw size={18} />
             Actualizar
           </button>
         </div>
+
+        {/* MENSAJES DE ESTADO */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">Error: {error}</p>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+            <div className="flex items-center gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{successMessage}</p>
+            </div>
+          </div>
+        )}
 
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -404,7 +631,7 @@ export default function EliminarProducto() {
             >
               <option value="todos">Todas las categorías</option>
               {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>
+                <option key={cat.id || cat._id} value={cat.id || cat._id}>
                   {cat.nombre}
                 </option>
               ))}
@@ -501,7 +728,7 @@ export default function EliminarProducto() {
               <tbody>
                 {productosFiltrados.map((producto) => (
                   <motion.tr
-                    key={producto.id}
+                    key={producto.id || producto._id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
@@ -514,15 +741,20 @@ export default function EliminarProducto() {
                             src={producto.imagen || "/imagenes/no-image.png"}
                             alt={producto.nombre}
                             className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                            onError={(e) => {
+                              e.target.src = "/imagenes/no-image.png";
+                              e.target.onerror = null;
+                            }}
                           />
-                          {producto.destacado == 1 && (
+                          {(producto.destacado == 1 ||
+                            producto.destacado === true) && (
                             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
                               <Star className="w-3 h-3 text-white" />
                             </div>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          {editandoId === producto.id ? (
+                          {editandoId === (producto.id || producto._id) ? (
                             <div className="space-y-3">
                               <input
                                 value={formEdit.nombre}
@@ -554,7 +786,7 @@ export default function EliminarProducto() {
                           ) : (
                             <>
                               <p className="font-semibold text-gray-900 mb-2">
-                                {producto.nombre}
+                                {producto.nombre || "Sin nombre"}
                               </p>
                               <div className="relative">
                                 <p className="text-sm text-gray-600 mb-1 line-clamp-3">
@@ -565,14 +797,16 @@ export default function EliminarProducto() {
                                     <button
                                       onClick={() =>
                                         setExpandedDesc(
-                                          expandedDesc === producto.id
+                                          expandedDesc ===
+                                            (producto.id || producto._id)
                                             ? null
-                                            : producto.id
+                                            : producto.id || producto._id,
                                         )
                                       }
                                       className="text-xs text-red-600 hover:text-red-800 font-medium"
                                     >
-                                      {expandedDesc === producto.id
+                                      {expandedDesc ===
+                                      (producto.id || producto._id)
                                         ? "Ver menos"
                                         : "Ver más"}
                                     </button>
@@ -586,7 +820,7 @@ export default function EliminarProducto() {
 
                     {/* CATEGORÍA */}
                     <td className="px-6 py-4">
-                      {editandoId === producto.id ? (
+                      {editandoId === (producto.id || producto._id) ? (
                         <select
                           value={formEdit.categoria_id}
                           onChange={(e) =>
@@ -599,7 +833,10 @@ export default function EliminarProducto() {
                         >
                           <option value="">Sin categoría</option>
                           {categorias.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
+                            <option
+                              key={cat.id || cat._id}
+                              value={cat.id || cat._id}
+                            >
                               {cat.nombre}
                             </option>
                           ))}
@@ -614,10 +851,11 @@ export default function EliminarProducto() {
 
                     {/* PRECIO */}
                     <td className="px-6 py-4">
-                      {editandoId === producto.id ? (
+                      {editandoId === (producto.id || producto._id) ? (
                         <div className="space-y-2">
                           <input
-                            type="text"
+                            type="number"
+                            step="0.01"
                             value={formEdit.precio}
                             onChange={(e) =>
                               setFormEdit({
@@ -630,7 +868,8 @@ export default function EliminarProducto() {
                           />
                           {formEdit.es_oferta && (
                             <input
-                              type="text"
+                              type="number"
+                              step="0.01"
                               value={formEdit.precio_antes}
                               onChange={(e) =>
                                 setFormEdit({
@@ -646,10 +885,11 @@ export default function EliminarProducto() {
                       ) : (
                         <div>
                           <p className="font-bold text-gray-900">
-                            ${Number(producto.precio).toLocaleString()}
+                            ${Number(producto.precio || 0).toLocaleString()}
                           </p>
                           {producto.precio_antes &&
-                            producto.precio_antes > producto.precio && (
+                            parseFloat(producto.precio_antes) >
+                              parseFloat(producto.precio || 0) && (
                               <p className="text-sm text-gray-400 line-through">
                                 $
                                 {Number(producto.precio_antes).toLocaleString()}
@@ -661,7 +901,7 @@ export default function EliminarProducto() {
 
                     {/* STOCK */}
                     <td className="px-6 py-4">
-                      {editandoId === producto.id ? (
+                      {editandoId === (producto.id || producto._id) ? (
                         <input
                           type="number"
                           value={formEdit.stock}
@@ -680,15 +920,15 @@ export default function EliminarProducto() {
                             (producto.stock || 0) > 10
                               ? "bg-green-100 text-green-800"
                               : (producto.stock || 0) > 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {(producto.stock || 0) > 10
                             ? "✓"
                             : (producto.stock || 0) > 0
-                            ? "⚠"
-                            : "✗"}
+                              ? "⚠"
+                              : "✗"}
                           {producto.stock || 0} unidades
                         </span>
                       )}
@@ -697,18 +937,19 @@ export default function EliminarProducto() {
                     {/* ESTADO */}
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        {producto.es_oferta == 1 && (
+                        {(producto.es_oferta == 1 ||
+                          producto.es_oferta === true) && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs">
                             <Tag size={10} />
                             Oferta
                           </span>
                         )}
-                        {producto.nuevo == 1 && (
+                        {(producto.nuevo == 1 || producto.nuevo === true) && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
                             Nuevo
                           </span>
                         )}
-                        {editandoId === producto.id && (
+                        {editandoId === (producto.id || producto._id) && (
                           <div className="space-y-1">
                             <label className="flex items-center gap-2 text-xs">
                               <input
@@ -745,10 +986,12 @@ export default function EliminarProducto() {
 
                     {/* ACCIONES */}
                     <td className="px-6 py-4">
-                      {editandoId === producto.id ? (
+                      {editandoId === (producto.id || producto._id) ? (
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => actualizarProducto(producto.id)}
+                            onClick={() =>
+                              actualizarProducto(producto.id || producto._id)
+                            }
                             disabled={saving}
                             className="p-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-md disabled:opacity-50 transition"
                             title="Guardar"
@@ -835,19 +1078,23 @@ export default function EliminarProducto() {
                     src={productoToDelete.imagen || "/imagenes/no-image.png"}
                     alt={productoToDelete.nombre}
                     className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                    onError={(e) => {
+                      e.target.src = "/imagenes/no-image.png";
+                      e.target.onerror = null;
+                    }}
                   />
                   <div>
                     <h4 className="font-bold text-gray-900">
                       {productoToDelete.nombre}
                     </h4>
                     <p className="text-gray-600 text-sm">
-                      ID: {productoToDelete.id}
+                      ID: {productoToDelete.id || productoToDelete._id}
                     </p>
                     <p className="text-gray-600 text-sm">
                       Categoría: {productoToDelete.categoria_nombre || "N/A"}
                     </p>
                     <p className="text-red-600 font-bold">
-                      ${Number(productoToDelete.precio).toLocaleString()}
+                      ${Number(productoToDelete.precio || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -886,7 +1133,10 @@ export default function EliminarProducto() {
               {/* FOOTER */}
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button
-                  onClick={() => setShowDeleteModal(false)}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setProductoToDelete(null);
+                  }}
                   disabled={deleting}
                   className="flex-1 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 disabled:opacity-50 transition"
                 >

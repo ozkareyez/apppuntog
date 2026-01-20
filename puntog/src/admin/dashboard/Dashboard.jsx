@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Dashboard() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pendientes: 0,
@@ -49,24 +50,82 @@ export default function Dashboard() {
   const fetchPedidos = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       if (buscar.trim()) params.append("search", buscar.trim());
       if (fechaInicio) params.append("inicio", fechaInicio);
       if (fechaFin) params.append("fin", fechaFin);
 
+      console.log(
+        `Fetching: ${API_URL}/api/pedidos-completo?${params.toString()}`,
+      );
+
       const res = await fetch(
         `${API_URL}/api/pedidos-completo?${params.toString()}`,
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        },
       );
-      const data = await res.json();
 
-      if (!Array.isArray(data.results)) {
-        throw new Error("Formato de datos inválido");
+      console.log("Response status:", res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("HTTP Error:", res.status, errorText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
-      setPedidos(data.results);
-      calcularEstadisticas(data.results);
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error("Response is not JSON:", text.substring(0, 200));
+        throw new Error("El servidor no devolvió datos JSON válidos");
+      }
+
+      const data = await res.json();
+      console.log("API Response:", data);
+
+      // Manejar diferentes estructuras de respuesta
+      let pedidosData = [];
+
+      if (Array.isArray(data)) {
+        pedidosData = data;
+      } else if (data && Array.isArray(data.results)) {
+        pedidosData = data.results;
+      } else if (data && data.pedidos && Array.isArray(data.pedidos)) {
+        pedidosData = data.pedidos;
+      } else if (data && data.data && Array.isArray(data.data)) {
+        pedidosData = data.data;
+      } else {
+        console.warn("Formato de datos inesperado:", data);
+        // Aún así intentamos procesar si hay algún array disponible
+        if (data && typeof data === "object") {
+          // Buscar cualquier propiedad que sea un array
+          const arrayKeys = Object.keys(data).filter((key) =>
+            Array.isArray(data[key]),
+          );
+          if (arrayKeys.length > 0) {
+            pedidosData = data[arrayKeys[0]];
+          }
+        }
+      }
+
+      if (!Array.isArray(pedidosData)) {
+        console.error(
+          "No se encontraron datos de pedidos en formato array:",
+          data,
+        );
+        throw new Error("Formato de datos inválido - no es un array");
+      }
+
+      console.log("Pedidos procesados:", pedidosData.length);
+      setPedidos(pedidosData);
+      calcularEstadisticas(pedidosData);
     } catch (error) {
       console.error("Error cargando pedidos:", error);
+      setError(error.message);
       setPedidos([]);
     } finally {
       setLoading(false);
@@ -74,21 +133,34 @@ export default function Dashboard() {
   };
 
   const calcularEstadisticas = (pedidosData) => {
+    if (!Array.isArray(pedidosData) || pedidosData.length === 0) {
+      setStats({
+        total: 0,
+        pendientes: 0,
+        completados: 0,
+        cancelados: 0,
+        promedio: 0,
+      });
+      return;
+    }
+
     const total = pedidosData.length;
     const pendientes = pedidosData.filter(
-      (p) => p.estado === "pendiente",
+      (p) => p.estado === "pendiente" || p.estado === "PENDIENTE",
     ).length;
     const completados = pedidosData.filter(
-      (p) => p.estado === "completado",
+      (p) => p.estado === "completado" || p.estado === "COMPLETADO",
     ).length;
     const cancelados = pedidosData.filter(
-      (p) => p.estado === "cancelado",
+      (p) => p.estado === "cancelado" || p.estado === "CANCELADO",
     ).length;
-    const promedio =
-      total > 0
-        ? pedidosData.reduce((sum, p) => sum + (Number(p.total) || 0), 0) /
-          total
-        : 0;
+
+    const totalAmount = pedidosData.reduce((sum, p) => {
+      const amount = Number(p.total) || Number(p.monto) || 0;
+      return sum + amount;
+    }, 0);
+
+    const promedio = total > 0 ? totalAmount / total : 0;
 
     setStats({
       total,
@@ -115,20 +187,28 @@ export default function Dashboard() {
 
     // Filtrar por estado
     if (estadoFiltro !== "todos") {
-      filtered = filtered.filter((p) => p.estado === estadoFiltro);
+      filtered = filtered.filter((p) => {
+        const estadoPedido = p.estado?.toLowerCase() || "";
+        return estadoPedido === estadoFiltro.toLowerCase();
+      });
     }
 
     // Ordenar
     filtered.sort((a, b) => {
+      const fechaA = new Date(a.fecha || a.fecha_creacion || 0);
+      const fechaB = new Date(b.fecha || b.fecha_creacion || 0);
+      const totalA = Number(a.total) || Number(a.monto) || 0;
+      const totalB = Number(b.total) || Number(b.monto) || 0;
+
       switch (ordenarPor) {
         case "fecha_desc":
-          return new Date(b.fecha) - new Date(a.fecha);
+          return fechaB - fechaA;
         case "fecha_asc":
-          return new Date(a.fecha) - new Date(b.fecha);
+          return fechaA - fechaB;
         case "total_desc":
-          return (Number(b.total) || 0) - (Number(a.total) || 0);
+          return totalB - totalA;
         case "total_asc":
-          return (Number(a.total) || 0) - (Number(b.total) || 0);
+          return totalA - totalB;
         default:
           return 0;
       }
@@ -218,27 +298,47 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* KPI CARDS - Minimalistas */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {KPI_CARDS.map((kpi, index) => {
-            const Icon = kpi.icon;
-            return (
-              <div
-                key={index}
-                className={`${kpi.bg} border ${kpi.color} rounded-lg p-3`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <Icon className="w-4 h-4 text-gray-600" />
-                  <span className="text-xs text-gray-500">{kpi.change}</span>
+        {/* Mensaje de error */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-800">
+              <XCircle className="w-4 h-4" />
+              <p className="text-sm font-medium">Error: {error}</p>
+            </div>
+            <button
+              onClick={fetchPedidos}
+              className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        )}
+
+        {/* KPI CARDS - Solo mostrar si hay datos */}
+        {pedidos.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {KPI_CARDS.map((kpi, index) => {
+              const Icon = kpi.icon;
+              return (
+                <div
+                  key={index}
+                  className={`${kpi.bg} border ${kpi.color} rounded-lg p-3`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Icon className="w-4 h-4 text-gray-600" />
+                    <span className="text-xs text-gray-500">{kpi.change}</span>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">
+                      {kpi.value}
+                    </p>
+                    <p className="text-xs text-gray-600">{kpi.title}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900">{kpi.value}</p>
-                  <p className="text-xs text-gray-600">{kpi.title}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* FILTROS */}
@@ -347,16 +447,32 @@ export default function Dashboard() {
             <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
             <p className="text-gray-600 text-sm">Cargando pedidos...</p>
           </div>
+        ) : error && pedidos.length === 0 ? (
+          <div className="bg-white rounded-lg p-6 text-center">
+            <XCircle className="w-10 h-10 text-red-300 mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">Error al cargar pedidos</p>
+            <p className="text-gray-500 text-xs mt-1">{error}</p>
+            <button
+              onClick={fetchPedidos}
+              className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600"
+            >
+              Reintentar
+            </button>
+          </div>
         ) : pedidosFiltrados.length === 0 ? (
           <div className="bg-white rounded-lg p-6 text-center">
             <Package className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-600 font-medium">No hay pedidos</p>
-            <p className="text-gray-500 text-xs mt-1">Ajusta los filtros</p>
+            <p className="text-gray-500 text-xs mt-1">
+              {pedidos.length === 0
+                ? "No se encontraron pedidos en el sistema"
+                : "Ajusta los filtros para ver más resultados"}
+            </p>
           </div>
         ) : (
           pedidosFiltrados.map((pedido) => (
             <div
-              key={pedido.id}
+              key={pedido.id || pedido._id || Math.random()}
               className="bg-white rounded-lg border border-gray-200 overflow-hidden"
             >
               {/* Header */}
@@ -365,25 +481,25 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-400" />
                     <span className="font-mono font-bold text-gray-800 text-sm">
-                      #{pedido.id}
+                      #{pedido.id || pedido._id || "N/A"}
                     </span>
                   </div>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      pedido.estado === "pendiente"
+                      pedido.estado?.toLowerCase() === "pendiente"
                         ? "bg-amber-100 text-amber-800"
-                        : pedido.estado === "completado"
+                        : pedido.estado?.toLowerCase() === "completado"
                           ? "bg-green-100 text-green-800"
-                          : pedido.estado === "cancelado"
+                          : pedido.estado?.toLowerCase() === "cancelado"
                             ? "bg-red-100 text-red-800"
                             : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {pedido.estado === "pendiente" && "⏳"}
-                    {pedido.estado === "completado" && "✅"}
-                    {pedido.estado === "cancelado" && "❌"}
+                    {pedido.estado?.toLowerCase() === "pendiente" && "⏳"}
+                    {pedido.estado?.toLowerCase() === "completado" && "✅"}
+                    {pedido.estado?.toLowerCase() === "cancelado" && "❌"}
                     <span className="ml-1 hidden xs:inline">
-                      {pedido.estado}
+                      {pedido.estado || "Desconocido"}
                     </span>
                   </span>
                 </div>
@@ -395,19 +511,25 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <User className="w-4 h-4 text-gray-400" />
                     <h3 className="font-medium text-gray-900">
-                      {pedido.nombre}
+                      {pedido.nombre ||
+                        pedido.cliente_nombre ||
+                        "Cliente no especificado"}
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Phone className="w-3 h-3" />
-                      <span>{pedido.telefono}</span>
+                      <span>
+                        {pedido.telefono ||
+                          pedido.telefono_cliente ||
+                          "Sin teléfono"}
+                      </span>
                     </div>
                     <span>•</span>
                     <div className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
                       <span className="truncate">
-                        {pedido.ciudad_nombre || "Sin ciudad"}
+                        {pedido.ciudad_nombre || pedido.ciudad || "Sin ciudad"}
                       </span>
                     </div>
                   </div>
@@ -417,13 +539,16 @@ export default function Dashboard() {
                   <div>
                     <p className="text-xs text-gray-500">Total</p>
                     <p className="text-lg font-bold text-red-600">
-                      ${Number(pedido.total || 0).toLocaleString()}
+                      $
+                      {Number(
+                        pedido.total || pedido.monto || 0,
+                      ).toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Fecha</p>
                     <p className="text-sm text-gray-700">
-                      {pedido.fecha || "Sin fecha"}
+                      {pedido.fecha || pedido.fecha_creacion || "Sin fecha"}
                     </p>
                   </div>
                 </div>
@@ -438,7 +563,7 @@ export default function Dashboard() {
                     <span className="hidden xs:inline">Detalles</span>
                   </button>
                   <a
-                    href={`/admin/orden-servicio/${pedido.id}`}
+                    href={`/admin/orden-servicio/${pedido.id || pedido._id}`}
                     className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-1"
                   >
                     <CreditCard className="w-4 h-4" />
@@ -452,7 +577,7 @@ export default function Dashboard() {
       </div>
 
       {/* PAGINACIÓN SIMPLE */}
-      {pedidosFiltrados.length > 0 && (
+      {pedidosFiltrados.length > 10 && (
         <div className="mt-4 bg-white rounded-lg p-3">
           <div className="flex items-center justify-center gap-2">
             <button className="px-3 py-1.5 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50">
@@ -488,10 +613,13 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-bold">
-                      Pedido #{detalle.id}
+                      Pedido #{detalle.id || detalle._id}
                     </h3>
                     <p className="text-red-100 text-sm">
-                      ${Number(detalle.total).toLocaleString()}
+                      $
+                      {Number(
+                        detalle.total || detalle.monto || 0,
+                      ).toLocaleString()}
                     </p>
                   </div>
                   <button
@@ -512,16 +640,20 @@ export default function Dashboard() {
                     <div className="space-y-1 text-sm">
                       <p>
                         <span className="text-gray-600">Nombre:</span>{" "}
-                        {detalle.nombre}
+                        {detalle.nombre ||
+                          detalle.cliente_nombre ||
+                          "No especificado"}
                       </p>
                       <p>
                         <span className="text-gray-600">Teléfono:</span>{" "}
-                        {detalle.telefono}
+                        {detalle.telefono ||
+                          detalle.telefono_cliente ||
+                          "No especificado"}
                       </p>
-                      {detalle.email && (
+                      {(detalle.email || detalle.email_cliente) && (
                         <p>
                           <span className="text-gray-600">Email:</span>{" "}
-                          {detalle.email}
+                          {detalle.email || detalle.email_cliente}
                         </p>
                       )}
                     </div>
@@ -531,9 +663,16 @@ export default function Dashboard() {
                     <h4 className="font-medium text-gray-900 mb-2">
                       Dirección
                     </h4>
-                    <p className="text-sm text-gray-600">{detalle.direccion}</p>
                     <p className="text-sm text-gray-600">
-                      {detalle.ciudad_nombre}, {detalle.departamento_nombre}
+                      {detalle.direccion ||
+                        detalle.direccion_cliente ||
+                        "No especificada"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {detalle.ciudad_nombre || detalle.ciudad || ""}
+                      {detalle.departamento_nombre
+                        ? `, ${detalle.departamento_nombre}`
+                        : ""}
                     </p>
                   </div>
 
@@ -542,14 +681,32 @@ export default function Dashboard() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <p className="text-xs text-gray-500">Estado</p>
-                        <p className="text-sm font-medium">{detalle.estado}</p>
+                        <p className="text-sm font-medium">
+                          {detalle.estado || "Desconocido"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Fecha</p>
-                        <p className="text-sm font-medium">{detalle.fecha}</p>
+                        <p className="text-sm font-medium">
+                          {detalle.fecha ||
+                            detalle.fecha_creacion ||
+                            "No especificada"}
+                        </p>
                       </div>
                     </div>
                   </div>
+
+                  {/* Método de pago si existe */}
+                  {(detalle.metodo_pago || detalle.payment_method) && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Método de Pago
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {detalle.metodo_pago || detalle.payment_method}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Notas */}
@@ -561,6 +718,33 @@ export default function Dashboard() {
                     </p>
                   </div>
                 )}
+
+                {/* Productos si existen */}
+                {detalle.productos &&
+                  Array.isArray(detalle.productos) &&
+                  detalle.productos.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Productos
+                      </h4>
+                      <div className="space-y-2">
+                        {detalle.productos.map((producto, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <span>
+                              {producto.nombre || producto.producto_nombre}
+                            </span>
+                            <span className="font-medium">
+                              {producto.cantidad || 1} x $
+                              {Number(producto.precio || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* Footer */}
@@ -579,6 +763,588 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// import { useEffect, useState, useMemo } from "react";
+// import {
+//   Search,
+//   Filter,
+//   Download,
+//   Eye,
+//   TrendingUp,
+//   TrendingDown,
+//   Package,
+//   DollarSign,
+//   User,
+//   Clock,
+//   CheckCircle,
+//   XCircle,
+//   RefreshCw,
+//   ChevronDown,
+//   ShoppingCart,
+//   Truck,
+//   CreditCard,
+//   MessageSquare,
+//   Phone,
+//   MapPin,
+//   BarChart,
+//   Calendar,
+// } from "lucide-react";
+// import { API_URL } from "../../config";
+// import { motion, AnimatePresence } from "framer-motion";
+
+// export default function Dashboard() {
+//   const [pedidos, setPedidos] = useState([]);
+//   const [loading, setLoading] = useState(false);
+//   const [stats, setStats] = useState({
+//     total: 0,
+//     pendientes: 0,
+//     completados: 0,
+//     cancelados: 0,
+//     promedio: 0,
+//   });
+
+//   // Filtros
+//   const [buscar, setBuscar] = useState("");
+//   const [fechaInicio, setFechaInicio] = useState("");
+//   const [fechaFin, setFechaFin] = useState("");
+//   const [estadoFiltro, setEstadoFiltro] = useState("todos");
+//   const [ordenarPor, setOrdenarPor] = useState("fecha_desc");
+//   const [detalle, setDetalle] = useState(null);
+//   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+
+//   const fetchPedidos = async () => {
+//     try {
+//       setLoading(true);
+//       const params = new URLSearchParams();
+//       if (buscar.trim()) params.append("search", buscar.trim());
+//       if (fechaInicio) params.append("inicio", fechaInicio);
+//       if (fechaFin) params.append("fin", fechaFin);
+
+//       const res = await fetch(
+//         `${API_URL}/api/pedidos-completo?${params.toString()}`,
+//       );
+//       const data = await res.json();
+
+//       if (!Array.isArray(data.results)) {
+//         throw new Error("Formato de datos inválido");
+//       }
+
+//       setPedidos(data.results);
+//       calcularEstadisticas(data.results);
+//     } catch (error) {
+//       console.error("Error cargando pedidos:", error);
+//       setPedidos([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const calcularEstadisticas = (pedidosData) => {
+//     const total = pedidosData.length;
+//     const pendientes = pedidosData.filter(
+//       (p) => p.estado === "pendiente",
+//     ).length;
+//     const completados = pedidosData.filter(
+//       (p) => p.estado === "completado",
+//     ).length;
+//     const cancelados = pedidosData.filter(
+//       (p) => p.estado === "cancelado",
+//     ).length;
+//     const promedio =
+//       total > 0
+//         ? pedidosData.reduce((sum, p) => sum + (Number(p.total) || 0), 0) /
+//           total
+//         : 0;
+
+//     setStats({
+//       total,
+//       pendientes,
+//       completados,
+//       cancelados,
+//       promedio,
+//     });
+//   };
+
+//   // Carga inicial
+//   useEffect(() => {
+//     fetchPedidos();
+//   }, []);
+
+//   // Debounce filtros
+//   useEffect(() => {
+//     const delay = setTimeout(fetchPedidos, 500);
+//     return () => clearTimeout(delay);
+//   }, [buscar, fechaInicio, fechaFin, estadoFiltro]);
+
+//   const pedidosFiltrados = useMemo(() => {
+//     let filtered = [...pedidos];
+
+//     // Filtrar por estado
+//     if (estadoFiltro !== "todos") {
+//       filtered = filtered.filter((p) => p.estado === estadoFiltro);
+//     }
+
+//     // Ordenar
+//     filtered.sort((a, b) => {
+//       switch (ordenarPor) {
+//         case "fecha_desc":
+//           return new Date(b.fecha) - new Date(a.fecha);
+//         case "fecha_asc":
+//           return new Date(a.fecha) - new Date(b.fecha);
+//         case "total_desc":
+//           return (Number(b.total) || 0) - (Number(a.total) || 0);
+//         case "total_asc":
+//           return (Number(a.total) || 0) - (Number(b.total) || 0);
+//         default:
+//           return 0;
+//       }
+//     });
+
+//     return filtered;
+//   }, [pedidos, estadoFiltro, ordenarPor]);
+
+//   const KPI_CARDS = [
+//     {
+//       title: "Total",
+//       value: stats.total,
+//       icon: ShoppingCart,
+//       change: `${stats.total} pedidos`,
+//       color: "border-l-blue-500",
+//       bg: "bg-blue-50",
+//     },
+//     {
+//       title: "Pendientes",
+//       value: stats.pendientes,
+//       icon: Clock,
+//       change: `${Math.round((stats.pendientes / stats.total) * 100) || 0}%`,
+//       color: "border-l-amber-500",
+//       bg: "bg-amber-50",
+//     },
+//     {
+//       title: "Completados",
+//       value: stats.completados,
+//       icon: CheckCircle,
+//       change: `${Math.round((stats.completados / stats.total) * 100) || 0}%`,
+//       color: "border-l-green-500",
+//       bg: "bg-green-50",
+//     },
+//     {
+//       title: "Promedio",
+//       value: `$${stats.promedio.toLocaleString(undefined, {
+//         minimumFractionDigits: 0,
+//         maximumFractionDigits: 0,
+//       })}`,
+//       icon: DollarSign,
+//       change: "ticket promedio",
+//       color: "border-l-purple-500",
+//       bg: "bg-purple-50",
+//     },
+//   ];
+
+//   const estados = [
+//     { value: "todos", label: "Todos", icon: Package },
+//     { value: "pendiente", label: "Pendientes", icon: Clock },
+//     { value: "completado", label: "Completados", icon: CheckCircle },
+//     { value: "cancelado", label: "Cancelados", icon: XCircle },
+//   ];
+
+//   const ordenOptions = [
+//     { value: "fecha_desc", label: "Más reciente" },
+//     { value: "fecha_asc", label: "Más antiguo" },
+//     { value: "total_desc", label: "Mayor a menor" },
+//     { value: "total_asc", label: "Menor a mayor" },
+//   ];
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 p-3 md:p-4">
+//       {/* HEADER */}
+//       <div className="mb-4">
+//         <div className="flex items-center justify-between mb-3">
+//           <div>
+//             <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+//             <p className="text-gray-500 text-sm">Resumen de pedidos</p>
+//           </div>
+//           <div className="flex items-center gap-2">
+//             <a
+//               href={`${API_URL}/api/exportar-pedidos-completo`}
+//               target="_blank"
+//               rel="noreferrer"
+//               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+//               title="Exportar"
+//             >
+//               <Download className="w-5 h-5" />
+//             </a>
+//             <button
+//               onClick={fetchPedidos}
+//               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+//               title="Actualizar"
+//             >
+//               <RefreshCw className="w-5 h-5" />
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* KPI CARDS - Minimalistas */}
+//         <div className="grid grid-cols-2 gap-3 mb-4">
+//           {KPI_CARDS.map((kpi, index) => {
+//             const Icon = kpi.icon;
+//             return (
+//               <div
+//                 key={index}
+//                 className={`${kpi.bg} border ${kpi.color} rounded-lg p-3`}
+//               >
+//                 <div className="flex items-center justify-between mb-1">
+//                   <Icon className="w-4 h-4 text-gray-600" />
+//                   <span className="text-xs text-gray-500">{kpi.change}</span>
+//                 </div>
+//                 <div>
+//                   <p className="text-lg font-bold text-gray-900">{kpi.value}</p>
+//                   <p className="text-xs text-gray-600">{kpi.title}</p>
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+//       </div>
+
+//       {/* FILTROS */}
+//       <div className="mb-4">
+//         {/* Barra de búsqueda */}
+//         <div className="relative mb-3">
+//           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+//           <input
+//             type="text"
+//             placeholder="Buscar pedidos..."
+//             value={buscar}
+//             onChange={(e) => setBuscar(e.target.value)}
+//             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+//           />
+//         </div>
+
+//         {/* Filtros rápidos */}
+//         <div className="flex items-center justify-between mb-3">
+//           <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+//             {estados.map((estado) => {
+//               const Icon = estado.icon;
+//               return (
+//                 <button
+//                   key={estado.value}
+//                   onClick={() => setEstadoFiltro(estado.value)}
+//                   className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 ${
+//                     estadoFiltro === estado.value
+//                       ? "bg-red-500 text-white"
+//                       : "bg-white text-gray-700 border border-gray-200"
+//                   }`}
+//                 >
+//                   <Icon className="w-3 h-3" />
+//                   {estado.label}
+//                 </button>
+//               );
+//             })}
+//           </div>
+//           <button
+//             onClick={() => setMostrarFiltros(!mostrarFiltros)}
+//             className="ml-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+//           >
+//             <Filter className="w-5 h-5" />
+//           </button>
+//         </div>
+
+//         {/* Filtros avanzados */}
+//         <AnimatePresence>
+//           {mostrarFiltros && (
+//             <motion.div
+//               initial={{ height: 0, opacity: 0 }}
+//               animate={{ height: "auto", opacity: 1 }}
+//               exit={{ height: 0, opacity: 0 }}
+//               className="overflow-hidden"
+//             >
+//               <div className="space-y-3 bg-white rounded-lg border border-gray-200 p-3">
+//                 <div className="grid grid-cols-2 gap-3">
+//                   <div>
+//                     <label className="block text-xs text-gray-500 mb-1">
+//                       Desde
+//                     </label>
+//                     <input
+//                       type="date"
+//                       value={fechaInicio}
+//                       onChange={(e) => setFechaInicio(e.target.value)}
+//                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
+//                     />
+//                   </div>
+//                   <div>
+//                     <label className="block text-xs text-gray-500 mb-1">
+//                       Hasta
+//                     </label>
+//                     <input
+//                       type="date"
+//                       value={fechaFin}
+//                       onChange={(e) => setFechaFin(e.target.value)}
+//                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
+//                     />
+//                   </div>
+//                 </div>
+//                 <div>
+//                   <label className="block text-xs text-gray-500 mb-1">
+//                     Ordenar por
+//                   </label>
+//                   <select
+//                     value={ordenarPor}
+//                     onChange={(e) => setOrdenarPor(e.target.value)}
+//                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
+//                   >
+//                     {ordenOptions.map((option) => (
+//                       <option key={option.value} value={option.value}>
+//                         {option.label}
+//                       </option>
+//                     ))}
+//                   </select>
+//                 </div>
+//               </div>
+//             </motion.div>
+//           )}
+//         </AnimatePresence>
+//       </div>
+
+//       {/* LISTA DE PEDIDOS - Cards */}
+//       <div className="space-y-3">
+//         {loading ? (
+//           <div className="bg-white rounded-lg p-6 text-center">
+//             <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+//             <p className="text-gray-600 text-sm">Cargando pedidos...</p>
+//           </div>
+//         ) : pedidosFiltrados.length === 0 ? (
+//           <div className="bg-white rounded-lg p-6 text-center">
+//             <Package className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+//             <p className="text-gray-600 font-medium">No hay pedidos</p>
+//             <p className="text-gray-500 text-xs mt-1">Ajusta los filtros</p>
+//           </div>
+//         ) : (
+//           pedidosFiltrados.map((pedido) => (
+//             <div
+//               key={pedido.id}
+//               className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+//             >
+//               {/* Header */}
+//               <div className="px-4 py-3 border-b border-gray-100">
+//                 <div className="flex justify-between items-center">
+//                   <div className="flex items-center gap-2">
+//                     <Package className="w-4 h-4 text-gray-400" />
+//                     <span className="font-mono font-bold text-gray-800 text-sm">
+//                       #{pedido.id}
+//                     </span>
+//                   </div>
+//                   <span
+//                     className={`px-2 py-1 rounded-full text-xs font-medium ${
+//                       pedido.estado === "pendiente"
+//                         ? "bg-amber-100 text-amber-800"
+//                         : pedido.estado === "completado"
+//                           ? "bg-green-100 text-green-800"
+//                           : pedido.estado === "cancelado"
+//                             ? "bg-red-100 text-red-800"
+//                             : "bg-gray-100 text-gray-800"
+//                     }`}
+//                   >
+//                     {pedido.estado === "pendiente" && "⏳"}
+//                     {pedido.estado === "completado" && "✅"}
+//                     {pedido.estado === "cancelado" && "❌"}
+//                     <span className="ml-1 hidden xs:inline">
+//                       {pedido.estado}
+//                     </span>
+//                   </span>
+//                 </div>
+//               </div>
+
+//               {/* Contenido */}
+//               <div className="p-4">
+//                 <div className="mb-3">
+//                   <div className="flex items-center gap-2 mb-1">
+//                     <User className="w-4 h-4 text-gray-400" />
+//                     <h3 className="font-medium text-gray-900">
+//                       {pedido.nombre}
+//                     </h3>
+//                   </div>
+//                   <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+//                     <div className="flex items-center gap-1">
+//                       <Phone className="w-3 h-3" />
+//                       <span>{pedido.telefono}</span>
+//                     </div>
+//                     <span>•</span>
+//                     <div className="flex items-center gap-1">
+//                       <MapPin className="w-3 h-3" />
+//                       <span className="truncate">
+//                         {pedido.ciudad_nombre || "Sin ciudad"}
+//                       </span>
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 <div className="flex justify-between items-center mb-4">
+//                   <div>
+//                     <p className="text-xs text-gray-500">Total</p>
+//                     <p className="text-lg font-bold text-red-600">
+//                       ${Number(pedido.total || 0).toLocaleString()}
+//                     </p>
+//                   </div>
+//                   <div className="text-right">
+//                     <p className="text-xs text-gray-500">Fecha</p>
+//                     <p className="text-sm text-gray-700">
+//                       {pedido.fecha || "Sin fecha"}
+//                     </p>
+//                   </div>
+//                 </div>
+
+//                 {/* Botones */}
+//                 <div className="flex gap-2">
+//                   <button
+//                     onClick={() => setDetalle(pedido)}
+//                     className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center justify-center gap-1"
+//                   >
+//                     <Eye className="w-4 h-4" />
+//                     <span className="hidden xs:inline">Detalles</span>
+//                   </button>
+//                   <a
+//                     href={`/admin/orden-servicio/${pedido.id}`}
+//                     className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center justify-center gap-1"
+//                   >
+//                     <CreditCard className="w-4 h-4" />
+//                     <span className="hidden xs:inline">Ver orden</span>
+//                   </a>
+//                 </div>
+//               </div>
+//             </div>
+//           ))
+//         )}
+//       </div>
+
+//       {/* PAGINACIÓN SIMPLE */}
+//       {pedidosFiltrados.length > 0 && (
+//         <div className="mt-4 bg-white rounded-lg p-3">
+//           <div className="flex items-center justify-center gap-2">
+//             <button className="px-3 py-1.5 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50">
+//               ←
+//             </button>
+//             <span className="text-sm text-gray-600">1 de 1</span>
+//             <button className="px-3 py-1.5 border border-gray-300 rounded text-gray-700 text-sm hover:bg-gray-50">
+//               →
+//             </button>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* MODAL DE DETALLE - Minimalista */}
+//       <AnimatePresence>
+//         {detalle && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3"
+//             onClick={() => setDetalle(null)}
+//           >
+//             <motion.div
+//               initial={{ scale: 0.95, opacity: 0 }}
+//               animate={{ scale: 1, opacity: 1 }}
+//               exit={{ scale: 0.95, opacity: 0 }}
+//               onClick={(e) => e.stopPropagation()}
+//               className="bg-white rounded-lg w-full max-w-md max-h-[85vh] overflow-hidden"
+//             >
+//               {/* Header */}
+//               <div className="bg-red-500 px-4 py-3">
+//                 <div className="flex items-center justify-between">
+//                   <div>
+//                     <h3 className="text-white font-bold">
+//                       Pedido #{detalle.id}
+//                     </h3>
+//                     <p className="text-red-100 text-sm">
+//                       ${Number(detalle.total).toLocaleString()}
+//                     </p>
+//                   </div>
+//                   <button
+//                     onClick={() => setDetalle(null)}
+//                     className="text-white hover:text-red-200"
+//                   >
+//                     ✕
+//                   </button>
+//                 </div>
+//               </div>
+
+//               {/* Contenido */}
+//               <div className="p-4 overflow-y-auto max-h-[60vh]">
+//                 {/* Información básica */}
+//                 <div className="space-y-4">
+//                   <div>
+//                     <h4 className="font-medium text-gray-900 mb-2">Cliente</h4>
+//                     <div className="space-y-1 text-sm">
+//                       <p>
+//                         <span className="text-gray-600">Nombre:</span>{" "}
+//                         {detalle.nombre}
+//                       </p>
+//                       <p>
+//                         <span className="text-gray-600">Teléfono:</span>{" "}
+//                         {detalle.telefono}
+//                       </p>
+//                       {detalle.email && (
+//                         <p>
+//                           <span className="text-gray-600">Email:</span>{" "}
+//                           {detalle.email}
+//                         </p>
+//                       )}
+//                     </div>
+//                   </div>
+
+//                   <div>
+//                     <h4 className="font-medium text-gray-900 mb-2">
+//                       Dirección
+//                     </h4>
+//                     <p className="text-sm text-gray-600">{detalle.direccion}</p>
+//                     <p className="text-sm text-gray-600">
+//                       {detalle.ciudad_nombre}, {detalle.departamento_nombre}
+//                     </p>
+//                   </div>
+
+//                   <div>
+//                     <h4 className="font-medium text-gray-900 mb-2">Detalles</h4>
+//                     <div className="grid grid-cols-2 gap-3">
+//                       <div>
+//                         <p className="text-xs text-gray-500">Estado</p>
+//                         <p className="text-sm font-medium">{detalle.estado}</p>
+//                       </div>
+//                       <div>
+//                         <p className="text-xs text-gray-500">Fecha</p>
+//                         <p className="text-sm font-medium">{detalle.fecha}</p>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 {/* Notas */}
+//                 {detalle.notas && (
+//                   <div className="mt-4">
+//                     <h4 className="font-medium text-gray-900 mb-2">Notas</h4>
+//                     <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+//                       {detalle.notas}
+//                     </p>
+//                   </div>
+//                 )}
+//               </div>
+
+//               {/* Footer */}
+//               <div className="p-4 border-t border-gray-200">
+//                 <button
+//                   onClick={() => setDetalle(null)}
+//                   className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
+//                 >
+//                   Cerrar
+//                 </button>
+//               </div>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+//     </div>
+//   );
+// }
 
 // import { useEffect, useState, useMemo } from "react";
 // import {

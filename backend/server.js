@@ -868,6 +868,18 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
   }
 });
 
+// En tu backend (Node.js/Express ejemplo)
+router.delete("/api/productos/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Producto.destroy({ where: { id } }); // Sequelize
+    // o: await Producto.findByIdAndDelete(id); // Mongoose
+    res.status(200).json({ ok: true, message: "Producto eliminado" });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message });
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend funcionando en puerto ${PORT}`);
