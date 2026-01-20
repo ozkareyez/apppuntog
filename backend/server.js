@@ -407,14 +407,9 @@ app.get("/api/categorias", (req, res) => {
   });
 });
 
-/* ================= PEDIDOS ================= */
+/* ================= PEDIDOS (SIMPLIFICADO PARA COMPATIBILIDAD) ================= */
 app.get("/api/pedidos", (req, res) => {
-  console.log("📥 Solicitando pedidos...");
-  res.json([]);
-});
-
-app.get("/api/pedidos-completo", (req, res) => {
-  console.log("📥 Solicitando pedidos completos...");
+  console.log("📥 Solicitando pedidos (endpoint simplificado)...");
   res.json([]);
 });
 
@@ -486,7 +481,7 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
     });
 
     console.log(`✅ ${productosConImagenes.length} productos recomendados`);
-    res.json(productosConImagenes);
+    res.json(productosConImendados);
   } catch (error) {
     console.error("❌ ERROR RECOMENDADOS:", error);
     res.status(500).json([]);
@@ -582,7 +577,6 @@ app.put("/api/productos/:id", async (req, res) => {
 });
 
 /* ================= ELIMINAR PRODUCTO ================= */
-/* ================= ELIMINAR PRODUCTO - VERSIÓN MEJORADA ================= */
 app.delete("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -814,28 +808,43 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
-// /* ================= ADMIN PEDIDOS ================= */
+/* ================= ADMIN PEDIDOS (VERSIÓN CORREGIDA - ÚNICA) ================= */
 app.get("/api/pedidos-completo", (req, res) => {
   try {
+    console.log("📊 Solicitando pedidos completos...");
+
     const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = 10;
+    const limit = Math.min(Number(req.query.limit) || 10, 100);
     const offset = (page - 1) * limit;
 
     const { search, inicio, fin, estado } = req.query;
 
+    // 🔥 DEBUG: Mostrar parámetros recibidos
+    console.log("🎯 Parámetros recibidos:");
+    console.log("  page:", page);
+    console.log("  limit:", limit);
+    console.log("  search:", search);
+    console.log("  inicio:", inicio);
+    console.log("  fin:", fin);
+    console.log("  estado:", estado);
+
     let where = "WHERE 1=1";
     const params = [];
 
-    if (search) {
+    // Búsqueda
+    if (search && search.trim() !== "") {
       where += `
         AND (
           p.nombre LIKE ?
-          OR CAST(p.telefono AS CHAR) LIKE ?
+          OR p.telefono LIKE ?
+          OR p.direccion LIKE ?
         )
       `;
-      params.push(`%${search}%`, `%${search}%`);
+      const searchTerm = `%${search.trim()}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
     }
 
+    // Fechas
     if (inicio) {
       where += " AND DATE(p.fecha) >= ?";
       params.push(inicio);
@@ -846,63 +855,117 @@ app.get("/api/pedidos-completo", (req, res) => {
       params.push(fin);
     }
 
-    if (estado && estado !== "todos") {
+    // Estado
+    if (estado && estado !== "todos" && estado !== "") {
       where += " AND p.estado = ?";
       params.push(estado);
     }
 
-    DB.query(
-      `SELECT COUNT(*) AS total FROM pedidos p ${where}`,
-      params,
-      (errCount, countRows) => {
-        if (errCount) {
-          console.error("❌ Error COUNT:", errCount);
-          return res.status(500).json({ ok: false });
+    // Query para contar total
+    const countQuery = `SELECT COUNT(*) AS total FROM pedidos p ${where}`;
+    console.log("📝 Count Query:", countQuery);
+    console.log("📦 Count Params:", params);
+
+    DB.query(countQuery, params, (errCount, countRows) => {
+      if (errCount) {
+        console.error("❌ Error en COUNT:", errCount);
+        return res.status(500).json({
+          ok: false,
+          error: errCount.message,
+          message: "Error al contar pedidos",
+        });
+      }
+
+      const total = countRows[0].total || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      console.log(`📊 Total pedidos: ${total}, Páginas: ${totalPages}`);
+
+      // Si no hay resultados, devolver vacío
+      if (total === 0) {
+        return res.json({
+          ok: true,
+          results: [],
+          total: 0,
+          totalPages: 0,
+          page: page,
+        });
+      }
+
+      // Query para obtener los pedidos
+      const pedidosQuery = `
+        SELECT
+          p.id,
+          p.nombre,
+          p.telefono,
+          p.direccion,
+          d.nombre AS departamento_nombre,
+          c.nombre AS ciudad_nombre,
+          p.total,
+          p.costo_envio,
+          p.estado,
+          p.fecha,
+          p.created_at,
+          p.notas,
+          p.email,
+          p.metodo_pago
+        FROM pedidos p
+        LEFT JOIN departamentos d ON p.departamento_id = d.id
+        LEFT JOIN ciudades c ON p.ciudad_id = c.id
+        ${where}
+        ORDER BY p.id DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      console.log("📝 Pedidos Query:", pedidosQuery);
+      console.log("📦 Pedidos Params:", [...params, limit, offset]);
+
+      DB.query(pedidosQuery, [...params, limit, offset], (errRows, rows) => {
+        if (errRows) {
+          console.error("❌ Error obteniendo pedidos:", errRows);
+          return res.status(500).json({
+            ok: false,
+            error: errRows.message,
+            message: "Error al obtener pedidos",
+          });
         }
 
-        const total = countRows[0].total;
+        console.log(`✅ ${rows.length} pedidos obtenidos`);
 
-        DB.query(
-          `
-          SELECT
-            p.id,
-            p.nombre,
-            p.telefono,
-            p.direccion,
-            d.nombre AS departamento_nombre,
-            c.nombre AS ciudad_nombre,
-            p.total,
-            p.costo_envio,
-            p.estado,
-            p.fecha
-          FROM pedidos p
-          LEFT JOIN departamentos d ON p.departamento_id = d.id
-          LEFT JOIN ciudades c ON p.ciudad_id = c.id
-          ${where}
-          ORDER BY p.id DESC
-          LIMIT ? OFFSET ?
-          `,
-          [...params, limit, offset],
-          (errRows, rows) => {
-            if (errRows) {
-              console.error("❌ Error pedidos:", errRows);
-              return res.status(500).json({ ok: false });
-            }
+        // Formatear los resultados
+        const resultados = rows.map((pedido) => ({
+          id: pedido.id,
+          nombre: pedido.nombre,
+          telefono: pedido.telefono,
+          direccion: pedido.direccion,
+          departamento_nombre: pedido.departamento_nombre,
+          ciudad_nombre: pedido.ciudad_nombre,
+          total: Number(pedido.total) || 0,
+          costo_envio: Number(pedido.costo_envio) || 0,
+          estado: pedido.estado,
+          fecha: pedido.fecha || pedido.created_at,
+          notas: pedido.notas,
+          email: pedido.email,
+          metodo_pago: pedido.metodo_pago,
+        }));
 
-            res.json({
-              ok: true,
-              results: rows,
-              total,
-              totalPages: Math.ceil(total / limit),
-              page,
-            });
-          },
-        );
-      },
-    );
+        res.json({
+          ok: true,
+          results: resultados,
+          total: total,
+          totalPages: totalPages,
+          page: page,
+          limit: limit,
+        });
+      });
+    });
   } catch (error) {
-    console.error("🔥 Error general:", error);
-    res.status(500).json({ ok: false });
+    console.error("🔥 Error general en pedidos-completo:", error);
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+      message: "Error interno del servidor",
+    });
   }
 });
 
@@ -910,6 +973,8 @@ app.get("/api/orden-servicio/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
+    console.log(`📋 Solicitando orden de servicio ID: ${id}`);
+
     const [pedido] = await DB.promise().query(
       `
       SELECT
@@ -917,15 +982,19 @@ app.get("/api/orden-servicio/:id", async (req, res) => {
         d.nombre AS departamento_nombre,
         c.nombre AS ciudad_nombre
       FROM pedidos p
-      LEFT JOIN departamentos d ON p.departamento = d.id
-      LEFT JOIN ciudades c ON p.ciudad = c.id
+      LEFT JOIN departamentos d ON p.departamento_id = d.id
+      LEFT JOIN ciudades c ON p.ciudad_id = c.id
       WHERE p.id = ?
       `,
       [id],
     );
 
     if (!pedido.length) {
-      return res.status(404).json({ error: "Pedido no encontrado" });
+      console.log(`❌ Pedido ${id} no encontrado`);
+      return res.status(404).json({
+        ok: false,
+        error: "Pedido no encontrado",
+      });
     }
 
     const [detalle] = await DB.promise().query(
@@ -933,13 +1002,20 @@ app.get("/api/orden-servicio/:id", async (req, res) => {
       [id],
     );
 
+    console.log(`✅ Orden de servicio ${id} encontrada`);
+
     res.json({
+      ok: true,
       pedido: pedido[0],
-      productos: detalle,
+      productos: detalle || [],
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error del servidor" });
+    console.error(`❌ Error obteniendo orden de servicio ${id}:`, error);
+    res.status(500).json({
+      ok: false,
+      error: "Error del servidor",
+      message: error.message,
+    });
   }
 });
 
@@ -955,6 +1031,8 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`   DELETE /api/productos/:id`);
   console.log(`   POST /api/upload-imagen`);
   console.log(`   GET  /api/exportar-productos-excel`);
+  console.log(`   GET  /api/pedidos-completo`);
+  console.log(`   GET  /api/orden-servicio/:id`);
 });
 
 // import express from "express";
