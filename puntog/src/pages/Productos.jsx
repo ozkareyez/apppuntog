@@ -39,18 +39,17 @@ const Productos = () => {
   const categoriaSlug = searchParams.get("categoria") || null;
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
-  // NUEVA FUNCIÓN: Mapea slug a nombre de categoría para la API
+  // Mapea slug a nombre de categoría
   const getCategoriaNameForApi = (slug) => {
     const slugMap = {
-      categoria1: "Juguetes",
-      categoria2: "Lencería",
+      categoria2: "Juguetes",
+      categoria1: "Lencería",
       categoria3: "Lubricantes",
       categoria4: "Accesorios",
     };
     return slugMap[slug] || null;
   };
 
-  // NUEVO: Encontrar categoría completa para mostrar nombre
   const getCategoriaActual = () => {
     if (!categoriaSlug) return null;
     return categorias.find((c) => c.slug === categoriaSlug) || null;
@@ -84,35 +83,40 @@ const Productos = () => {
   useEffect(() => {
     setLoading(true);
 
-    const params = new URLSearchParams();
-
-    // ✅ CORRECCIÓN: Enviar nombre de categoría en lugar de slug
-    if (categoriaSlug) {
-      const categoriaName = getCategoriaNameForApi(categoriaSlug);
-      if (categoriaName) {
-        params.append("categoria", categoriaName);
-      }
-    }
-
-    if (filtroOferta) {
-      params.append("es_oferta", "true");
-    }
-
-    const queryString = params.toString();
-    const url = `${API_URL}/api/productos${queryString ? `?${queryString}` : ""}`;
-
-    console.log("📡 Solicitando productos:", url);
-
-    fetch(url)
+    fetch(`${API_URL}/api/productos`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         return res.json();
       })
       .then((data) => {
-        console.log(`✅ Productos recibidos: ${data.length}`);
-        const productosArray = Array.isArray(data) ? data : [];
-        setProductos(productosArray);
-        setTotalPages(Math.ceil(productosArray.length / itemsPerPage));
+        console.log("✅ Todos los productos recibidos:", data.length);
+
+        let productosFiltrados = Array.isArray(data) ? data : [];
+
+        // FILTRADO MANUAL EN FRONTEND (solución temporal)
+        if (categoriaSlug) {
+          const categoriaName = getCategoriaNameForApi(categoriaSlug);
+          if (categoriaName) {
+            productosFiltrados = productosFiltrados.filter(
+              (producto) => producto.categoria === categoriaName,
+            );
+            console.log(
+              `🔍 Filtrado por categoría "${categoriaName}":`,
+              productosFiltrados.length,
+            );
+          }
+        }
+
+        if (filtroOferta) {
+          productosFiltrados = productosFiltrados.filter(
+            (producto) => producto.es_oferta,
+          );
+          console.log(`🔥 Filtrado por ofertas:`, productosFiltrados.length);
+        }
+
+        console.log(`✅ Productos finales: ${productosFiltrados.length}`);
+        setProductos(productosFiltrados);
+        setTotalPages(Math.ceil(productosFiltrados.length / itemsPerPage));
         setLoading(false);
       })
       .catch((error) => {
@@ -127,7 +131,6 @@ const Productos = () => {
     setCurrentPage(1);
   }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
 
-  // ✅ CORRECCIÓN: Función ya correcta, solo envía slug
   const cambiarCategoria = (slug) => {
     console.log("🎯 Cambiando categoría:", slug);
 
