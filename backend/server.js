@@ -495,6 +495,124 @@ app.get("/api/productos-recomendados/:id", async (req, res) => {
   }
 });
 
+/* ================= CAMBIAR ESTADO DE PEDIDO ================= */
+app.put("/api/pedidos-estado/:id", async (req, res) => {
+  const { id } = req.params;
+  const { estado } = req.body;
+
+  console.log(`\n=== CAMBIAR ESTADO PEDIDO ${id} ===`);
+  console.log("Nuevo estado:", estado);
+
+  // Validar estado
+  if (!estado || !["pendiente", "entregado"].includes(estado)) {
+    return res.status(400).json({
+      ok: false,
+      message: "Estado inválido. Debe ser 'pendiente' o 'entregado'",
+    });
+  }
+
+  try {
+    // Verificar si el pedido existe
+    const [pedidoExistente] = await DB.promise().query(
+      "SELECT id FROM pedidos WHERE id = ?",
+      [id],
+    );
+
+    if (!pedidoExistente.length) {
+      console.log(`❌ Pedido ${id} no encontrado`);
+      return res.status(404).json({
+        ok: false,
+        message: "Pedido no encontrado",
+      });
+    }
+
+    // Actualizar el estado
+    const [result] = await DB.promise().query(
+      "UPDATE pedidos SET estado = ? WHERE id = ?",
+      [estado, id],
+    );
+
+    console.log(`✅ Pedido ${id} actualizado a "${estado}"`);
+    console.log(`📊 Filas afectadas: ${result.affectedRows}`);
+
+    res.json({
+      ok: true,
+      message: `Estado actualizado a "${estado}"`,
+      pedido_id: id,
+      estado: estado,
+      affectedRows: result.affectedRows,
+    });
+  } catch (error) {
+    console.error(`❌ Error actualizando pedido ${id}:`, error);
+    res.status(500).json({
+      ok: false,
+      message: "Error interno del servidor",
+      error: error.message,
+      sqlMessage: error.sqlMessage,
+    });
+  }
+});
+
+/* ================= OBTENER DETALLES DE PEDIDO ================= */
+app.get("/api/pedidos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  console.log(`\n=== DETALLES PEDIDO ${id} ===`);
+
+  try {
+    // Obtener el pedido
+    const [pedido] = await DB.promise().query(
+      `
+      SELECT
+        p.*,
+        d.nombre AS departamento_nombre,
+        c.nombre AS ciudad_nombre
+      FROM pedidos p
+      LEFT JOIN departamentos d ON p.departamento_id = d.id
+      LEFT JOIN ciudades c ON p.ciudad_id = c.id
+      WHERE p.id = ?
+      `,
+      [id],
+    );
+
+    if (!pedido.length) {
+      console.log(`❌ Pedido ${id} no encontrado`);
+      return res.status(404).json({
+        ok: false,
+        message: "Pedido no encontrado",
+      });
+    }
+
+    // Obtener productos del pedido (si existe la tabla)
+    let productos = [];
+    try {
+      const [productosData] = await DB.promise().query(
+        "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+        [id],
+      );
+      productos = productosData || [];
+    } catch (error) {
+      console.log("ℹ️ No se pudieron obtener productos:", error.message);
+    }
+
+    const resultado = {
+      ok: true,
+      pedido: pedido[0],
+      productos: productos,
+    };
+
+    console.log(`✅ Pedido ${id} enviado con ${productos.length} productos`);
+    res.json(resultado);
+  } catch (error) {
+    console.error(`❌ Error obteniendo pedido ${id}:`, error);
+    res.status(500).json({
+      ok: false,
+      message: "Error del servidor",
+      error: error.message,
+    });
+  }
+});
+
 /* ================= ACTUALIZAR PRODUCTO ================= */
 app.put("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
