@@ -193,6 +193,9 @@ const ProductoDetallado = () => {
   }, [isFullscreen]);
 
   /* ================= FETCH PRODUCTO ================= */
+  // Reemplaza las funciones de fetch con estas versiones mejoradas:
+
+  /* ================= FETCH PRODUCTO ================= */
   useEffect(() => {
     const fetchProducto = async () => {
       setLoading(true);
@@ -203,24 +206,37 @@ const ProductoDetallado = () => {
         const res = await fetch(`${API_URL}/api/productos/${id}`);
 
         if (!res.ok) {
-          throw new Error("Producto no encontrado");
+          // Si el endpoint no existe, intentar otra estrategia
+          if (res.status === 404) {
+            console.log(
+              "⚠️ Endpoint /api/productos/:id no encontrado, intentando filtro...",
+            );
+
+            // Traer todos los productos y filtrar localmente
+            const todosRes = await fetch(`${API_URL}/api/productos`);
+            const todos = await todosRes.json();
+            const productoEncontrado = todos.find((p) => p.id === parseInt(id));
+
+            if (productoEncontrado) {
+              setProducto(productoEncontrado);
+              setLoading(false);
+              return;
+            } else {
+              throw new Error("Producto no encontrado");
+            }
+          } else {
+            throw new Error("Producto no encontrado");
+          }
         }
 
         const data = await res.json();
 
-        console.log("📦 DATOS RECIBIDOS DEL BACKEND:", data);
-        console.log("🔍 Información de imágenes recibida:", {
-          imagenes: data.imagenes,
-          imagen_cloud1: data.imagen_cloud1,
-          imagen_cloud2: data.imagen_cloud2,
-          imagen_cloud3: data.imagen_cloud3,
-          imagen: data.imagen,
-        });
+        // Si la API devuelve {error: "..."}
+        if (data.error) {
+          throw new Error(data.error);
+        }
 
-        // Probar la función getImages con los datos recibidos
-        const testImages = getImages.call({ producto: data });
-        console.log("🖼️ Imágenes extraídas en test:", testImages);
-
+        console.log("✅ Producto recibido:", data.nombre);
         setProducto(data);
         setLoading(false);
       } catch (err) {
@@ -230,19 +246,38 @@ const ProductoDetallado = () => {
       }
     };
 
-    fetchProducto();
+    if (id) {
+      fetchProducto();
+    }
   }, [id]);
 
   /* ================= FETCH RECOMENDADOS ================= */
   useEffect(() => {
-    if (!id) return;
+    if (!id || !producto) return;
 
     const fetchRecomendados = async () => {
       try {
-        console.log(`🔍 Fetching recomendados para ID: ${id}`);
         const res = await fetch(`${API_URL}/api/productos-recomendados/${id}`);
+
+        if (!res.ok) {
+          console.log(
+            "⚠️ No hay endpoint de recomendados, usando filtrado local",
+          );
+          // Si no hay endpoint, filtrar productos de la misma categoría
+          const todosRes = await fetch(`${API_URL}/api/productos`);
+          const todos = await todosRes.json();
+          const productosMismaCategoria = todos
+            .filter(
+              (p) =>
+                p.id !== parseInt(id) &&
+                p.categoria_id === producto.categoria_id,
+            )
+            .slice(0, 6);
+          setRecomendados(productosMismaCategoria);
+          return;
+        }
+
         const data = await res.json();
-        console.log("📦 Recomendados recibidos:", data);
         setRecomendados(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("❌ Error al cargar recomendados:", err);
@@ -251,7 +286,7 @@ const ProductoDetallado = () => {
     };
 
     fetchRecomendados();
-  }, [id]);
+  }, [id, producto?.categoria_id]);
 
   /* ================= LOADING STATE ================= */
   if (loading) {
