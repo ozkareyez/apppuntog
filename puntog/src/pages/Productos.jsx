@@ -36,9 +36,25 @@ const Productos = () => {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
 
-  // 🔥 CAMBIO CLAVE: Los slugs ahora son categoria1, categoria2, categoria3
   const categoriaSlug = searchParams.get("categoria") || null;
   const filtroOferta = searchParams.get("filtro") === "ofertas";
+
+  // NUEVA FUNCIÓN: Mapea slug a nombre de categoría para la API
+  const getCategoriaNameForApi = (slug) => {
+    const slugMap = {
+      categoria1: "Juguetes",
+      categoria2: "Lencería",
+      categoria3: "Lubricantes",
+      categoria4: "Accesorios",
+    };
+    return slugMap[slug] || null;
+  };
+
+  // NUEVO: Encontrar categoría completa para mostrar nombre
+  const getCategoriaActual = () => {
+    if (!categoriaSlug) return null;
+    return categorias.find((c) => c.slug === categoriaSlug) || null;
+  };
 
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
@@ -51,17 +67,8 @@ const Productos = () => {
 
   const getCategoriaActualNombre = () => {
     if (!categoriaSlug) return "Todos los productos";
-    const categoria = categorias.find((c) => c.slug === categoriaSlug);
-    if (categoria) return categoria.nombre;
-
-    // Mapeo de slugs a nombres si no encuentra la categoría
-    const slugMap = {
-      categoria1: "Juguetes",
-      categoria2: "Lencería",
-      categoria3: "Lubricantes",
-      categoria4: "Accesorios",
-    };
-    return slugMap[categoriaSlug] || "Productos";
+    const categoria = getCategoriaActual();
+    return categoria ? categoria.nombre : "Productos";
   };
 
   useEffect(() => {
@@ -79,9 +86,12 @@ const Productos = () => {
 
     const params = new URLSearchParams();
 
-    // 🔥 ENVIAR LOS SLUGS CORRECTOS: categoria1, categoria2, categoria3
+    // ✅ CORRECCIÓN: Enviar nombre de categoría en lugar de slug
     if (categoriaSlug) {
-      params.append("categoria", categoriaSlug);
+      const categoriaName = getCategoriaNameForApi(categoriaSlug);
+      if (categoriaName) {
+        params.append("categoria", categoriaName);
+      }
     }
 
     if (filtroOferta) {
@@ -117,7 +127,7 @@ const Productos = () => {
     setCurrentPage(1);
   }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
 
-  // 🔥 FUNCIÓN CORREGIDA: Enviar slugs categoria1, categoria2, categoria3
+  // ✅ CORRECCIÓN: Función ya correcta, solo envía slug
   const cambiarCategoria = (slug) => {
     console.log("🎯 Cambiando categoría:", slug);
 
@@ -284,7 +294,6 @@ const Productos = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="w-full md:w-auto">
             <div className="flex overflow-x-auto pb-2 md:pb-0 md:flex-wrap gap-2 scrollbar-hide">
-              {/* 🔥 BOTÓN "TODAS" */}
               <button
                 onClick={() => cambiarCategoria("todas")}
                 className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 flex items-center gap-1 text-sm whitespace-nowrap flex-shrink-0
@@ -298,11 +307,10 @@ const Productos = () => {
                 Todas
               </button>
 
-              {/* 🔥 BOTONES DE CATEGORÍAS - Usan slugs: categoria1, categoria2, categoria3 */}
               {categorias.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => cambiarCategoria(cat.slug)} // Envía el slug correcto
+                  onClick={() => cambiarCategoria(cat.slug)}
                   className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 text-sm whitespace-nowrap flex-shrink-0
                     ${
                       categoriaSlug === cat.slug
