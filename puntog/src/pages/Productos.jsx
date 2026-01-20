@@ -32,15 +32,14 @@ const Productos = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [quickView, setQuickView] = useState(null);
 
-  // Estados para paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
 
-  const categoriaActual = searchParams.get("categoria") || "todas";
+  // 🔥 CAMBIO CLAVE: Los slugs ahora son categoria1, categoria2, categoria3
+  const categoriaSlug = searchParams.get("categoria") || null;
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
-  // 🔥 FUNCIÓN MEJORADA PARA OBTENER IMÁGENES
   const getImageSrc = (imagen) => {
     if (!imagen) return "/imagenes/no-image.png";
     if (imagen.startsWith("http://") || imagen.startsWith("https://")) {
@@ -50,54 +49,99 @@ const Productos = () => {
     return `${API_URL}/images/${imagen}`;
   };
 
+  const getCategoriaActualNombre = () => {
+    if (!categoriaSlug) return "Todos los productos";
+    const categoria = categorias.find((c) => c.slug === categoriaSlug);
+    if (categoria) return categoria.nombre;
+
+    // Mapeo de slugs a nombres si no encuentra la categoría
+    const slugMap = {
+      categoria1: "Juguetes",
+      categoria2: "Lencería",
+      categoria3: "Lubricantes",
+      categoria4: "Accesorios",
+    };
+    return slugMap[categoriaSlug] || "Productos";
+  };
+
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
-      .then((data) => setCategorias(Array.isArray(data) ? data : []))
+      .then((data) => {
+        console.log("✅ Categorías cargadas:", data);
+        setCategorias(Array.isArray(data) ? data : []);
+      })
       .catch(() => setCategorias([]));
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    let url = `${API_URL}/api/productos?`;
-    if (categoriaActual !== "todas") url += `categoria=${categoriaActual}&`;
-    if (filtroOferta) url += `es_oferta=true&`;
+
+    const params = new URLSearchParams();
+
+    // 🔥 ENVIAR LOS SLUGS CORRECTOS: categoria1, categoria2, categoria3
+    if (categoriaSlug) {
+      params.append("categoria", categoriaSlug);
+    }
+
+    if (filtroOferta) {
+      params.append("es_oferta", "true");
+    }
+
+    const queryString = params.toString();
+    const url = `${API_URL}/api/productos${queryString ? `?${queryString}` : ""}`;
+
+    console.log("📡 Solicitando productos:", url);
 
     fetch(url)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
+        console.log(`✅ Productos recibidos: ${data.length}`);
         const productosArray = Array.isArray(data) ? data : [];
         setProductos(productosArray);
-        // Calcular total de páginas
         setTotalPages(Math.ceil(productosArray.length / itemsPerPage));
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("❌ Error cargando productos:", error);
         setProductos([]);
         setTotalPages(1);
         setLoading(false);
       });
-  }, [categoriaActual, filtroOferta]);
+  }, [categoriaSlug, filtroOferta]);
 
-  // Resetear a página 1 cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [categoriaActual, filtroOferta, sortBy, priceRange]);
+  }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
 
+  // 🔥 FUNCIÓN CORREGIDA: Enviar slugs categoria1, categoria2, categoria3
   const cambiarCategoria = (slug) => {
+    console.log("🎯 Cambiando categoría:", slug);
+
     const params = new URLSearchParams(searchParams);
-    slug === "todas"
-      ? params.delete("categoria")
-      : params.set("categoria", slug);
+
+    if (!slug || slug === "todas") {
+      params.delete("categoria");
+    } else {
+      params.set("categoria", slug);
+    }
+
     setSearchParams(params);
-    setCurrentPage(1); // Resetear a página 1
+    setCurrentPage(1);
   };
 
   const toggleOferta = () => {
     const params = new URLSearchParams(searchParams);
-    filtroOferta ? params.delete("filtro") : params.set("filtro", "ofertas");
+    if (filtroOferta) {
+      params.delete("filtro");
+    } else {
+      params.set("filtro", "ofertas");
+    }
     setSearchParams(params);
-    setCurrentPage(1); // Resetear a página 1
+    setCurrentPage(1);
   };
 
   const toggleWishlist = (id) => {
@@ -115,7 +159,7 @@ const Productos = () => {
         return sorted.sort((a, b) => b.precio - a.precio);
       case "nuevos":
         return sorted.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at),
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
         );
       default:
         return sorted;
@@ -126,7 +170,6 @@ const Productos = () => {
     (p) => p.precio >= priceRange[0] && p.precio <= priceRange[1],
   );
 
-  // Cálculo de productos para la página actual
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentProductos = filteredProductos.slice(
@@ -134,18 +177,12 @@ const Productos = () => {
     indexOfLastItem,
   );
 
-  // Función para cambiar de página
   const paginate = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
-    // Scroll suave hacia arriba
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Función para generar números de página
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
@@ -156,21 +193,18 @@ const Productos = () => {
       }
     } else {
       if (currentPage <= 3) {
-        // Páginas al inicio
         for (let i = 1; i <= 5; i++) {
           pageNumbers.push(i);
         }
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
-        // Páginas al final
         pageNumbers.push(1);
         pageNumbers.push("...");
         for (let i = totalPages - 4; i <= totalPages; i++) {
           pageNumbers.push(i);
         }
       } else {
-        // Páginas en el medio
         pageNumbers.push(1);
         pageNumbers.push("...");
         for (let i = currentPage - 1; i <= currentPage + 1; i++) {
@@ -198,7 +232,6 @@ const Productos = () => {
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12">
-      {/* HERO SECTION - Más compacto */}
       <div className="max-w-7xl mx-auto px-4 mb-8">
         <div className="text-center mb-6 pt-15">
           <motion.h1
@@ -206,20 +239,30 @@ const Productos = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl md:text-4xl font-bold text-gray-900 mb-3"
           >
-            Descubre la <span className="text-red-600">elegancia</span> sensual
+            {getCategoriaActualNombre()}
+            <span className="text-red-600">.</span>
           </motion.h1>
           <p className="text-gray-600 text-sm max-w-2xl mx-auto">
-            Productos premium seleccionados para momentos íntimos y especiales
+            {categoriaSlug
+              ? `${filteredProductos.length} productos encontrados`
+              : "Productos premium seleccionados para momentos íntimos y especiales"}
           </p>
         </div>
 
-        {/* STATS - Más compacto */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[
-            { label: "Productos", value: productos.length, icon: "✨" },
+            { label: "Productos", value: filteredProductos.length, icon: "✨" },
             { label: "Categorías", value: categorias.length, icon: "🏷️" },
-            { label: "Clientes", value: "10K+", icon: "❤️" },
-            { label: "Envíos", value: "50+", icon: "🚚" },
+            {
+              label: "En oferta",
+              value: productos.filter((p) => p.es_oferta).length,
+              icon: "🔥",
+            },
+            {
+              label: "Stock",
+              value: productos.reduce((sum, p) => sum + (p.stock || 0), 0),
+              icon: "📦",
+            },
           ].map((stat, idx) => (
             <div
               key={idx}
@@ -227,7 +270,9 @@ const Productos = () => {
             >
               <div className="text-xl mb-1">{stat.icon}</div>
               <div className="text-base font-bold text-gray-900">
-                {stat.value}
+                {typeof stat.value === "number"
+                  ? stat.value.toLocaleString()
+                  : stat.value}
               </div>
               <div className="text-xs text-gray-600">{stat.label}</div>
             </div>
@@ -235,36 +280,35 @@ const Productos = () => {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto px-4">
-        {/* FILTERS BAR - Más compacto */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* CATEGORÍAS - Scroll horizontal en móvil */}
           <div className="w-full md:w-auto">
             <div className="flex overflow-x-auto pb-2 md:pb-0 md:flex-wrap gap-2 scrollbar-hide">
+              {/* 🔥 BOTÓN "TODAS" */}
               <button
                 onClick={() => cambiarCategoria("todas")}
                 className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 flex items-center gap-1 text-sm whitespace-nowrap flex-shrink-0
-          ${
-            categoriaActual === "todas"
-              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-              : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
-          }`}
+                  ${
+                    !categoriaSlug
+                      ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+                      : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+                  }`}
               >
                 <Sparkles size={14} />
                 Todas
               </button>
 
+              {/* 🔥 BOTONES DE CATEGORÍAS - Usan slugs: categoria1, categoria2, categoria3 */}
               {categorias.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => cambiarCategoria(cat.slug)}
+                  onClick={() => cambiarCategoria(cat.slug)} // Envía el slug correcto
                   className={`px-4 py-2 rounded-full font-medium border transition-all duration-300 text-sm whitespace-nowrap flex-shrink-0
-            ${
-              categoriaActual === cat.slug
-                ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-                : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
-            }`}
+                    ${
+                      categoriaSlug === cat.slug
+                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-red-600 hover:text-red-600"
+                    }`}
                 >
                   {cat.nombre}
                 </button>
@@ -272,10 +316,8 @@ const Productos = () => {
             </div>
           </div>
 
-          {/* FILTROS - Mejor responsive */}
           <div className="w-full md:w-auto">
             <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-              {/* SORT - Más compacto en móvil */}
               <div className="relative flex-shrink-0">
                 <select
                   value={sortBy}
@@ -290,22 +332,20 @@ const Productos = () => {
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
               </div>
 
-              {/* OFFERS FILTER - Botón más compacto */}
               <button
                 onClick={toggleOferta}
                 className={`flex items-center gap-1 px-3 py-2 rounded-lg font-medium transition-all duration-300 text-sm whitespace-nowrap flex-shrink-0
-          ${
-            filtroOferta
-              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
-              : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
-          }`}
+                  ${
+                    filtroOferta
+                      ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30"
+                      : "bg-white text-gray-700 border border-gray-300 hover:border-red-600 hover:text-red-600"
+                  }`}
               >
                 <Tag size={14} />
                 <span className="hidden sm:inline">Ofertas</span>
                 <span className="sm:hidden">Ofertas</span>
               </button>
 
-              {/* FILTERS TOGGLE - Botón más compacto */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 hover:border-red-600 hover:text-red-600 transition text-sm whitespace-nowrap flex-shrink-0"
@@ -318,7 +358,6 @@ const Productos = () => {
           </div>
         </div>
 
-        {/* FILTERS PANEL - Más compacto */}
         <AnimatePresence>
           {showFilters && (
             <motion.div
@@ -380,7 +419,6 @@ const Productos = () => {
           )}
         </AnimatePresence>
 
-        {/* PRODUCTS COUNT */}
         {!loading && filteredProductos.length > 0 && (
           <div className="mb-4 text-sm text-gray-600">
             Mostrando {indexOfFirstItem + 1}-
@@ -389,7 +427,6 @@ const Productos = () => {
           </div>
         )}
 
-        {/* PRODUCTS GRID - Tarjetas más anchas en móvil */}
         {loading ? (
           <LoadingSkeleton />
         ) : (
@@ -397,7 +434,7 @@ const Productos = () => {
             {currentProductos.map((producto) => {
               const precio = Number(producto.precio || 0);
               const precioAntes = Number(producto.precio_antes || 0);
-              const esOferta = Number(producto.es_oferta) === 1;
+              const esOferta = Boolean(producto.es_oferta);
               const imagenUrl = getImageSrc(producto.imagen);
               const isWishlisted = wishlist.includes(producto.id);
 
@@ -408,7 +445,6 @@ const Productos = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="group relative bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-red-200 transition-all duration-300 hover:shadow-lg"
                 >
-                  {/* WISHLIST BUTTON */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -426,9 +462,8 @@ const Productos = () => {
                     />
                   </button>
 
-                  {/* BADGES */}
                   <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
-                    {esOferta && (
+                    {esOferta && precioAntes > 0 && (
                       <span className="px-2 py-1 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold rounded-full shadow-md">
                         -{Math.round((1 - precio / precioAntes) * 100)}%
                       </span>
@@ -440,7 +475,6 @@ const Productos = () => {
                     )}
                   </div>
 
-                  {/* PRODUCT IMAGE */}
                   <div
                     onClick={() => navigate(`/productos/${producto.id}`)}
                     className="relative h-36 md:h-40 bg-gradient-to-br from-gray-50 to-white overflow-hidden cursor-pointer"
@@ -452,7 +486,6 @@ const Productos = () => {
                       onError={(e) => (e.target.src = "/imagenes/no-image.png")}
                     />
 
-                    {/* QUICK VIEW OVERLAY - Siempre visible en móvil */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity duration-300">
                       <button
                         onClick={(e) => {
@@ -467,7 +500,6 @@ const Productos = () => {
                     </div>
                   </div>
 
-                  {/* PRODUCT INFO - SIN DESCRIPCIÓN */}
                   <div className="p-2.5 md:p-3">
                     <h3
                       onClick={() => navigate(`/productos/${producto.id}`)}
@@ -476,7 +508,6 @@ const Productos = () => {
                       {producto.nombre}
                     </h3>
 
-                    {/* PRICE */}
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         {esOferta && precioAntes > 0 && (
@@ -493,7 +524,6 @@ const Productos = () => {
                       </span>
                     </div>
 
-                    {/* ACTIONS */}
                     <div className="flex gap-1.5">
                       <button
                         onClick={(e) => {
@@ -522,7 +552,6 @@ const Productos = () => {
           </div>
         )}
 
-        {/* NO PRODUCTS - Más compacto */}
         {!loading && filteredProductos.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -533,39 +562,46 @@ const Productos = () => {
               <Filter className="w-8 h-8 text-red-400" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              No encontramos productos
+              {categoriaSlug
+                ? `No hay productos en "${getCategoriaActualNombre()}"`
+                : "No encontramos productos"}
             </h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm">
-              Intenta con otros filtros o vuelve más tarde
+              {categoriaSlug
+                ? "Prueba con otra categoría o ajusta los filtros de precio"
+                : "Intenta con otros filtros o vuelve más tarde"}
             </p>
-            <button
-              onClick={() => {
-                cambiarCategoria("todas");
-                setPriceRange([0, 500000]);
-              }}
-              className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:shadow-lg transition text-sm"
-            >
-              Ver todos los productos
-            </button>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => cambiarCategoria("todas")}
+                className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-lg hover:shadow-lg transition text-sm"
+              >
+                Ver todos los productos
+              </button>
+              {categoriaSlug && (
+                <button
+                  onClick={() => setPriceRange([0, 500000])}
+                  className="px-6 py-2.5 border border-gray-300 font-medium rounded-lg hover:border-red-600 hover:text-red-600 transition text-sm"
+                >
+                  Limpiar filtros de precio
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
 
-        {/* PAGINATION - Funcional */}
         {filteredProductos.length > itemsPerPage && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-12 flex flex-col items-center gap-4"
           >
-            {/* Información de página */}
             <div className="text-sm text-gray-600">
               Página {currentPage} de {totalPages} • {filteredProductos.length}{" "}
               productos
             </div>
 
-            {/* Navegación */}
             <div className="flex items-center gap-1">
-              {/* Botón anterior */}
               <button
                 onClick={() => paginate(currentPage - 1)}
                 disabled={currentPage === 1}
@@ -579,7 +615,6 @@ const Productos = () => {
                 <ChevronLeft size={16} />
               </button>
 
-              {/* Números de página */}
               {getPageNumbers().map((pageNumber, index) =>
                 pageNumber === "..." ? (
                   <span
@@ -604,7 +639,6 @@ const Productos = () => {
                 ),
               )}
 
-              {/* Botón siguiente */}
               <button
                 onClick={() => paginate(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -619,14 +653,13 @@ const Productos = () => {
               </button>
             </div>
 
-            {/* Selector de items por página (opcional) */}
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>Mostrar:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1); // Resetear a página 1
+                  setCurrentPage(1);
                 }}
                 className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
               >
@@ -639,7 +672,6 @@ const Productos = () => {
           </motion.div>
         )}
 
-        {/* QUICK VIEW MODAL - Más compacto */}
         <AnimatePresence>
           {quickView && (
             <motion.div
@@ -677,9 +709,6 @@ const Productos = () => {
                               className="fill-amber-400 text-amber-400"
                             />
                             <span className="font-medium text-sm">4.8</span>
-                            {/* <span className="text-gray-500 text-xs">
-                              (128 reseñas)
-                            </span> */}
                           </div>
                           <span className="text-green-600 font-medium text-sm">
                             En stock
