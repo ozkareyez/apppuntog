@@ -437,7 +437,7 @@ const ProductoDetallado = () => {
             {/* IMAGE GALLERY */}
             <div className="space-y-4">
               {/* DEBUG INFO - Temporal para verificar */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              {/* <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-800 font-medium">
                     Debug Info:
@@ -450,7 +450,7 @@ const ProductoDetallado = () => {
                     {producto.imagen_cloud3 ? "✓" : "✗"}
                   </span>
                 </div>
-              </div>
+              </div> */}
 
               {/* MAIN IMAGE */}
               <div className="relative bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 overflow-hidden h-[500px] group">
@@ -557,9 +557,9 @@ const ProductoDetallado = () => {
               {images.length > 0 && (
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-medium text-gray-800">
+                    {/* <h4 className="font-medium text-gray-800">
                       Imágenes ({images.length})
-                    </h4>
+                    </h4> */}
                     {images.length > 1 && (
                       <div className="flex gap-1">
                         {images.map((_, index) => (
