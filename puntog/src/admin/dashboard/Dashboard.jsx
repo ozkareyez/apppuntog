@@ -4,8 +4,6 @@ import {
   Filter,
   Download,
   Eye,
-  TrendingUp,
-  TrendingDown,
   Package,
   DollarSign,
   User,
@@ -13,14 +11,12 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  ChevronDown,
   ShoppingCart,
   Truck,
   CreditCard,
   MessageSquare,
   Phone,
   MapPin,
-  BarChart,
   Calendar,
 } from "lucide-react";
 import { API_URL } from "../../config";
@@ -33,7 +29,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     total: 0,
     pendientes: 0,
-    completados: 0,
+    entregados: 0,
     cancelados: 0,
     promedio: 0,
   });
@@ -59,17 +55,27 @@ export default function Dashboard() {
 
       // Construir parámetros según lo que espera el backend
       const params = new URLSearchParams({
-        page: pagina,
-        search: buscar.trim() || "",
-        inicio: fechaInicio || "",
-        fin: fechaFin || "",
-        estado: estadoFiltro !== "todos" ? estadoFiltro : "",
+        page: pagina.toString(),
+        limit: "10",
       });
 
-      // Remover parámetros vacíos
-      Array.from(params.entries()).forEach(([key, value]) => {
-        if (value === "") params.delete(key);
-      });
+      // Solo añadir filtros si tienen valor
+      if (buscar.trim()) {
+        params.append("search", buscar.trim());
+      }
+
+      if (fechaInicio) {
+        params.append("inicio", fechaInicio);
+      }
+
+      if (fechaFin) {
+        params.append("fin", fechaFin);
+      }
+
+      // IMPORTANTE: Tu backend usa "entregado" no "completado"
+      if (estadoFiltro !== "todos") {
+        params.append("estado", estadoFiltro);
+      }
 
       console.log(
         `🔍 Fetching: ${API_URL}/api/pedidos-completo?${params.toString()}`,
@@ -88,22 +94,15 @@ export default function Dashboard() {
       console.log("📊 Response status:", res.status);
 
       if (!res.ok) {
-        if (res.status === 404) {
-          console.log(
-            "⚠️ Endpoint no encontrado, intentando formato alternativo...",
-          );
-          // El backend podría tener una estructura diferente
-          return fetchPedidosAlternativo(pagina);
-        }
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
       console.log("✅ API Response:", data);
 
-      // Verificar estructura de respuesta según tu backend
+      // Verificar estructura de respuesta
       if (data && data.ok === true) {
-        // Formato esperado: { ok: true, results: [], total: X, totalPages: X, page: X }
+        // Formato correcto: { ok: true, results: [], total: X, totalPages: X, page: X }
         setPedidos(data.results || []);
         setPaginacion({
           pagina: data.page || pagina,
@@ -111,28 +110,11 @@ export default function Dashboard() {
           totalPages: data.totalPages || 1,
         });
         calcularEstadisticas(data.results || []);
-      } else if (Array.isArray(data)) {
-        // Formato alternativo: array directo
-        setPedidos(data);
-        setPaginacion({
-          pagina: 1,
-          total: data.length,
-          totalPages: 1,
-        });
-        calcularEstadisticas(data);
-      } else if (data && data.pedidos) {
-        // Otro formato posible
-        setPedidos(data.pedidos || []);
-        setPaginacion({
-          pagina: data.page || pagina,
-          total: data.total || data.pedidos?.length || 0,
-          totalPages: data.totalPages || 1,
-        });
-        calcularEstadisticas(data.pedidos || []);
       } else {
         console.warn("⚠️ Formato de respuesta inesperado:", data);
         setPedidos([]);
         calcularEstadisticas([]);
+        setError("Formato de datos incorrecto del servidor");
       }
     } catch (error) {
       console.error("❌ Error cargando pedidos:", error);
@@ -144,52 +126,12 @@ export default function Dashboard() {
     }
   };
 
-  // Método alternativo para probar diferentes formatos
-  const fetchPedidosAlternativo = async (pagina = 1) => {
-    try {
-      // Intentar diferentes endpoints/formats
-      const endpoints = [
-        `${API_URL}/api/pedidos-completo?page=${pagina}&search=${buscar}`,
-        `${API_URL}/api/pedidos`,
-        `${API_URL}/api/ordenes`,
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`🔍 Probando endpoint: ${endpoint}`);
-          const res = await fetch(endpoint);
-          if (res.ok) {
-            const data = await res.json();
-            console.log(`✅ Éxito en endpoint: ${endpoint}`, data);
-
-            // Procesar según el formato
-            if (Array.isArray(data)) {
-              setPedidos(data);
-              calcularEstadisticas(data);
-              return;
-            }
-          }
-        } catch (err) {
-          console.log(`❌ Falló endpoint ${endpoint}:`, err.message);
-          continue;
-        }
-      }
-
-      // Si todos fallan, mostrar error específico
-      throw new Error(
-        "No se pudo encontrar el endpoint de pedidos. Verifica la configuración del backend.",
-      );
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
   const calcularEstadisticas = (pedidosData) => {
     if (!Array.isArray(pedidosData) || pedidosData.length === 0) {
       setStats({
         total: 0,
         pendientes: 0,
-        completados: 0,
+        entregados: 0,
         cancelados: 0,
         promedio: 0,
       });
@@ -198,37 +140,21 @@ export default function Dashboard() {
 
     const total = pedidosData.length;
 
-    // Normalizar estados (backend usa minúsculas)
+    // IMPORTANTE: Tu backend usa "entregado" no "completado"
     const pendientes = pedidosData.filter(
-      (p) =>
-        p.estado?.toLowerCase() === "pendiente" ||
-        p.estado === "PENDIENTE" ||
-        p.status?.toLowerCase() === "pendiente",
+      (p) => p.estado?.toLowerCase() === "pendiente",
     ).length;
 
-    const completados = pedidosData.filter(
-      (p) =>
-        p.estado?.toLowerCase() === "completado" ||
-        p.estado === "COMPLETADO" ||
-        p.status?.toLowerCase() === "completado" ||
-        p.status?.toLowerCase() === "entregado",
+    const entregados = pedidosData.filter(
+      (p) => p.estado?.toLowerCase() === "entregado",
     ).length;
 
     const cancelados = pedidosData.filter(
-      (p) =>
-        p.estado?.toLowerCase() === "cancelado" ||
-        p.estado === "CANCELADO" ||
-        p.status?.toLowerCase() === "cancelado",
+      (p) => p.estado?.toLowerCase() === "cancelado",
     ).length;
 
     const totalAmount = pedidosData.reduce((sum, p) => {
-      // Intentar diferentes nombres de campo
-      const amount =
-        Number(p.total) ||
-        Number(p.monto) ||
-        Number(p.amount) ||
-        Number(p.valor_total) ||
-        0;
+      const amount = Number(p.total) || 0;
       return sum + amount;
     }, 0);
 
@@ -237,7 +163,7 @@ export default function Dashboard() {
     setStats({
       total,
       pendientes,
-      completados,
+      entregados,
       cancelados,
       promedio,
     });
@@ -271,19 +197,10 @@ export default function Dashboard() {
 
     // Ordenar
     filtered.sort((a, b) => {
-      // Intentar diferentes nombres de campo para fecha
-      const fechaA = new Date(
-        a.fecha || a.fecha_creacion || a.created_at || a.date || 0,
-      );
-      const fechaB = new Date(
-        b.fecha || b.fecha_creacion || b.created_at || b.date || 0,
-      );
-
-      // Intentar diferentes nombres de campo para total
-      const totalA =
-        Number(a.total) || Number(a.monto) || Number(a.amount) || 0;
-      const totalB =
-        Number(b.total) || Number(b.monto) || Number(b.amount) || 0;
+      const fechaA = new Date(a.fecha || a.created_at || 0);
+      const fechaB = new Date(b.fecha || b.created_at || 0);
+      const totalA = Number(a.total) || 0;
+      const totalB = Number(b.total) || 0;
 
       switch (ordenarPor) {
         case "fecha_desc":
@@ -315,15 +232,15 @@ export default function Dashboard() {
       title: "Pendientes",
       value: stats.pendientes,
       icon: Clock,
-      change: `${Math.round((stats.pendientes / stats.total) * 100) || 0}% del total`,
+      change: `${stats.total > 0 ? Math.round((stats.pendientes / stats.total) * 100) : 0}% del total`,
       color: "border-l-amber-500",
       bg: "bg-amber-50",
     },
     {
-      title: "Completados",
-      value: stats.completados,
+      title: "Entregados", // CAMBIADO: de "Completados" a "Entregados"
+      value: stats.entregados,
       icon: CheckCircle,
-      change: `${Math.round((stats.completados / stats.total) * 100) || 0}% del total`,
+      change: `${stats.total > 0 ? Math.round((stats.entregados / stats.total) * 100) : 0}% del total`,
       color: "border-l-green-500",
       bg: "bg-green-50",
     },
@@ -340,10 +257,11 @@ export default function Dashboard() {
     },
   ];
 
+  // CAMBIADO: "entregado" en lugar de "completado"
   const estados = [
     { value: "todos", label: "Todos", icon: Package },
     { value: "pendiente", label: "Pendientes", icon: Clock },
-    { value: "completado", label: "Completados", icon: CheckCircle },
+    { value: "entregado", label: "Entregados", icon: CheckCircle },
     { value: "cancelado", label: "Cancelados", icon: XCircle },
   ];
 
@@ -388,7 +306,7 @@ export default function Dashboard() {
 
     const estadoLower = estado.toLowerCase();
     if (estadoLower === "pendiente") return "bg-amber-100 text-amber-800";
-    if (estadoLower === "completado") return "bg-green-100 text-green-800";
+    if (estadoLower === "entregado") return "bg-green-100 text-green-800"; // CAMBIADO
     if (estadoLower === "cancelado") return "bg-red-100 text-red-800";
     return "bg-gray-100 text-gray-800";
   };
@@ -398,7 +316,7 @@ export default function Dashboard() {
 
     const estadoLower = estado.toLowerCase();
     if (estadoLower === "pendiente") return "⏳";
-    if (estadoLower === "completado") return "✅";
+    if (estadoLower === "entregado") return "✅"; // CAMBIADO
     if (estadoLower === "cancelado") return "❌";
     return "❓";
   };
@@ -512,7 +430,7 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Botones de estado */}
+          {/* Botones de estado - CAMBIADO: "entregado" en lugar de "completado" */}
           <div className="flex flex-wrap gap-2">
             {estados.map((estado) => {
               const Icon = estado.icon;
@@ -534,8 +452,8 @@ export default function Dashboard() {
                     <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">
                       {estado.value === "pendiente"
                         ? stats.pendientes
-                        : estado.value === "completado"
-                          ? stats.completados
+                        : estado.value === "entregado" // CAMBIADO
+                          ? stats.entregados
                           : estado.value === "cancelado"
                             ? stats.cancelados
                             : 0}
@@ -721,7 +639,7 @@ export default function Dashboard() {
             <div className="divide-y divide-gray-100">
               {pedidosFiltrados.map((pedido) => (
                 <div
-                  key={pedido.id || pedido._id}
+                  key={pedido.id}
                   className="p-6 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center gap-6">
@@ -735,7 +653,7 @@ export default function Dashboard() {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-bold text-gray-900 text-lg">
-                                #{pedido.id || pedido._id}
+                                #{pedido.id}
                               </span>
                               <span
                                 className={`px-2.5 py-1 rounded-full text-xs font-medium ${getEstadoColor(pedido.estado)}`}
@@ -745,11 +663,7 @@ export default function Dashboard() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-500 mt-1">
-                              {formatFecha(
-                                pedido.fecha ||
-                                  pedido.fecha_creacion ||
-                                  pedido.created_at,
-                              )}
+                              {formatFecha(pedido.fecha || pedido.created_at)}
                             </p>
                           </div>
                         </div>
@@ -767,16 +681,12 @@ export default function Dashboard() {
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">
-                                {pedido.nombre ||
-                                  pedido.cliente_nombre ||
-                                  "Cliente no especificado"}
+                                {pedido.nombre || "Cliente no especificado"}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Phone className="w-3 h-3 text-gray-400" />
                                 <span className="text-sm text-gray-600">
-                                  {pedido.telefono ||
-                                    pedido.telefono_cliente ||
-                                    "Sin teléfono"}
+                                  {pedido.telefono || "Sin teléfono"}
                                 </span>
                               </div>
                             </div>
@@ -792,17 +702,13 @@ export default function Dashboard() {
                             <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                             <div>
                               <p className="text-sm text-gray-900">
-                                {pedido.direccion ||
-                                  pedido.direccion_cliente ||
-                                  "No especificada"}
+                                {pedido.direccion || "No especificada"}
                               </p>
                               <p className="text-sm text-gray-600 mt-1">
-                                {[
-                                  pedido.ciudad_nombre,
-                                  pedido.departamento_nombre,
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")}
+                                {pedido.ciudad_nombre || pedido.ciudad || ""}
+                                {pedido.departamento_nombre
+                                  ? `, ${pedido.departamento_nombre}`
+                                  : ""}
                               </p>
                             </div>
                           </div>
@@ -815,9 +721,7 @@ export default function Dashboard() {
                       <div className="mb-4">
                         <p className="text-sm text-gray-500 mb-1">Total</p>
                         <p className="text-2xl font-bold text-red-600">
-                          {formatMoneda(
-                            pedido.total || pedido.monto || pedido.amount,
-                          )}
+                          {formatMoneda(pedido.total || 0)}
                         </p>
                         {pedido.costo_envio > 0 && (
                           <p className="text-sm text-gray-500 mt-1">
@@ -835,7 +739,7 @@ export default function Dashboard() {
                           Ver
                         </button>
                         <a
-                          href={`/admin/orden-servicio/${pedido.id || pedido._id}`}
+                          href={`/admin/orden-servicio/${pedido.id}`}
                           className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-2"
                         >
                           <CreditCard className="w-4 h-4" />
@@ -941,7 +845,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-white">
-                        Pedido #{detalle.id || detalle._id}
+                        Pedido #{detalle.id}
                       </h2>
                       <div className="flex items-center gap-3 mt-2">
                         <span
@@ -951,7 +855,7 @@ export default function Dashboard() {
                           {detalle.estado || "Desconocido"}
                         </span>
                         <span className="text-red-100">
-                          {formatFecha(detalle.fecha || detalle.fecha_creacion)}
+                          {formatFecha(detalle.fecha)}
                         </span>
                       </div>
                     </div>
@@ -961,7 +865,7 @@ export default function Dashboard() {
                       Total del pedido
                     </p>
                     <p className="text-3xl font-bold text-white">
-                      {formatMoneda(detalle.total || detalle.monto)}
+                      {formatMoneda(detalle.total || 0)}
                     </p>
                   </div>
                 </div>
@@ -983,9 +887,7 @@ export default function Dashboard() {
                             Nombre completo
                           </p>
                           <p className="font-medium text-gray-900">
-                            {detalle.nombre ||
-                              detalle.cliente_nombre ||
-                              "No especificado"}
+                            {detalle.nombre || "No especificado"}
                           </p>
                         </div>
                       </div>
@@ -995,9 +897,7 @@ export default function Dashboard() {
                         <div>
                           <p className="text-sm text-gray-500">Teléfono</p>
                           <p className="font-medium text-gray-900">
-                            {detalle.telefono ||
-                              detalle.telefono_cliente ||
-                              "No especificado"}
+                            {detalle.telefono || "No especificado"}
                           </p>
                         </div>
                       </div>
@@ -1029,9 +929,7 @@ export default function Dashboard() {
                         <div>
                           <p className="text-sm text-gray-500">Dirección</p>
                           <p className="font-medium text-gray-900">
-                            {detalle.direccion ||
-                              detalle.direccion_cliente ||
-                              "No especificada"}
+                            {detalle.direccion || "No especificada"}
                           </p>
                         </div>
                       </div>
@@ -1068,7 +966,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Método de pago si existe */}
-                {(detalle.metodo_pago || detalle.payment_method) && (
+                {detalle.metodo_pago && (
                   <div className="mt-8">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-200">
                       Método de Pago
@@ -1076,7 +974,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                       <CreditCard className="w-5 h-5 text-gray-600" />
                       <span className="font-medium text-gray-900">
-                        {detalle.metodo_pago || detalle.payment_method}
+                        {detalle.metodo_pago}
                       </span>
                     </div>
                   </div>
@@ -1105,7 +1003,7 @@ export default function Dashboard() {
                     Cerrar
                   </button>
                   <a
-                    href={`/admin/orden-servicio/${detalle.id || detalle._id}`}
+                    href={`/admin/orden-servicio/${detalle.id}`}
                     className="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
                   >
                     <CreditCard className="w-5 h-5" />
