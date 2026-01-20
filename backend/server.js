@@ -219,14 +219,14 @@ app.post("/api/productos", async (req, res) => {
 });
 
 /* ================= PRODUCTOS CON FILTROS FUNCIONALES ================= */
+/* ================= PRODUCTOS CON FILTROS FUNCIONALES ================= */
 app.get("/api/productos", (req, res) => {
-  const { categoria, es_oferta, limit } = req.query;
+  const { categoria, es_oferta, limit, estado } = req.query;
 
-  console.log("===================");
   console.log("🎯 PARÁMETROS RECIBIDOS:");
   console.log("  categoria:", categoria || "todas");
   console.log("  es_oferta:", es_oferta || "false");
-  console.log("===================");
+  console.log("  estado:", estado || "todos");
 
   let query = `
     SELECT 
@@ -243,11 +243,17 @@ app.get("/api/productos", (req, res) => {
   if (categoria && categoria !== "todas") {
     query += " AND (c.slug = ? OR c.nombre = ?)";
     params.push(categoria, categoria);
-    console.log(`✅ Aplicando filtro categoría: "${categoria}"`);
   }
 
   if (es_oferta === "true") {
     query += " AND p.es_oferta = 1";
+  }
+
+  // FILTRAR POR ESTADO
+  if (estado === "disponible") {
+    query += " AND p.estado = 1";
+  } else if (estado === "agotado") {
+    query += " AND p.estado = 0";
   }
 
   query += " ORDER BY p.id DESC";
@@ -257,16 +263,11 @@ app.get("/api/productos", (req, res) => {
     params.push(parseInt(limit));
   }
 
-  console.log("📝 QUERY EJECUTADA:", query);
-  console.log("📦 PARÁMETROS:", params);
-
   DB.query(query, params, (err, results) => {
     if (err) {
       console.error("❌ ERROR PRODUCTOS:", err);
       return res.status(500).json({ error: err.message });
     }
-
-    console.log(`✅ PRODUCTOS ENCONTRADOS: ${results.length}`);
 
     const productos = results.map((p) => {
       const imagenesArray = [];
@@ -293,6 +294,7 @@ app.get("/api/productos", (req, res) => {
         precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
         descuento: p.descuento ? Number(p.descuento) : 0,
         es_oferta: Boolean(p.es_oferta),
+        estado: p.estado || 1, // ← NUEVO CAMPO
         categoria: p.categoria,
         talla: p.talla,
         color: p.color,
@@ -623,11 +625,13 @@ app.get("/api/pedidos/:id", async (req, res) => {
 });
 
 /* ================= ACTUALIZAR PRODUCTO ================= */
+/* ================= ACTUALIZAR PRODUCTO ================= */
 app.put("/api/productos/:id", async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
 
-  console.log(`📝 Actualizando producto ID: ${id}`, updateData);
+  console.log(`📝 Actualizando producto ID: ${id}`);
+  console.log("📦 Datos recibidos:", JSON.stringify(updateData, null, 2));
 
   if (!id) {
     return res.status(400).json({
@@ -636,6 +640,7 @@ app.put("/api/productos/:id", async (req, res) => {
     });
   }
 
+  // Solo los campos que EXISTEN en tu tabla
   const allowedFields = [
     "nombre",
     "precio",
@@ -644,9 +649,7 @@ app.put("/api/productos/:id", async (req, res) => {
     "descripcion",
     "categoria_id",
     "es_oferta",
-    "stock",
-    "destacado",
-    "nuevo",
+    "estado", // ← SÍ existe (tinyint)
     "categoria",
     "talla",
     "color",
@@ -654,6 +657,7 @@ app.put("/api/productos/:id", async (req, res) => {
     "imagen_cloud1",
     "imagen_cloud2",
     "imagen_cloud3",
+    "descripcion_breve",
   ];
 
   const updateFields = [];
@@ -662,7 +666,22 @@ app.put("/api/productos/:id", async (req, res) => {
   allowedFields.forEach((field) => {
     if (updateData[field] !== undefined) {
       updateFields.push(`${field} = ?`);
-      updateValues.push(updateData[field]);
+
+      // Convertir tipos según la columna
+      if (field === "es_oferta" || field === "estado" || field === "activo") {
+        // Convertir a 0 o 1 para tinyint
+        updateValues.push(updateData[field] ? 1 : 0);
+      } else if (field === "precio") {
+        // Precio es INT en tu tabla
+        updateValues.push(parseInt(updateData[field]) || 0);
+      } else if (field === "precio_antes" || field === "descuento") {
+        // Pueden ser null
+        const value = updateData[field];
+        updateValues.push(value === null || value === "" ? null : value);
+      } else {
+        // Otros campos como están
+        updateValues.push(updateData[field]);
+      }
     }
   });
 
@@ -676,6 +695,8 @@ app.put("/api/productos/:id", async (req, res) => {
   updateValues.push(id);
 
   const query = `UPDATE productos SET ${updateFields.join(", ")} WHERE id = ?`;
+  console.log("🔍 Query:", query);
+  console.log("📦 Values:", updateValues);
 
   try {
     const [result] = await DB.promise().query(query, updateValues);
@@ -698,9 +719,12 @@ app.put("/api/productos/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error actualizando producto:", error);
+    console.error("SQL Error:", error.sql);
+
     res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Error del servidor al actualizar",
+      error: error.message,
       sqlMessage: error.sqlMessage,
     });
   }

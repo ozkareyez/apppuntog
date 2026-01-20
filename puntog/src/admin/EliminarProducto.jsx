@@ -9,12 +9,12 @@ import {
   Loader2,
   AlertCircle,
   Filter,
-  Eye,
-  EyeOff,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
   AlertTriangle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 // Usa tu URL de Railway
@@ -57,13 +57,23 @@ export default function EliminarProducto() {
 
       const data = await res.json();
       console.log("Productos recibidos:", data.length);
+      console.log("Primer producto:", data[0]); // Para verificar estructura
 
       if (!Array.isArray(data)) {
         console.error("La respuesta no es un array:", data);
         throw new Error("Formato de respuesta inválido");
       }
 
-      setProductos(data);
+      // Procesar productos - asegurar que estado sea 0 o 1
+      const productosProcesados = data.map((producto) => ({
+        ...producto,
+        estado:
+          producto.estado !== undefined && producto.estado !== null
+            ? Number(producto.estado)
+            : 1, // Por defecto disponible
+      }));
+
+      setProductos(productosProcesados);
 
       setMessage({
         type: "success",
@@ -81,6 +91,31 @@ export default function EliminarProducto() {
     }
   };
 
+  /* ================= FUNCIÓN PARA DETERMINAR ESTADO ================= */
+  const getEstadoProducto = (producto) => {
+    // estado: 0 = agotado, 1 = disponible
+    const estadoNum =
+      producto.estado !== undefined && producto.estado !== null
+        ? Number(producto.estado)
+        : 1;
+
+    return estadoNum === 0 ? "Agotado" : "Disponible";
+  };
+
+  const getEstadoColor = (estado) => {
+    return estado === "Disponible"
+      ? "bg-green-100 text-green-800 border-green-200"
+      : "bg-red-100 text-red-800 border-red-200";
+  };
+
+  const getEstadoIcono = (estado) => {
+    return estado === "Disponible" ? (
+      <CheckCircle className="w-3 h-3" />
+    ) : (
+      <XCircle className="w-3 h-3" />
+    );
+  };
+
   /* ================= FILTRADO ================= */
   const productosFiltrados = useMemo(() => {
     return productos.filter((p) => {
@@ -90,11 +125,11 @@ export default function EliminarProducto() {
         p.descripcion?.toLowerCase().includes(search.toLowerCase()) ||
         p.categoria?.toLowerCase().includes(search.toLowerCase());
 
-      let stockMatch = true;
-      if (statusFilter === "con_stock") stockMatch = (p.stock || 0) > 0;
-      if (statusFilter === "sin_stock") stockMatch = (p.stock || 0) <= 0;
+      let estadoMatch = true;
+      if (statusFilter === "disponible") estadoMatch = p.estado === 1;
+      if (statusFilter === "agotado") estadoMatch = p.estado === 0;
 
-      return searchMatch && stockMatch;
+      return searchMatch && estadoMatch;
     });
   }, [productos, search, statusFilter]);
 
@@ -141,7 +176,6 @@ export default function EliminarProducto() {
       console.log("Respuesta eliminación:", data);
 
       if (response.ok && data.ok === true) {
-        // Eliminar del estado local
         setProductos((prev) => prev.filter((p) => p.id !== selectedProduct.id));
 
         setMessage({
@@ -149,7 +183,6 @@ export default function EliminarProducto() {
           text: `"${selectedProduct.nombre}" eliminado exitosamente`,
         });
 
-        // Resetear página si es necesario
         if (currentItems.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
         }
@@ -174,7 +207,16 @@ export default function EliminarProducto() {
 
   /* ================= EDITAR PRODUCTO ================= */
   const abrirEditar = (producto) => {
-    setSelectedProduct({ ...producto });
+    // Asegurar que estado sea número
+    const estadoNum =
+      producto.estado !== undefined && producto.estado !== null
+        ? Number(producto.estado)
+        : 1;
+
+    setSelectedProduct({
+      ...producto,
+      estado: estadoNum,
+    });
     setShowEditModal(true);
   };
 
@@ -187,6 +229,7 @@ export default function EliminarProducto() {
     try {
       console.log("Actualizando producto:", selectedProduct);
 
+      // Datos a enviar al backend
       const updateData = {
         nombre: selectedProduct.nombre || "",
         precio: parseFloat(selectedProduct.precio) || 0,
@@ -199,13 +242,15 @@ export default function EliminarProducto() {
         descripcion: selectedProduct.descripcion || "",
         categoria_id: selectedProduct.categoria_id || 0,
         es_oferta: selectedProduct.es_oferta ? 1 : 0,
-        stock: parseInt(selectedProduct.stock) || 0,
+        estado: selectedProduct.estado || 1, // ← NUEVO: 0=agotado, 1=disponible
         destacado: selectedProduct.destacado ? 1 : 0,
         nuevo: selectedProduct.nuevo ? 1 : 0,
         categoria: selectedProduct.categoria || "",
         talla: selectedProduct.talla || "",
         color: selectedProduct.color || "",
       };
+
+      console.log("Enviando datos al backend:", updateData);
 
       const response = await fetch(
         `${API_URL}/api/productos/${selectedProduct.id}`,
@@ -224,9 +269,7 @@ export default function EliminarProducto() {
       if (response.ok && data.ok === true) {
         // Actualizar en estado local
         setProductos((prev) =>
-          prev.map((p) =>
-            p.id === selectedProduct.id ? { ...selectedProduct } : p,
-          ),
+          prev.map((p) => (p.id === selectedProduct.id ? selectedProduct : p)),
         );
 
         setMessage({
@@ -274,6 +317,8 @@ export default function EliminarProducto() {
             <p className="text-sm text-gray-600 mt-1">
               Total: {productos.length} productos • Filtrados:{" "}
               {productosFiltrados.length}
+              {statusFilter === "agotado" && " • AGOTADOS"}
+              {statusFilter === "disponible" && " • DISPONIBLES"}
             </p>
           </div>
           <button
@@ -322,7 +367,7 @@ export default function EliminarProducto() {
               </div>
             </div>
 
-            <div className="w-full md:w-48">
+            <div className="w-full md:w-56">
               <div className="relative">
                 <Filter className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <select
@@ -331,10 +376,26 @@ export default function EliminarProducto() {
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                   <option value="todos">Todos los productos</option>
-                  <option value="con_stock">Con stock</option>
-                  <option value="sin_stock">Sin stock</option>
+                  <option value="disponible">Disponibles</option>
+                  <option value="agotado">Agotados</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* CONTADORES */}
+          <div className="flex flex-wrap gap-4 mt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span className="text-sm text-gray-600">
+                Disponibles: {productos.filter((p) => p.estado === 1).length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-gray-600">
+                Agotados: {productos.filter((p) => p.estado === 0).length}
+              </span>
             </div>
           </div>
         </div>
@@ -363,129 +424,161 @@ export default function EliminarProducto() {
         ) : (
           <>
             <div className="divide-y divide-gray-100">
-              {currentItems.map((producto) => (
-                <div
-                  key={producto.id}
-                  className="p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      {/* Imagen */}
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border">
-                        {producto.imagenes?.[0] || producto.imagen ? (
-                          <img
-                            src={producto.imagenes?.[0] || producto.imagen}
-                            alt={producto.nombre}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src =
-                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50%' y='50%' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <Package size={28} />
-                          </div>
-                        )}
-                      </div>
+              {currentItems.map((producto) => {
+                const estado = getEstadoProducto(producto);
+                const estaAgotado = estado === "Agotado";
+                const estadoColor = getEstadoColor(estado);
+                const estadoIcono = getEstadoIcono(estado);
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900 text-lg truncate">
-                            {producto.nombre || "Sin nombre"}
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            ID: {producto.id}
-                          </span>
+                return (
+                  <div
+                    key={producto.id}
+                    className={`p-4 transition-colors ${estaAgotado ? "bg-red-50/50 hover:bg-red-50" : "hover:bg-gray-50"}`}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        {/* Imagen */}
+                        <div className="relative">
+                          <div
+                            className={`w-20 h-20 ${estaAgotado ? "opacity-60 grayscale" : ""} bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border`}
+                          >
+                            {producto.imagenes?.[0] || producto.imagen ? (
+                              <img
+                                src={producto.imagenes?.[0] || producto.imagen}
+                                alt={producto.nombre}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src =
+                                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50%' y='50%' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <Package size={28} />
+                              </div>
+                            )}
+                          </div>
+                          {estaAgotado && (
+                            <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
+                              AGOTADO
+                            </div>
+                          )}
                         </div>
 
-                        {producto.descripcion && (
-                          <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                            {producto.descripcion}
-                          </p>
-                        )}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h3
+                              className={`font-semibold text-lg truncate ${estaAgotado ? "text-gray-500" : "text-gray-900"}`}
+                            >
+                              {producto.nombre || "Sin nombre"}
+                            </h3>
+                            <span className="text-sm text-gray-500">
+                              ID: {producto.id}
+                            </span>
+                          </div>
 
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="font-bold text-gray-900">
-                            ${Number(producto.precio || 0).toLocaleString()}
-                          </span>
+                          {producto.descripcion && (
+                            <p
+                              className={`text-sm mb-2 line-clamp-2 ${estaAgotado ? "text-gray-400" : "text-gray-600"}`}
+                            >
+                              {producto.descripcion}
+                            </p>
+                          )}
 
-                          {producto.precio_antes &&
-                            producto.precio_antes > producto.precio && (
-                              <span className="text-sm text-gray-500 line-through">
-                                $
-                                {Number(producto.precio_antes).toLocaleString()}
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span
+                              className={`font-bold ${estaAgotado ? "text-gray-500" : "text-gray-900"}`}
+                            >
+                              ${Number(producto.precio || 0).toLocaleString()}
+                            </span>
+
+                            {producto.precio_antes &&
+                              producto.precio_antes > producto.precio && (
+                                <span className="text-sm text-gray-500 line-through">
+                                  $
+                                  {Number(
+                                    producto.precio_antes,
+                                  ).toLocaleString()}
+                                </span>
+                              )}
+
+                            {/* Badge de estado */}
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium border ${estadoColor} flex items-center gap-1`}
+                            >
+                              {estadoIcono}
+                              {estado}
+                            </span>
+
+                            {producto.es_oferta && (
+                              <span className="px-2.5 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
+                                Oferta
                               </span>
                             )}
 
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                              (producto.stock || 0) > 10
-                                ? "bg-green-100 text-green-800"
-                                : (producto.stock || 0) > 0
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            Stock: {producto.stock || 0}
-                          </span>
+                            {producto.destacado && (
+                              <span className="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                                Destacado
+                              </span>
+                            )}
 
-                          {producto.es_oferta && (
-                            <span className="px-2.5 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
-                              Oferta
-                            </span>
-                          )}
+                            {producto.nuevo && (
+                              <span className="px-2.5 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                                Nuevo
+                              </span>
+                            )}
+                          </div>
 
-                          {producto.destacado && (
-                            <span className="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                              Destacado
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {producto.categoria && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                              {producto.categoria}
-                            </span>
-                          )}
-                          {producto.talla && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                              Talla: {producto.talla}
-                            </span>
-                          )}
-                          {producto.color && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                              Color: {producto.color}
-                            </span>
-                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {producto.categoria && (
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
+                              >
+                                {producto.categoria}
+                              </span>
+                            )}
+                            {producto.talla && (
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
+                              >
+                                Talla: {producto.talla}
+                              </span>
+                            )}
+                            {producto.color && (
+                              <span
+                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
+                              >
+                                Color: {producto.color}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Acciones */}
-                    <div className="flex gap-2 self-end sm:self-center">
-                      <button
-                        onClick={() => abrirEditar(producto)}
-                        className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                        <span className="hidden sm:inline">Editar</span>
-                      </button>
-                      <button
-                        onClick={() => confirmarEliminar(producto)}
-                        className="px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                        <span className="hidden sm:inline">Eliminar</span>
-                      </button>
+                      {/* Acciones */}
+                      <div className="flex gap-2 self-end sm:self-center">
+                        <button
+                          onClick={() => abrirEditar(producto)}
+                          className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                          <span className="hidden sm:inline">Editar</span>
+                        </button>
+                        <button
+                          onClick={() => confirmarEliminar(producto)}
+                          className="px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                          <span className="hidden sm:inline">Eliminar</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* PAGINACIÓN */}
@@ -523,72 +616,6 @@ export default function EliminarProducto() {
         )}
       </div>
 
-      {/* MODAL ELIMINAR */}
-      {showDeleteModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Eliminar Producto
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Esta acción no se puede deshacer
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-gray-700 mb-2">
-                  ¿Estás seguro de eliminar este producto?
-                </p>
-                <div className="space-y-1">
-                  <p className="font-medium">{selectedProduct.nombre}</p>
-                  <p className="text-sm text-gray-500">
-                    ID: {selectedProduct.id}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Precio: $
-                    {Number(selectedProduct.precio || 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedProduct(null);
-                  }}
-                  disabled={actionLoading}
-                  className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={ejecutarEliminar}
-                  disabled={actionLoading}
-                  className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Trash2 size={18} />
-                      Eliminar
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL EDITAR */}
       {showEditModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -613,6 +640,35 @@ export default function EliminarProducto() {
                 >
                   <X size={20} />
                 </button>
+              </div>
+
+              {/* Indicador de estado */}
+              <div className="mb-6">
+                <div
+                  className={`p-4 rounded-lg border ${selectedProduct.estado === 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`px-3 py-1.5 rounded-full text-sm font-bold ${selectedProduct.estado === 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
+                    >
+                      {selectedProduct.estado === 0
+                        ? "PRODUCTO AGOTADO"
+                        : "PRODUCTO DISPONIBLE"}
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {selectedProduct.estado === 0
+                          ? "Este producto está marcado como agotado"
+                          : "Este producto está disponible para la venta"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {selectedProduct.estado === 0
+                          ? "Los clientes no podrán comprarlo hasta que cambie su estado."
+                          : "El producto aparece como disponible en la tienda."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -658,26 +714,6 @@ export default function EliminarProducto() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Stock *
-                      </label>
-                      <input
-                        type="number"
-                        value={selectedProduct.stock || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            stock: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Precio Anterior
                       </label>
                       <input
@@ -693,7 +729,9 @@ export default function EliminarProducto() {
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Descuento (%)
@@ -788,9 +826,53 @@ export default function EliminarProducto() {
                 </div>
               </div>
 
-              {/* Checkboxes */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+              {/* CHECKBOXES - INCLUYENDO ESTADO */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                {/* CHECKBOX ESTADO (AGOTADO/DISPONIBLE) */}
+                <label
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    selectedProduct.estado === 0
+                      ? "bg-red-50 border-red-300 text-red-700"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedProduct.estado === 0}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setSelectedProduct({
+                        ...selectedProduct,
+                        estado: isChecked ? 0 : 1, // 0=agotado, 1=disponible
+                      });
+                    }}
+                    className="w-4 h-4 rounded focus:ring-red-500 text-red-600"
+                  />
+                  <div className="flex items-center gap-2">
+                    {selectedProduct.estado === 0 ? (
+                      <XCircle className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    )}
+                    <div>
+                      <span className="font-medium">Agotado</span>
+                      <p className="text-xs text-gray-500">
+                        {selectedProduct.estado === 0
+                          ? "No disponible"
+                          : "Disponible para venta"}
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                {/* EN OFERTA */}
+                <label
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    selectedProduct.es_oferta
+                      ? "bg-red-50 border-red-300 text-red-700"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={selectedProduct.es_oferta || false}
@@ -800,12 +882,25 @@ export default function EliminarProducto() {
                         es_oferta: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
                   />
-                  <span className="font-medium">En oferta</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏷️</span>
+                    <div>
+                      <span className="font-medium">En oferta</span>
+                      <p className="text-xs text-gray-500">Precio especial</p>
+                    </div>
+                  </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                {/* DESTACADO */}
+                <label
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    selectedProduct.destacado
+                      ? "bg-blue-50 border-blue-300 text-blue-700"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={selectedProduct.destacado || false}
@@ -817,10 +912,23 @@ export default function EliminarProducto() {
                     }
                     className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                   />
-                  <span className="font-medium">Destacado</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⭐</span>
+                    <div>
+                      <span className="font-medium">Destacado</span>
+                      <p className="text-xs text-gray-500">Producto especial</p>
+                    </div>
+                  </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                {/* NUEVO */}
+                <label
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    selectedProduct.nuevo
+                      ? "bg-green-50 border-green-300 text-green-700"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={selectedProduct.nuevo || false}
@@ -830,11 +938,34 @@ export default function EliminarProducto() {
                         nuevo: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                   />
-                  <span className="font-medium">Nuevo</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">
+                      N
+                    </div>
+                    <div>
+                      <span className="font-medium">Nuevo</span>
+                      <p className="text-xs text-gray-500">
+                        Lanzamiento reciente
+                      </p>
+                    </div>
+                  </div>
                 </label>
               </div>
+
+              {/* Instrucción para checkbox de estado */}
+              {selectedProduct.estado === 0 && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700 font-medium">
+                    ⓘ Producto marcado como AGOTADO
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    Desmarca la casilla "Agotado" para que el producto vuelva a
+                    estar disponible.
+                  </p>
+                </div>
+              )}
 
               {/* Botones */}
               <div className="mt-8 flex gap-3">
