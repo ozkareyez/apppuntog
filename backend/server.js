@@ -403,9 +403,21 @@ app.get("/api/categorias", (req, res) => {
 });
 
 /* ================= PEDIDOS (SIMPLIFICADO) ================= */
+/* ================= PEDIDOS (SIMPLIFICADO) ================= */
 app.get("/api/pedidos", (req, res) => {
   console.log("📥 Solicitando pedidos (endpoint simplificado)...");
-  res.json([]);
+
+  // Si quieres que este endpoint también funcione:
+  DB.query(
+    "SELECT id, nombre, total, estado, fecha FROM pedidos ORDER BY id DESC LIMIT 10",
+    (err, rows) => {
+      if (err) {
+        console.error("❌ Error en /api/pedidos:", err.message);
+        return res.json([]); // Siempre devolver array
+      }
+      res.json(rows);
+    },
+  );
 });
 
 /* ================= PRODUCTOS RECOMENDADOS ================= */
@@ -773,7 +785,7 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
-/* ================= PEDIDOS COMPLETOS (VERSIÓN SIMPLIFICADA) ================= */
+/* ================= PEDIDOS COMPLETOS - VERSIÓN CORREGIDA ================= */
 app.get("/api/pedidos-completo", (req, res) => {
   console.log("\n========== PEDIDOS-COMPLETO ==========");
   console.log("📅 Timestamp:", new Date().toISOString());
@@ -781,288 +793,246 @@ app.get("/api/pedidos-completo", (req, res) => {
   console.log("🔍 Query params:", req.query);
 
   try {
-    // Primero, verificar si la tabla existe
-    const verificarTabla = "SHOW TABLES LIKE 'pedidos'";
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Number(req.query.limit) || 10, 100);
+    const offset = (page - 1) * limit;
 
-    DB.query(verificarTabla, (err, tables) => {
-      if (err) {
-        console.error("❌ Error verificando tabla pedidos:", err.message);
-        console.error("SQL Error:", err.sql);
+    const { search, inicio, fin, estado } = req.query;
+
+    console.log("\n🎯 Parámetros procesados:");
+    console.log("  Page:", page);
+    console.log("  Limit:", limit);
+    console.log("  Offset:", offset);
+    console.log("  Search:", search);
+    console.log("  Inicio:", inicio);
+    console.log("  Fin:", fin);
+    console.log("  Estado:", estado);
+
+    let where = "WHERE 1=1";
+    const params = [];
+
+    if (search && search.trim() !== "") {
+      where += ` AND (
+        nombre LIKE ?
+        OR telefono LIKE ?
+        OR direccion LIKE ?
+        OR email LIKE ?
+      )`;
+      const searchTerm = `%${search.trim()}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    if (inicio) {
+      where += " AND DATE(fecha) >= ?";
+      params.push(inicio);
+    }
+
+    if (fin) {
+      where += " AND DATE(fecha) <= ?";
+      params.push(fin);
+    }
+
+    if (estado && estado !== "todos" && estado !== "") {
+      where += " AND estado = ?";
+      params.push(estado);
+    }
+
+    console.log("\n📝 Query WHERE:", where);
+    console.log("📦 Params:", params);
+
+    // Primero contar total
+    const countQuery = `SELECT COUNT(*) AS total FROM pedidos ${where}`;
+    console.log("🔢 Count Query:", countQuery);
+
+    DB.query(countQuery, params, (errCount, countRows) => {
+      if (errCount) {
+        console.error("❌ Error en COUNT:", errCount.message);
         return res.status(500).json({
           ok: false,
           error: "Error de base de datos",
-          message: err.message,
-          sqlMessage: err.sqlMessage,
-          code: err.code,
+          message: errCount.message,
         });
       }
 
-      if (tables.length === 0) {
-        console.log("⚠️ Tabla 'pedidos' no encontrada");
+      const total = countRows[0].total || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      console.log(`📊 Total pedidos: ${total}, Páginas: ${totalPages}`);
+
+      if (total === 0) {
+        console.log("ℹ️ No hay pedidos en la base de datos");
         return res.json({
           ok: true,
           results: [],
           total: 0,
           totalPages: 0,
-          page: 1,
-          message: "Tabla de pedidos vacía o no existe",
+          page: page,
+          limit: limit,
         });
       }
 
-      console.log("✅ Tabla 'pedidos' encontrada");
+      // Query CORREGIDA - usando solo columnas que existen
+      const pedidosQuery = `
+        SELECT
+          id,
+          nombre,
+          telefono,
+          direccion,
+          departamento,
+          ciudad,
+          total,
+          costo_envio,
+          estado,
+          fecha,
+          email,
+          departamento_id,
+          ciudad_id
+        FROM pedidos
+        ${where}
+        ORDER BY id DESC
+        LIMIT ? OFFSET ?
+      `;
 
-      // Intentar obtener la estructura de la tabla
-      const estructuraQuery = "DESCRIBE pedidos";
-      DB.query(estructuraQuery, (err, columns) => {
-        if (err) {
-          console.error(
-            "❌ Error obteniendo estructura de tabla:",
-            err.message,
-          );
-          // Continuar igual, asumiendo estructura básica
-        } else {
-          console.log("📋 Columnas de la tabla pedidos:");
-          columns.forEach((col) =>
-            console.log(`  - ${col.Field} (${col.Type})`),
-          );
+      console.log("📋 Pedidos Query:", pedidosQuery);
+      console.log("📦 Pedidos Params:", [...params, limit, offset]);
+
+      DB.query(pedidosQuery, [...params, limit, offset], (errRows, rows) => {
+        if (errRows) {
+          console.error("❌ Error obteniendo pedidos:", errRows.message);
+          return res.status(500).json({
+            ok: false,
+            error: "Error obteniendo datos",
+            message: errRows.message,
+          });
         }
 
-        // Continuar con la consulta principal
-        const page = Math.max(Number(req.query.page) || 1, 1);
-        const limit = Math.min(Number(req.query.limit) || 10, 100);
-        const offset = (page - 1) * limit;
+        console.log(`✅ ${rows.length} pedidos obtenidos exitosamente`);
 
-        const { search, inicio, fin, estado } = req.query;
+        // Formatear resultados según estructura de tu tabla
+        const resultados = rows.map((pedido) => ({
+          id: pedido.id,
+          nombre: pedido.nombre,
+          telefono: pedido.telefono,
+          direccion: pedido.direccion,
+          departamento_nombre: pedido.departamento, // Usar departamento
+          ciudad_nombre: pedido.ciudad, // Usar ciudad
+          total: Number(pedido.total) || 0,
+          costo_envio: Number(pedido.costo_envio) || 0,
+          estado: pedido.estado,
+          fecha: pedido.fecha,
+          email: pedido.email,
+          departamento_id: pedido.departamento_id,
+          ciudad_id: pedido.ciudad_id,
+          // Campos adicionales para compatibilidad
+          notas: pedido.notas || "",
+          metodo_pago: pedido.metodo_pago || "",
+        }));
 
-        console.log("\n🎯 Parámetros procesados:");
-        console.log("  Page:", page);
-        console.log("  Limit:", limit);
-        console.log("  Offset:", offset);
-        console.log("  Search:", search);
-        console.log("  Inicio:", inicio);
-        console.log("  Fin:", fin);
-        console.log("  Estado:", estado);
-
-        let where = "WHERE 1=1";
-        const params = [];
-
-        if (search && search.trim() !== "") {
-          where += ` AND (
-            nombre LIKE ?
-            OR telefono LIKE ?
-            OR direccion LIKE ?
-            OR email LIKE ?
-          )`;
-          const searchTerm = `%${search.trim()}%`;
-          params.push(searchTerm, searchTerm, searchTerm, searchTerm);
-        }
-
-        if (inicio) {
-          // Intentar diferentes nombres de campo de fecha
-          where += ` AND (
-            fecha >= ?
-            OR created_at >= ?
-            OR fecha_creacion >= ?
-          )`;
-          params.push(inicio, inicio, inicio);
-        }
-
-        if (fin) {
-          where += ` AND (
-            fecha <= ?
-            OR created_at <= ?
-            OR fecha_creacion <= ?
-          )`;
-          params.push(fin, fin, fin);
-        }
-
-        if (estado && estado !== "todos" && estado !== "") {
-          where += " AND estado = ?";
-          params.push(estado);
-        }
-
-        console.log("\n📝 Query WHERE:", where);
-        console.log("📦 Params:", params);
-
-        // Primero contar total
-        const countQuery = `SELECT COUNT(*) AS total FROM pedidos ${where}`;
-        console.log("🔢 Count Query:", countQuery);
-
-        DB.query(countQuery, params, (errCount, countRows) => {
-          if (errCount) {
-            console.error("❌ Error en COUNT:", errCount.message);
-            console.error("SQL:", errCount.sql);
-
-            // Si falla COUNT, intentar SELECT simple
-            console.log("🔄 Intentando query simple...");
-            const simpleQuery =
-              "SELECT * FROM pedidos ORDER BY id DESC LIMIT ? OFFSET ?";
-
-            DB.query(simpleQuery, [limit, offset], (errSimple, rows) => {
-              if (errSimple) {
-                console.error("❌ Error en query simple:", errSimple.message);
-                console.error("SQL:", errSimple.sql);
-
-                // Si incluso la query simple falla, devolver error detallado
-                return res.status(500).json({
-                  ok: false,
-                  error: "Error de base de datos",
-                  message: errSimple.message,
-                  sqlMessage: errSimple.sqlMessage,
-                  code: errSimple.code,
-                  suggestion:
-                    "Verifica que la tabla 'pedidos' exista y tenga datos",
-                });
-              }
-
-              console.log(`✅ ${rows.length} pedidos obtenidos (query simple)`);
-
-              // Obtener total para paginación
-              DB.query(
-                "SELECT COUNT(*) AS total FROM pedidos",
-                (errTotal, totalRows) => {
-                  const total = totalRows?.[0]?.total || rows.length;
-                  const totalPages = Math.ceil(total / limit);
-
-                  const resultados = rows.map((pedido) => ({
-                    id: pedido.id,
-                    nombre:
-                      pedido.nombre || pedido.cliente_nombre || "Sin nombre",
-                    telefono: pedido.telefono || pedido.telefono_cliente || "",
-                    direccion:
-                      pedido.direccion || pedido.direccion_cliente || "",
-                    departamento_nombre:
-                      pedido.departamento_nombre || pedido.departamento || "",
-                    ciudad_nombre: pedido.ciudad_nombre || pedido.ciudad || "",
-                    total: Number(pedido.total) || Number(pedido.monto) || 0,
-                    costo_envio: Number(pedido.costo_envio) || 0,
-                    estado: pedido.estado || "pendiente",
-                    fecha:
-                      pedido.fecha ||
-                      pedido.created_at ||
-                      pedido.fecha_creacion ||
-                      new Date().toISOString(),
-                    notas: pedido.notas || "",
-                    email: pedido.email || pedido.email_cliente || "",
-                    metodo_pago:
-                      pedido.metodo_pago || pedido.payment_method || "",
-                  }));
-
-                  res.json({
-                    ok: true,
-                    results: resultados,
-                    total: total,
-                    totalPages: totalPages,
-                    page: page,
-                    limit: limit,
-                    message: "Datos obtenidos con query simple",
-                  });
-                },
-              );
-            });
-
-            return;
-          }
-
-          const total = countRows[0].total || 0;
-          const totalPages = Math.ceil(total / limit);
-
-          console.log(`📊 Total pedidos: ${total}, Páginas: ${totalPages}`);
-
-          if (total === 0) {
-            console.log("ℹ️ No hay pedidos en la base de datos");
-            return res.json({
-              ok: true,
-              results: [],
-              total: 0,
-              totalPages: 0,
-              page: page,
-              limit: limit,
-            });
-          }
-
-          // Query para obtener pedidos
-          const pedidosQuery = `
-            SELECT
-              id,
-              nombre,
-              telefono,
-              direccion,
-              total,
-              costo_envio,
-              estado,
-              fecha,
-              created_at,
-              notas,
-              email,
-              metodo_pago
-            FROM pedidos
-            ${where}
-            ORDER BY id DESC
-            LIMIT ? OFFSET ?
-          `;
-
-          console.log("📋 Pedidos Query:", pedidosQuery);
-          console.log("📦 Pedidos Params:", [...params, limit, offset]);
-
-          DB.query(
-            pedidosQuery,
-            [...params, limit, offset],
-            (errRows, rows) => {
-              if (errRows) {
-                console.error("❌ Error obteniendo pedidos:", errRows.message);
-                console.error("SQL:", errRows.sql);
-
-                return res.status(500).json({
-                  ok: false,
-                  error: "Error obteniendo datos",
-                  message: errRows.message,
-                  sqlMessage: errRows.sqlMessage,
-                });
-              }
-
-              console.log(`✅ ${rows.length} pedidos obtenidos exitosamente`);
-
-              const resultados = rows.map((pedido) => ({
-                id: pedido.id,
-                nombre: pedido.nombre,
-                telefono: pedido.telefono,
-                direccion: pedido.direccion,
-                total: Number(pedido.total) || 0,
-                costo_envio: Number(pedido.costo_envio) || 0,
-                estado: pedido.estado,
-                fecha: pedido.fecha || pedido.created_at,
-                notas: pedido.notas,
-                email: pedido.email,
-                metodo_pago: pedido.metodo_pago,
-                // Campos para compatibilidad con el frontend
-                departamento_nombre: pedido.departamento_nombre || "",
-                ciudad_nombre: pedido.ciudad_nombre || "",
-                created_at: pedido.created_at,
-              }));
-
-              res.json({
-                ok: true,
-                results: resultados,
-                total: total,
-                totalPages: totalPages,
-                page: page,
-                limit: limit,
-              });
-            },
-          );
+        res.json({
+          ok: true,
+          results: resultados,
+          total: total,
+          totalPages: totalPages,
+          page: page,
+          limit: limit,
         });
       });
     });
   } catch (error) {
     console.error("🔥 Error general en pedidos-completo:", error);
-    console.error("Stack trace:", error.stack);
-
     res.status(500).json({
       ok: false,
       error: "Error interno del servidor",
       message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+});
+
+/* ================= ORDEN DE SERVICIO - CORREGIDO ================= */
+app.get("/api/orden-servicio/:id", async (req, res) => {
+  const { id } = req.params;
+
+  console.log(`\n========== ORDEN-SERVICIO ==========`);
+  console.log(`📋 Solicitando orden ID: ${id}`);
+
+  try {
+    // Usar la estructura correcta de tu tabla
+    const [pedido] = await DB.promise().query(
+      `
+      SELECT
+        p.*
+      FROM pedidos p
+      WHERE p.id = ?
+      `,
+      [id],
+    );
+
+    if (!pedido.length) {
+      console.log(`❌ Pedido ${id} no encontrado`);
+      return res.status(404).json({
+        ok: false,
+        error: "Pedido no encontrado",
+      });
+    }
+
+    console.log(`✅ Pedido ${id} encontrado`);
+
+    // Intentar obtener detalles si la tabla existe
+    let detalles = [];
+    try {
+      const [detalleRows] = await DB.promise().query(
+        "SHOW TABLES LIKE 'pedido_detalles'",
+        [id],
+      );
+
+      if (detalleRows.length > 0) {
+        const [detallesData] = await DB.promise().query(
+          "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+          [id],
+        );
+        detalles = detallesData || [];
+        console.log(`📦 ${detalles.length} productos en el detalle`);
+      } else {
+        console.log("ℹ️ Tabla 'pedido_detalles' no existe");
+      }
+    } catch (detalleError) {
+      console.log(
+        "⚠️ No se pudieron obtener los detalles:",
+        detalleError.message,
+      );
+    }
+
+    // Formatear respuesta según tu estructura
+    const pedidoFormateado = {
+      id: pedido[0].id,
+      nombre: pedido[0].nombre,
+      telefono: pedido[0].telefono,
+      direccion: pedido[0].direccion,
+      departamento_nombre: pedido[0].departamento,
+      ciudad_nombre: pedido[0].ciudad,
+      total: Number(pedido[0].total) || 0,
+      costo_envio: Number(pedido[0].costo_envio) || 0,
+      estado: pedido[0].estado,
+      fecha: pedido[0].fecha,
+      email: pedido[0].email,
+      departamento_id: pedido[0].departamento_id,
+      ciudad_id: pedido[0].ciudad_id,
+    };
+
+    const resultado = {
+      ok: true,
+      pedido: pedidoFormateado,
+      productos: detalles,
+    };
+
+    console.log(`✅ Orden de servicio ${id} enviada`);
+    res.json(resultado);
+  } catch (error) {
+    console.error(`❌ Error obteniendo orden de servicio ${id}:`, error);
+    res.status(500).json({
+      ok: false,
+      error: "Error del servidor",
+      message: error.message,
     });
   }
 });
