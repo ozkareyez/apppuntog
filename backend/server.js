@@ -814,6 +814,135 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
+// /* ================= ADMIN PEDIDOS ================= */
+app.get("/api/pedidos-completo", (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const { search, inicio, fin, estado } = req.query;
+
+    let where = "WHERE 1=1";
+    const params = [];
+
+    if (search) {
+      where += `
+        AND (
+          p.nombre LIKE ?
+          OR CAST(p.telefono AS CHAR) LIKE ?
+        )
+      `;
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    if (inicio) {
+      where += " AND DATE(p.fecha) >= ?";
+      params.push(inicio);
+    }
+
+    if (fin) {
+      where += " AND DATE(p.fecha) <= ?";
+      params.push(fin);
+    }
+
+    if (estado && estado !== "todos") {
+      where += " AND p.estado = ?";
+      params.push(estado);
+    }
+
+    DB.query(
+      `SELECT COUNT(*) AS total FROM pedidos p ${where}`,
+      params,
+      (errCount, countRows) => {
+        if (errCount) {
+          console.error("❌ Error COUNT:", errCount);
+          return res.status(500).json({ ok: false });
+        }
+
+        const total = countRows[0].total;
+
+        DB.query(
+          `
+          SELECT
+            p.id,
+            p.nombre,
+            p.telefono,
+            p.direccion,
+            d.nombre AS departamento_nombre,
+            c.nombre AS ciudad_nombre,
+            p.total,
+            p.costo_envio,
+            p.estado,
+            p.fecha
+          FROM pedidos p
+          LEFT JOIN departamentos d ON p.departamento_id = d.id
+          LEFT JOIN ciudades c ON p.ciudad_id = c.id
+          ${where}
+          ORDER BY p.id DESC
+          LIMIT ? OFFSET ?
+          `,
+          [...params, limit, offset],
+          (errRows, rows) => {
+            if (errRows) {
+              console.error("❌ Error pedidos:", errRows);
+              return res.status(500).json({ ok: false });
+            }
+
+            res.json({
+              ok: true,
+              results: rows,
+              total,
+              totalPages: Math.ceil(total / limit),
+              page,
+            });
+          },
+        );
+      },
+    );
+  } catch (error) {
+    console.error("🔥 Error general:", error);
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get("/api/orden-servicio/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [pedido] = await DB.promise().query(
+      `
+      SELECT
+        p.*,
+        d.nombre AS departamento_nombre,
+        c.nombre AS ciudad_nombre
+      FROM pedidos p
+      LEFT JOIN departamentos d ON p.departamento = d.id
+      LEFT JOIN ciudades c ON p.ciudad = c.id
+      WHERE p.id = ?
+      `,
+      [id],
+    );
+
+    if (!pedido.length) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    const [detalle] = await DB.promise().query(
+      "SELECT * FROM pedido_detalles WHERE pedido_id = ?",
+      [id],
+    );
+
+    res.json({
+      pedido: pedido[0],
+      productos: detalle,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend funcionando en puerto ${PORT}`);
