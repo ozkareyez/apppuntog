@@ -1,0 +1,10 @@
+# Ignorar todo lo relacionado con frontend
+vite.config.js
+index.html
+public/
+src/
+dist/
+node_modules/
+.env
+*.log
+.DS_Store
