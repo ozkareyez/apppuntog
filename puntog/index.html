@@ -1,60 +1,69 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <!-- Básico -->
     <meta charset="UTF-8" />
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0"
-    />
+    <!-- VIEWPORT CORREGIDO - ESSENCIAL PARA SEO MÓVIL -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Título SEO -->
+    <!-- TÍTULO OPTIMIZADO (mantiene tu versión, que está bien) -->
     <title>
       Ropa Íntima Femenina y Accesorios Eróticos en Colombia | Punto G
     </title>
 
-    <!-- Descripción SEO -->
+    <!-- META DESCRIPTION (tu versión es buena) -->
     <meta
       name="description"
       content="Compra ropa íntima femenina y accesorios eróticos en Colombia. Lencería moderna, cómoda y sensual con envíos rápidos y pagos seguros."
     />
 
-    <!-- Palabras clave -->
-    <meta
-      name="keywords"
-      content="ropa íntima femenina, lencería colombiana, accesorios eróticos, tienda erótica Colombia"
-    />
+    <!-- CANONICAL URL - FALTA EN TU VERSIÓN -->
+    <link rel="canonical" href="https://apppuntog-production.up.railway.app/" />
 
-    <!-- Robots -->
-    <meta name="robots" content="index, follow" />
+    <!-- SCHEMA.ORG (JSON-LD) - FALTA EN TU VERSIÓN -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Punto G",
+        "url": "https://apppuntog-production.up.railway.app/",
+        "description": "Tienda online de ropa íntima femenina y accesorios eróticos en Colombia",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://apppuntog-production.up.railway.app/buscar?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
 
-    <!-- Autor -->
-    <meta name="author" content="Punto G" />
-
-    <!-- Open Graph (WhatsApp / Facebook) -->
+    <!-- OPEN GRAPH MEJORADO -->
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:site_name" content="Punto G" />
     <meta
       property="og:title"
       content="Ropa Íntima Femenina y Accesorios Eróticos en Colombia | Punto G"
     />
-
     <meta
       property="og:description"
       content="Lencería femenina moderna y accesorios eróticos. Compra online en Colombia con envíos rápidos."
-    />
-
-    <meta
-      property="og:image"
-      content="https://apppuntog-production.up.railway.app/og-image.png"
     />
     <meta
       property="og:url"
       content="https://apppuntog-production.up.railway.app/"
     />
     <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="https://apppuntog-production.up.railway.app/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Punto G - Ropa íntima femenina" />
 
-    <!-- Twitter -->
+    <!-- TWITTER MEJORADO -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@puntog" />
+    <meta name="twitter:creator" content="@puntog" />
     <meta name="twitter:title" content="Punto G | Ropa íntima femenina" />
     <meta
       name="twitter:description"
@@ -64,21 +73,115 @@
       name="twitter:image"
       content="https://apppuntog-production.up.railway.app/og-image.png"
     />
+    <meta name="twitter:image:alt" content="Punto G Colombia" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- ROBOTS MEJORADO -->
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
 
-    <!-- Fonts -->
+    <!-- FAVICON Y APP ICONS -->
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- THEME COLOR PARA NAVEGADORES MÓVILES -->
+    <meta name="theme-color" content="#dc2626" />
+    <meta name="msapplication-TileColor" content="#dc2626" />
+
+    <!-- FONTS OPTIMIZADAS -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- CSS CRÍTICO INLINE PARA MEJORAR LCP (Largest Contentful Paint) -->
+    <style>
+      /* ESTILOS CRÍTICOS PARA MEJORAR CORE WEB VITALS */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        overflow-x: hidden;
+      }
+      #root {
+        min-height: 100vh;
+      }
+
+      /* FONT DISPLAY SWAP PARA EVITAR FOIT (Flash of Invisible Text) */
+      @font-face {
+        font-family: "Montserrat Fallback";
+        src: local("Arial");
+        ascent-override: 85%;
+        descent-override: 22%;
+        line-gap-override: 0%;
+        size-adjust: 105%;
+      }
+
+      body {
+        font-family:
+          "Montserrat Fallback",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      /* PRELOAD DE IMÁGENES CRÍTICAS (opcional) */
+      .preload-bg {
+        background: url("https://apppuntog-production.up.railway.app/og-image.png")
+          no-repeat -9999px -9999px;
+      }
+    </style>
+
+    <!-- FONTS CON LOADING ESTRATÉGICO -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Courgette&family=Montserrat:wght@300;400;600;700&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Courgette&display=swap"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Courgette&display=swap"
+      media="print"
+      onload="this.media = 'all'"
+    />
+
+    <!-- NOSCRIPT FALLBACK -->
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Courgette&display=swap"
+      />
+    </noscript>
   </head>
 
   <body>
+    <!-- SKIP TO MAIN CONTENT PARA ACCESIBILIDAD -->
+    <a href="#main-content" class="skip-to-main"
+      >Saltar al contenido principal</a
+    >
+
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- DEFER SCRIPTS PARA MEJOR PERFORMANCE -->
+    <script type="module" src="/src/main.jsx" defer></script>
+
+    <!-- ANALYTICS (ejemplo con Google Analytics 4) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-XXXXXXXXXX");
+    </script>
   </body>
 </html>
