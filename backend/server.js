@@ -14,14 +14,25 @@ const PORT = process.env.PORT || 3002;
 /* ================= MIDDLEWARE ================= */
 /* ================= MIDDLEWARE ================= */
 // En tu server.js
+// Asegúrate que esto esté en tu server.js
 app.use(
   cors({
-    origin: "*", // Permite todos los orígenes temporalmente
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    origin: "*", // O mejor: ['http://localhost:5173', 'tu-dominio.com']
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+      "X-HTTP-Method-Override",
+    ],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   }),
 );
+
+// Y esto también es importante
+app.options("*", cors());
 
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
