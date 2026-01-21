@@ -175,40 +175,32 @@ export default function PedidosAdmin() {
   };
 
   // NUEVA FUNCIÓN: Guardar costo de envío
-  const guardarCostoEnvio = async () => {
-    if (!pedidoSeleccionado || !costoEnvio.trim()) {
-      alert("Por favor ingresa un costo de envío válido");
-      return;
+  // SOLUCIÓN ALTERNATIVA: Forzar recarga de datos después de actualizar
+const guardarCostoEnvioAlternativo = async () => {
+  // ... (mismo código de validación inicial)
+  
+  try {
+    // ... (mismo código de fetch)
+    
+    if (data.ok) {
+      // FORZAR RECARGA de datos desde el servidor
+      await cargarPedidos(paginaActual);
+      
+      // También recargar los nuevos pedidos
+      await verificarNuevosPedidos();
+      
+      // Cerrar modal
+      setMostrarModalEnvio(false);
+      setPedidoSeleccionado(null);
+      setCostoEnvio("");
+      
+      alert("✅ Costo de envío actualizado. Los datos se recargaron.");
     }
-
-    const costo = parseFloat(costoEnvio);
-    if (isNaN(costo) || costo < 0) {
-      alert("Por favor ingresa un número válido para el costo de envío");
-      return;
-    }
-
-    setActualizandoEnvio(true);
-
-    try {
-      console.log(
-        `🔄 Actualizando costo de envío para pedido #${pedidoSeleccionado.id}: $${costo}`,
-      );
-
-      const response = await fetch(
-        `${API}/api/pedidos/${pedidoSeleccionado.id}/envio`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            costo_envio: costo,
-            // También podemos actualizar el total si es necesario
-            total: (pedidoSeleccionado.total || 0) + costo,
-          }),
-        },
-      );
+    
+  } catch (error) {
+    // ... manejo de errores
+  }
+};
 
       const data = await response.json();
 

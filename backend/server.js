@@ -873,6 +873,35 @@ app.put("/api/pedidos-estado/:id", async (req, res) => {
   }
 });
 
+// Primero verificar si el campo existe
+app.get("/api/check-campos", async (req, res) => {
+  try {
+    const [campos] = await DB.promise().query("DESCRIBE pedidos");
+    const camposNombres = campos.map((c) => c.Field);
+
+    const tieneFechaUpdate = camposNombres.some(
+      (n) =>
+        n.includes("update") ||
+        n.includes("actualizacion") ||
+        n.includes("modificado"),
+    );
+
+    res.json({
+      ok: true,
+      campos: camposNombres,
+      tiene_fecha_update: tieneFechaUpdate,
+      campos_fecha: campos.filter(
+        (c) =>
+          c.Field.includes("fecha") ||
+          c.Field.includes("update") ||
+          c.Field.includes("actualizacion"),
+      ),
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 /* ================= ACTUALIZAR COSTO DE ENVÍO ================= */
 /* ================= ACTUALIZAR COSTO DE ENVÍO ================= */
 app.put("/api/pedidos/:id/envio", async (req, res) => {
@@ -881,7 +910,7 @@ app.put("/api/pedidos/:id/envio", async (req, res) => {
 
   console.log(`🚚 PUT /api/pedidos/${id}/envio`, { costo_envio });
 
-  // Validación más flexible
+  // Validación básica
   if (costo_envio === undefined || costo_envio === null || costo_envio === "") {
     return res.status(400).json({
       ok: false,
@@ -908,14 +937,14 @@ app.put("/api/pedidos/:id/envio", async (req, res) => {
   console.log(`💰 Procesando envío para pedido ${id}: $${costo}`);
 
   try {
-    // 1. Obtener el pedido actual - FORMA MÁS SEGURA
+    // 1. Obtener el pedido actual
     const [pedidoRows] = await DB.promise().query(
       "SELECT total, costo_envio FROM pedidos WHERE id = ?",
       [id],
     );
 
     if (!pedidoRows || pedidoRows.length === 0) {
-      console.log(`❌ Pedido ${id} no encontrado en la base de datos`);
+      console.log(`❌ Pedido ${id} no encontrado`);
       return res.status(404).json({
         ok: false,
         message: `Pedido #${id} no encontrado`,
@@ -924,49 +953,34 @@ app.put("/api/pedidos/:id/envio", async (req, res) => {
 
     const pedido = pedidoRows[0];
 
-    console.log(
-      `📊 Pedido encontrado: Total=$${pedido.total}, Envío actual=$${pedido.costo_envio}`,
-    );
-
     // 2. Calcular nuevo total
-    // Si costo_envio es null/undefined, tratarlo como 0
     const envioActual = pedido.costo_envio || 0;
     const subtotal = pedido.total - envioActual;
     const nuevoTotal = subtotal + costo;
 
     console.log(
-      `🧮 Cálculos: Subtotal=$${subtotal}, Nuevo total=$${nuevoTotal}`,
+      `📊 Cálculos: Subtotal=$${subtotal}, Nuevo total=$${nuevoTotal}`,
     );
 
-    // 3. Actualizar en la base de datos - CONSULTA SIMPLIFICADA
-    const updateQuery = `
-      UPDATE pedidos 
-      SET costo_envio = ?, total = ?, fecha_actualizacion = NOW() 
-      WHERE id = ?
-    `;
+    // 3. ACTUALIZACIÓN SIMPLE - solo los campos que SABEMOS que existen
+    // Según tu endpoint pedidos-completo, los campos son: costo_envio y total
+    const [result] = await DB.promise().query(
+      "UPDATE pedidos SET costo_envio = ?, total = ? WHERE id = ?",
+      [costo, nuevoTotal, id],
+    );
 
-    console.log(`🔄 Ejecutando query: ${updateQuery}`);
-    console.log(`📝 Parámetros: [${costo}, ${nuevoTotal}, ${id}]`);
-
-    const [result] = await DB.promise().query(updateQuery, [
-      costo,
-      nuevoTotal,
-      id,
-    ]);
-
-    console.log(`✅ Resultado MySQL:`, result);
+    console.log(`✅ Resultado MySQL: ${result.affectedRows} filas afectadas`);
 
     if (result.affectedRows === 0) {
-      console.log(`⚠️ No se afectaron filas para el pedido ${id}`);
       return res.status(500).json({
         ok: false,
-        message: "No se pudo actualizar el pedido en la base de datos",
+        message: "No se pudo actualizar el pedido",
       });
     }
 
-    console.log(`🎉 Pedido ${id} actualizado exitosamente`);
-    console.log(`   - Nuevo costo envío: $${costo}`);
-    console.log(`   - Nuevo total: $${nuevoTotal}`);
+    console.log(
+      `🎉 Pedido ${id} actualizado: Envío=$${costo}, Total=$${nuevoTotal}`,
+    );
 
     res.json({
       ok: true,
@@ -980,19 +994,37 @@ app.put("/api/pedidos/:id/envio", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(`🔥 ERROR CRÍTICO en pedido ${id}:`, error);
+    console.error(`❌ Error actualizando pedido ${id}:`, error);
     console.error(`   - Mensaje: ${error.message}`);
-    console.error(`   - Código SQL: ${error.code}`);
-    console.error(`   - Número error: ${error.errno}`);
-    console.error(`   - SQL State: ${error.sqlState}`);
-    console.error(`   - Query: ${error.sql}`);
+    console.error(`   - SQL: ${error.sql}`);
 
     res.status(500).json({
       ok: false,
       message: "Error interno del servidor",
       error: error.message,
-      code: error.code,
       sqlMessage: error.sqlMessage,
+    });
+  }
+});
+
+/* ================= VER ESTRUCTURA DE TABLA PEDIDOS ================= */
+app.get("/api/debug/tabla-pedidos", async (req, res) => {
+  try {
+    const [estructura] = await DB.promise().query("DESCRIBE pedidos");
+    const [pedidos] = await DB.promise().query(
+      "SELECT id, total, costo_envio FROM pedidos WHERE id = 76",
+    );
+
+    res.json({
+      ok: true,
+      estructura: estructura,
+      pedido_76: pedidos[0] || null,
+      campos: estructura.map((f) => f.Field),
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error.message,
     });
   }
 });
