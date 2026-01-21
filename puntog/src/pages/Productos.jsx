@@ -43,8 +43,8 @@ const Productos = () => {
 
   // Mapeo CORREGIDO basado en tus datos reales
   const MAPEO_CATEGORIAS = {
-    categoria2: "Juguetes",
-    categoria1: "Lencería",
+    categoria1: "Juguetes",
+    categoria2: "Lencería",
     categoria3: "Lubricantes",
     categoria4: "Accesorios",
   };
