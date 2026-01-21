@@ -1,39 +1,27 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   Trash2,
-  Search,
   Edit,
-  X,
-  Save,
-  Package,
   Loader2,
-  AlertCircle,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
+  Save,
   RefreshCw,
-  AlertTriangle,
+  Search,
+  AlertCircle,
   CheckCircle,
-  XCircle,
 } from "lucide-react";
 
-// Usa tu URL de Railway
 const API_URL = "https://gleaming-motivation-production-4018.up.railway.app";
 
 export default function EliminarProducto() {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const [actionLoading, setActionLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [editando, setEditando] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
 
-  /* ================= CARGAR DATOS ================= */
+  // Cargar productos
   useEffect(() => {
     cargarProductos();
   }, []);
@@ -41,963 +29,455 @@ export default function EliminarProducto() {
   const cargarProductos = async () => {
     try {
       setLoading(true);
-      setMessage({ type: "", text: "" });
+      setError("");
+      const response = await fetch(`${API_URL}/api/productos`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      console.log("Cargando productos desde:", `${API_URL}/api/productos`);
-
-      const res = await fetch(`${API_URL}/api/productos`);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
-        throw new Error(
-          `Error ${res.status}: ${errorText || "No se pudo cargar productos"}`,
-        );
-      }
-
-      const data = await res.json();
-      console.log("Productos recibidos:", data.length);
-      console.log("Primer producto:", data[0]); // Para verificar estructura
-
-      if (!Array.isArray(data)) {
-        console.error("La respuesta no es un array:", data);
-        throw new Error("Formato de respuesta inválido");
-      }
-
-      // Procesar productos - asegurar que estado sea 0 o 1
-      const productosProcesados = data.map((producto) => ({
-        ...producto,
-        estado:
-          producto.estado !== undefined && producto.estado !== null
-            ? Number(producto.estado)
-            : 1, // Por defecto disponible
-      }));
-
-      setProductos(productosProcesados);
-
-      setMessage({
-        type: "success",
-        text: `${data.length} productos cargados exitosamente`,
-      });
+      const data = await response.json();
+      setProductos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error cargando productos:", error);
-      setMessage({
-        type: "error",
-        text: `Error: ${error.message}. Verifica la conexión.`,
-      });
-      setProductos([]);
+      console.error("Error cargando:", error);
+      setError("Error al cargar productos");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= FUNCIÓN PARA DETERMINAR ESTADO ================= */
-  const getEstadoProducto = (producto) => {
-    // estado: 0 = agotado, 1 = disponible
-    const estadoNum =
-      producto.estado !== undefined && producto.estado !== null
-        ? Number(producto.estado)
-        : 1;
+  // Múltiples métodos para guardar
+  const intentarGuardar = async (producto) => {
+    setDebugInfo(`Intentando guardar producto ${producto.id}...`);
 
-    return estadoNum === 0 ? "Agotado" : "Disponible";
-  };
-
-  const getEstadoColor = (estado) => {
-    return estado === "Disponible"
-      ? "bg-green-100 text-green-800 border-green-200"
-      : "bg-red-100 text-red-800 border-red-200";
-  };
-
-  const getEstadoIcono = (estado) => {
-    return estado === "Disponible" ? (
-      <CheckCircle className="w-3 h-3" />
-    ) : (
-      <XCircle className="w-3 h-3" />
-    );
-  };
-
-  /* ================= FILTRADO ================= */
-  const productosFiltrados = useMemo(() => {
-    return productos.filter((p) => {
-      const searchMatch =
-        !search ||
-        p.nombre?.toLowerCase().includes(search.toLowerCase()) ||
-        p.descripcion?.toLowerCase().includes(search.toLowerCase()) ||
-        p.categoria?.toLowerCase().includes(search.toLowerCase());
-
-      let estadoMatch = true;
-      if (statusFilter === "disponible") estadoMatch = p.estado === 1;
-      if (statusFilter === "agotado") estadoMatch = p.estado === 0;
-
-      return searchMatch && estadoMatch;
-    });
-  }, [productos, search, statusFilter]);
-
-  /* ================= PAGINACIÓN ================= */
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = productosFiltrados.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
-  );
-  const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage);
-
-  /* ================= ELIMINAR PRODUCTO ================= */
-  const confirmarEliminar = async (producto) => {
-    if (!producto || !producto.id) {
-      setMessage({ type: "error", text: "Producto no válido" });
-      return;
-    }
-
-    setSelectedProduct(producto);
-    setShowDeleteModal(true);
-  };
-
-  const ejecutarEliminar = async () => {
-    if (!selectedProduct) return;
-
-    setActionLoading(true);
-    setMessage({ type: "", text: "" });
-
+    // Método 1: PUT normal
     try {
-      console.log(`Eliminando producto ID: ${selectedProduct.id}`);
+      setDebugInfo("Método 1: PUT estándar");
+      const response = await fetch(`${API_URL}/api/productos/${producto.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: producto.nombre || "",
+          precio: parseInt(producto.precio) || 0,
+          estado: producto.estado === 0 ? 0 : 1,
+        }),
+      });
 
-      const response = await fetch(
-        `${API_URL}/api/productos/${selectedProduct.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const data = await response.json();
-      console.log("Respuesta eliminación:", data);
-
-      if (response.ok && data.ok === true) {
-        setProductos((prev) => prev.filter((p) => p.id !== selectedProduct.id));
-
-        setMessage({
-          type: "success",
-          text: `"${selectedProduct.nombre}" eliminado exitosamente`,
-        });
-
-        if (currentItems.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
-
-        setShowDeleteModal(false);
-        setSelectedProduct(null);
-      } else {
-        throw new Error(
-          data.message || data.error || "Error al eliminar el producto",
-        );
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, data, method: "PUT estándar" };
       }
     } catch (error) {
-      console.error("Error eliminando producto:", error);
-      setMessage({
-        type: "error",
-        text: `Error: ${error.message}`,
+      console.log("Método 1 falló:", error.message);
+    }
+
+    // Método 2: POST en lugar de PUT (algunos servidores prefieren POST)
+    try {
+      setDebugInfo("Método 2: POST con _method=PUT");
+      const response = await fetch(`${API_URL}/api/productos/${producto.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-HTTP-Method-Override": "PUT", // Header alternativo
+        },
+        body: JSON.stringify({
+          nombre: producto.nombre || "",
+          precio: parseInt(producto.precio) || 0,
+          estado: producto.estado === 0 ? 0 : 1,
+          _method: "PUT", // Parámetro común para override
+        }),
       });
-    } finally {
-      setActionLoading(false);
+
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, data, method: "POST con override" };
+      }
+    } catch (error) {
+      console.log("Método 2 falló:", error.message);
+    }
+
+    // Método 3: PATCH (algunas APIs usan PATCH para actualizaciones parciales)
+    try {
+      setDebugInfo("Método 3: PATCH");
+      const response = await fetch(`${API_URL}/api/productos/${producto.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: producto.nombre || "",
+          precio: parseInt(producto.precio) || 0,
+          estado: producto.estado === 0 ? 0 : 1,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, data, method: "PATCH" };
+      }
+    } catch (error) {
+      console.log("Método 3 falló:", error.message);
+    }
+
+    // Método 4: XMLHttpRequest (a veces funciona cuando fetch no)
+    try {
+      setDebugInfo("Método 4: XMLHttpRequest");
+      return await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", `${API_URL}/api/productos/${producto.id}`);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve({ success: true, data, method: "XMLHttpRequest" });
+            } catch {
+              resolve({
+                success: true,
+                data: xhr.responseText,
+                method: "XMLHttpRequest",
+              });
+            }
+          } else {
+            reject(new Error(`HTTP ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("XHR Error"));
+        xhr.timeout = 10000;
+
+        xhr.send(
+          JSON.stringify({
+            nombre: producto.nombre || "",
+            precio: parseInt(producto.precio) || 0,
+            estado: producto.estado === 0 ? 0 : 1,
+          }),
+        );
+      });
+    } catch (error) {
+      console.log("Método 4 falló:", error.message);
+      return { success: false, error: "Todos los métodos fallaron" };
     }
   };
 
-  /* ================= EDITAR PRODUCTO ================= */
-  const abrirEditar = (producto) => {
-    // Asegurar que estado sea número
-    const estadoNum =
-      producto.estado !== undefined && producto.estado !== null
-        ? Number(producto.estado)
-        : 1;
+  const guardarCambios = async () => {
+    if (!editando) return;
 
-    setSelectedProduct({
-      ...producto,
-      estado: estadoNum,
-    });
-    setShowEditModal(true);
-  };
-
-  const guardarEdicion = async () => {
-    if (!selectedProduct) return;
-
-    setActionLoading(true);
-    setMessage({ type: "", text: "" });
+    setCargando(true);
+    setError("");
 
     try {
-      console.log("Actualizando producto:", selectedProduct);
+      const resultado = await intentarGuardar(editando);
 
-      // Datos a enviar al backend
-      const updateData = {
-        nombre: selectedProduct.nombre || "",
-        precio: parseFloat(selectedProduct.precio) || 0,
-        precio_antes: selectedProduct.precio_antes
-          ? parseFloat(selectedProduct.precio_antes)
-          : null,
-        descuento: selectedProduct.descuento
-          ? parseFloat(selectedProduct.descuento)
-          : null,
-        descripcion: selectedProduct.descripcion || "",
-        categoria_id: selectedProduct.categoria_id || 0,
-        es_oferta: selectedProduct.es_oferta ? 1 : 0,
-        estado: selectedProduct.estado || 1, // ← NUEVO: 0=agotado, 1=disponible
-        destacado: selectedProduct.destacado ? 1 : 0,
-        nuevo: selectedProduct.nuevo ? 1 : 0,
-        categoria: selectedProduct.categoria || "",
-        talla: selectedProduct.talla || "",
-        color: selectedProduct.color || "",
-      };
-
-      console.log("Enviando datos al backend:", updateData);
-
-      const response = await fetch(
-        `${API_URL}/api/productos/${selectedProduct.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updateData),
-        },
-      );
-
-      const data = await response.json();
-      console.log("Respuesta actualización:", data);
-
-      if (response.ok && data.ok === true) {
-        // Actualizar en estado local
+      if (resultado.success) {
         setProductos((prev) =>
-          prev.map((p) => (p.id === selectedProduct.id ? selectedProduct : p)),
+          prev.map((p) => (p.id === editando.id ? { ...p, ...editando } : p)),
         );
-
-        setMessage({
-          type: "success",
-          text: `"${selectedProduct.nombre}" actualizado exitosamente`,
-        });
-
-        setShowEditModal(false);
-        setSelectedProduct(null);
+        setEditando(null);
+        setDebugInfo(`✅ Guardado con éxito usando: ${resultado.method}`);
+        setTimeout(() => setDebugInfo(""), 3000);
       } else {
-        throw new Error(
-          data.message || data.error || "Error al actualizar el producto",
-        );
+        setError("No se pudo guardar. Verifica la consola para más detalles.");
       }
     } catch (error) {
-      console.error("Error editando producto:", error);
-      setMessage({
-        type: "error",
-        text: `Error: ${error.message}`,
-      });
+      console.error("Error final:", error);
+      setError(`Error: ${error.message}`);
     } finally {
-      setActionLoading(false);
+      setCargando(false);
     }
   };
 
-  /* ================= RENDER ================= */
+  // Eliminar producto
+  const eliminarProducto = async (id) => {
+    if (!confirm("¿Eliminar este producto?")) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/productos/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setProductos((prev) => prev.filter((p) => p.id !== id));
+        alert("Producto eliminado");
+      }
+    } catch (error) {
+      console.error("Error eliminando:", error);
+      alert("Error al eliminar");
+    }
+  };
+
+  // Filtrar productos
+  const productosFiltrados = productos.filter(
+    (p) =>
+      p.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      p.descripcion?.toLowerCase().includes(busqueda.toLowerCase()),
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-        <p className="text-gray-600">Cargando productos...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      {/* HEADER */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Gestión de Productos
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Total: {productos.length} productos • Filtrados:{" "}
-              {productosFiltrados.length}
-              {statusFilter === "agotado" && " • AGOTADOS"}
-              {statusFilter === "disponible" && " • DISPONIBLES"}
-            </p>
-          </div>
-          <button
-            onClick={cargarProductos}
-            disabled={loading}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            {loading ? "Cargando..." : "Recargar"}
-          </button>
-        </div>
-
-        {/* MENSAJES */}
-        {message.text && (
-          <div
-            className={`p-4 rounded-lg mb-4 flex items-start gap-3 ${
-              message.type === "error"
-                ? "bg-red-50 text-red-800 border border-red-200"
-                : message.type === "success"
-                  ? "bg-green-50 text-green-800 border border-green-200"
-                  : "bg-blue-50 text-blue-800 border border-blue-200"
-            }`}
-          >
-            {message.type === "error" ? (
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            )}
-            <span>{message.text}</span>
-          </div>
-        )}
-
-        {/* FILTROS */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 shadow-sm">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, descripción o categoría..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Productos</h1>
+              <p className="text-sm text-gray-600">
+                {productos.length} productos • {productosFiltrados.length}{" "}
+                filtrados
+              </p>
             </div>
-
-            <div className="w-full md:w-56">
-              <div className="relative">
-                <Filter className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="todos">Todos los productos</option>
-                  <option value="disponible">Disponibles</option>
-                  <option value="agotado">Agotados</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* CONTADORES */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-sm text-gray-600">
-                Disponibles: {productos.filter((p) => p.estado === 1).length}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-500" />
-              <span className="text-sm text-gray-600">
-                Agotados: {productos.filter((p) => p.estado === 0).length}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* LISTA DE PRODUCTOS */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-        {currentItems.length === 0 ? (
-          <div className="text-center py-16">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-2">
-              {productosFiltrados.length === 0 && productos.length > 0
-                ? "No hay productos que coincidan con los filtros"
-                : "No hay productos disponibles"}
-            </p>
             <button
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("todos");
-              }}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              onClick={cargarProductos}
+              className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
             >
-              Limpiar filtros
+              <RefreshCw size={16} />
+              Recargar
             </button>
           </div>
-        ) : (
-          <>
-            <div className="divide-y divide-gray-100">
-              {currentItems.map((producto) => {
-                const estado = getEstadoProducto(producto);
-                const estaAgotado = estado === "Agotado";
-                const estadoColor = getEstadoColor(estado);
-                const estadoIcono = getEstadoIcono(estado);
 
-                return (
-                  <div
-                    key={producto.id}
-                    className={`p-4 transition-colors ${estaAgotado ? "bg-red-50/50 hover:bg-red-50" : "hover:bg-gray-50"}`}
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex items-start gap-4 flex-1">
-                        {/* Imagen */}
-                        <div className="relative">
-                          <div
-                            className={`w-20 h-20 ${estaAgotado ? "opacity-60 grayscale" : ""} bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border`}
-                          >
-                            {producto.imagenes?.[0] || producto.imagen ? (
-                              <img
-                                src={producto.imagenes?.[0] || producto.imagen}
-                                alt={producto.nombre}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50%' y='50%' font-family='Arial' font-size='14' fill='%239ca3af' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <Package size={28} />
-                              </div>
-                            )}
-                          </div>
-                          {estaAgotado && (
-                            <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                              AGOTADO
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h3
-                              className={`font-semibold text-lg truncate ${estaAgotado ? "text-gray-500" : "text-gray-900"}`}
-                            >
-                              {producto.nombre || "Sin nombre"}
-                            </h3>
-                            <span className="text-sm text-gray-500">
-                              ID: {producto.id}
-                            </span>
-                          </div>
-
-                          {producto.descripcion && (
-                            <p
-                              className={`text-sm mb-2 line-clamp-2 ${estaAgotado ? "text-gray-400" : "text-gray-600"}`}
-                            >
-                              {producto.descripcion}
-                            </p>
-                          )}
-
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span
-                              className={`font-bold ${estaAgotado ? "text-gray-500" : "text-gray-900"}`}
-                            >
-                              ${Number(producto.precio || 0).toLocaleString()}
-                            </span>
-
-                            {producto.precio_antes &&
-                              producto.precio_antes > producto.precio && (
-                                <span className="text-sm text-gray-500 line-through">
-                                  $
-                                  {Number(
-                                    producto.precio_antes,
-                                  ).toLocaleString()}
-                                </span>
-                              )}
-
-                            {/* Badge de estado */}
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium border ${estadoColor} flex items-center gap-1`}
-                            >
-                              {estadoIcono}
-                              {estado}
-                            </span>
-
-                            {producto.es_oferta && (
-                              <span className="px-2.5 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
-                                Oferta
-                              </span>
-                            )}
-
-                            {producto.destacado && (
-                              <span className="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                                Destacado
-                              </span>
-                            )}
-
-                            {producto.nuevo && (
-                              <span className="px-2.5 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                                Nuevo
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {producto.categoria && (
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
-                              >
-                                {producto.categoria}
-                              </span>
-                            )}
-                            {producto.talla && (
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
-                              >
-                                Talla: {producto.talla}
-                              </span>
-                            )}
-                            {producto.color && (
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${estaAgotado ? "bg-gray-100 text-gray-500" : "bg-gray-100 text-gray-600"}`}
-                              >
-                                Color: {producto.color}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Acciones */}
-                      <div className="flex gap-2 self-end sm:self-center">
-                        <button
-                          onClick={() => abrirEditar(producto)}
-                          className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
-                          title="Editar"
-                        >
-                          <Edit size={16} />
-                          <span className="hidden sm:inline">Editar</span>
-                        </button>
-                        <button
-                          onClick={() => confirmarEliminar(producto)}
-                          className="px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={16} />
-                          <span className="hidden sm:inline">Eliminar</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Debug info */}
+          {debugInfo && (
+            <div className="mb-3 p-3 bg-blue-100 text-blue-800 rounded-lg text-sm">
+              {debugInfo}
             </div>
+          )}
 
-            {/* PAGINACIÓN */}
-            {totalPages > 1 && (
-              <div className="border-t border-gray-200 px-4 py-3 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Página {currentPage} de {totalPages} •{" "}
-                  {productosFiltrados.length} productos
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(prev - 1, 1))
-                    }
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                  >
-                    <ChevronLeft size={16} />
-                    Anterior
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                  >
-                    Siguiente
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          {/* Error */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg flex items-center gap-2">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
 
-      {/* MODAL EDITAR */}
-      {showEditModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Editar Producto
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    ID: {selectedProduct.id}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setSelectedProduct(null);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  disabled={actionLoading}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Indicador de estado */}
-              <div className="mb-6">
-                <div
-                  className={`p-4 rounded-lg border ${selectedProduct.estado === 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`px-3 py-1.5 rounded-full text-sm font-bold ${selectedProduct.estado === 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}
-                    >
-                      {selectedProduct.estado === 0
-                        ? "PRODUCTO AGOTADO"
-                        : "PRODUCTO DISPONIBLE"}
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {selectedProduct.estado === 0
-                          ? "Este producto está marcado como agotado"
-                          : "Este producto está disponible para la venta"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {selectedProduct.estado === 0
-                          ? "Los clientes no podrán comprarlo hasta que cambie su estado."
-                          : "El producto aparece como disponible en la tienda."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Información básica */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedProduct.nombre || ""}
-                      onChange={(e) =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          nombre: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={selectedProduct.precio || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            precio: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Anterior
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={selectedProduct.precio_antes || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            precio_antes: e.target.value || null,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Descuento (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={selectedProduct.descuento || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            descuento: e.target.value || null,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Categorías y opciones */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Categoría
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedProduct.categoria || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            categoria: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Talla
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedProduct.talla || ""}
-                        onChange={(e) =>
-                          setSelectedProduct({
-                            ...selectedProduct,
-                            talla: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Color
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedProduct.color || ""}
-                      onChange={(e) =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          color: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Descripción
-                    </label>
-                    <textarea
-                      value={selectedProduct.descripcion || ""}
-                      onChange={(e) =>
-                        setSelectedProduct({
-                          ...selectedProduct,
-                          descripcion: e.target.value,
-                        })
-                      }
-                      rows="3"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* CHECKBOXES - INCLUYENDO ESTADO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                {/* CHECKBOX ESTADO (AGOTADO/DISPONIBLE) */}
-                <label
-                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedProduct.estado === 0
-                      ? "bg-red-50 border-red-300 text-red-700"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedProduct.estado === 0}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setSelectedProduct({
-                        ...selectedProduct,
-                        estado: isChecked ? 0 : 1, // 0=agotado, 1=disponible
-                      });
-                    }}
-                    className="w-4 h-4 rounded focus:ring-red-500 text-red-600"
-                  />
-                  <div className="flex items-center gap-2">
-                    {selectedProduct.estado === 0 ? (
-                      <XCircle className="w-5 h-5 text-red-600" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    )}
-                    <div>
-                      <span className="font-medium">Agotado</span>
-                      <p className="text-xs text-gray-500">
-                        {selectedProduct.estado === 0
-                          ? "No disponible"
-                          : "Disponible para venta"}
-                      </p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* EN OFERTA */}
-                <label
-                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedProduct.es_oferta
-                      ? "bg-red-50 border-red-300 text-red-700"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedProduct.es_oferta || false}
-                    onChange={(e) =>
-                      setSelectedProduct({
-                        ...selectedProduct,
-                        es_oferta: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🏷️</span>
-                    <div>
-                      <span className="font-medium">En oferta</span>
-                      <p className="text-xs text-gray-500">Precio especial</p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* DESTACADO */}
-                <label
-                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedProduct.destacado
-                      ? "bg-blue-50 border-blue-300 text-blue-700"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedProduct.destacado || false}
-                    onChange={(e) =>
-                      setSelectedProduct({
-                        ...selectedProduct,
-                        destacado: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">⭐</span>
-                    <div>
-                      <span className="font-medium">Destacado</span>
-                      <p className="text-xs text-gray-500">Producto especial</p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* NUEVO */}
-                <label
-                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedProduct.nuevo
-                      ? "bg-green-50 border-green-300 text-green-700"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedProduct.nuevo || false}
-                    onChange={(e) =>
-                      setSelectedProduct({
-                        ...selectedProduct,
-                        nuevo: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">
-                      N
-                    </div>
-                    <div>
-                      <span className="font-medium">Nuevo</span>
-                      <p className="text-xs text-gray-500">
-                        Lanzamiento reciente
-                      </p>
-                    </div>
-                  </div>
-                </label>
-              </div>
-
-              {/* Instrucción para checkbox de estado */}
-              {selectedProduct.estado === 0 && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-700 font-medium">
-                    ⓘ Producto marcado como AGOTADO
-                  </p>
-                  <p className="text-xs text-red-600 mt-1">
-                    Desmarca la casilla "Agotado" para que el producto vuelva a
-                    estar disponible.
-                  </p>
-                </div>
-              )}
-
-              {/* Botones */}
-              <div className="mt-8 flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setSelectedProduct(null);
-                  }}
-                  disabled={actionLoading}
-                  className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardarEdicion}
-                  disabled={actionLoading}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Save size={18} />
-                      Guardar Cambios
-                    </>
-                  )}
-                </button>
-              </div>
+          {/* Búsqueda */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar productos..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
         </div>
-      )}
+
+        {/* Lista de productos */}
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+          {productosFiltrados.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {productos.length === 0
+                ? "No hay productos cargados"
+                : "No hay resultados"}
+            </div>
+          ) : (
+            <div className="divide-y">
+              {productosFiltrados.map((producto) => (
+                <div key={producto.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      {/* Imagen */}
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        {producto.imagenes?.[0] ? (
+                          <img
+                            src={producto.imagenes[0]}
+                            alt={producto.nombre}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            📦
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div>
+                        <h3 className="font-bold text-gray-900">
+                          {producto.nombre}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="font-bold text-gray-900">
+                            ${producto.precio?.toLocaleString()}
+                          </span>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              producto.estado === 0
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {producto.estado === 0 ? "Agotado" : "Disponible"}
+                          </span>
+                          {producto.es_oferta && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
+                              Oferta
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">
+                          ID: {producto.id} •{" "}
+                          {producto.categoria || "Sin categoría"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditando(producto)}
+                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-sm"
+                      >
+                        <Edit size={14} className="inline mr-1" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => eliminarProducto(producto.id)}
+                        className="px-3 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm"
+                      >
+                        <Trash2 size={14} className="inline mr-1" />
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal de edición */}
+        {editando && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Editar Producto</h2>
+                  <button
+                    onClick={() => setEditando(null)}
+                    className="p-2 hover:bg-gray-100 rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Nombre
+                    </label>
+                    <input
+                      type="text"
+                      value={editando.nombre || ""}
+                      onChange={(e) =>
+                        setEditando({ ...editando, nombre: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Precio
+                    </label>
+                    <input
+                      type="number"
+                      value={editando.precio || ""}
+                      onChange={(e) =>
+                        setEditando({ ...editando, precio: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editando.estado === 0}
+                        onChange={(e) =>
+                          setEditando({
+                            ...editando,
+                            estado: e.target.checked ? 0 : 1,
+                          })
+                        }
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Producto agotado</span>
+                    </label>
+
+                    <div
+                      className={`flex items-center gap-1 px-2 py-1 rounded ${
+                        editando.estado === 0
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {editando.estado === 0 ? (
+                        <>
+                          <span className="text-xs">●</span>
+                          <span className="text-xs font-medium">AGOTADO</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={12} />
+                          <span className="text-xs font-medium">
+                            DISPONIBLE
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setEditando(null)}
+                    className="flex-1 py-2 border rounded hover:bg-gray-50"
+                    disabled={cargando}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={guardarCambios}
+                    disabled={cargando}
+                    className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {cargando ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Guardar Cambios
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Info de debug */}
+                <div className="mt-4 p-3 bg-gray-50 rounded border text-xs">
+                  <p className="font-medium mb-1">Info de depuración:</p>
+                  <p>Producto ID: {editando.id}</p>
+                  <p>
+                    Endpoint: {API_URL}/api/productos/{editando.id}
+                  </p>
+                  <p className="text-gray-600 mt-1">
+                    El componente intentará varios métodos (PUT, POST, PATCH,
+                    XHR)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

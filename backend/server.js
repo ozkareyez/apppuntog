@@ -23,8 +23,6 @@ app.use(
   }),
 );
 
-app.options("*", cors()); // Para preflight requests
-
 /* ================= MYSQL ================= */
 const DB = mysql.createPool({
   host: process.env.MYSQLHOST,
