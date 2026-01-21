@@ -47,10 +47,8 @@ export default function PedidosAdmin() {
 
   // Inicializar audio de notificación mejorado
   useEffect(() => {
-    // Audio para el sonido de notificación
-    notificationAudioRef.current = new Audio(
-      "https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3",
-    );
+    // Audio para el sonido de notificación - usando tu archivo local
+    notificationAudioRef.current = new Audio("/sound/notification.mp3");
     notificationAudioRef.current.volume = 0.5;
 
     // Audio para sonido suave de verificación
@@ -574,7 +572,6 @@ Gracias por tu compra 💖
         </div>
       </div>
 
-      {/* Resto del código permanece igual... */}
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
@@ -698,29 +695,34 @@ Gracias por tu compra 💖
                   : "border-gray-200"
               }`}
             >
-              {/* Header de la card */}
-              <div className="px-4 py-3 border-b border-gray-100">
+              {/* Header de la card - MODIFICADO para mostrar "NUEVO" en mejor posición */}
+              <div className="px-4 py-3 border-b border-gray-100 relative">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-400" />
                     <span className="font-mono font-bold text-gray-800 text-sm">
                       #{p.id}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Etiqueta "NUEVO" movida aquí para que no sea tapada */}
                     {nuevosPedidos.some((np) => np.id === p.id) && (
-                      <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full animate-pulse">
-                        NUEVO
+                      <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full animate-pulse font-bold">
+                        🆕 NUEVO
                       </span>
                     )}
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        p.estado === "pendiente"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {p.estado === "pendiente"
+                        ? "⏳ Pendiente"
+                        : "✅ Entregado"}
+                    </span>
                   </div>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      p.estado === "pendiente"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {p.estado === "pendiente" ? "⏳ Pendiente" : "✅ Entregado"}
-                  </span>
                 </div>
               </div>
 
