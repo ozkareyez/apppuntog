@@ -36,17 +36,14 @@ export default function PedidosAdmin() {
   const [pedidosConfirmados, setPedidosConfirmados] = useState([]);
   const [actualizandoEstados, setActualizandoEstados] = useState({});
 
-  // NUEVOS ESTADOS PARA COSTO DE ENVÍO
   const [mostrarModalEnvio, setMostrarModalEnvio] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [costoEnvio, setCostoEnvio] = useState("");
   const [actualizandoEnvio, setActualizandoEnvio] = useState(false);
 
-  // Estados para notificación
   const [notificacionVisible, setNotificacionVisible] = useState(false);
   const [notificacionPulsando, setNotificacionPulsando] = useState(false);
   const [notificacionMostrada, setNotificacionMostrada] = useState(false);
-  const [mostrarDebug, setMostrarDebug] = useState(false);
   const notificationAudioRef = useRef(null);
   const pulseIntervalRef = useRef(null);
 
@@ -88,83 +85,69 @@ export default function PedidosAdmin() {
 
   // Función para reproducir sonido
   const playNotificationSound = () => {
-    console.log("🔊 Intentando reproducir notificación...");
+    if (!sonidoActivo) return;
 
-    if (!sonidoActivo) {
-      console.log("🔇 Sonido desactivado");
-      return;
-    }
+    if (notificationAudioRef.current) {
+      try {
+        notificationAudioRef.current.currentTime = 0;
+        const playPromise = notificationAudioRef.current.play();
 
-    // PRIMERO: Intentar con sonido generado (siempre funciona)
-    playGeneratedSound();
-
-    // LUEGO: Intentar con audio MP3 (como respaldo mejorado)
-    setTimeout(() => {
-      if (notificationAudioRef.current) {
-        try {
-          console.log("🎵 Intentando audio MP3...");
-          notificationAudioRef.current.currentTime = 0;
-          notificationAudioRef.current.volume = 0.5;
-
-          // No usar promesa para evitar bloqueos
-          notificationAudioRef.current.play().catch((e) => {
-            console.log("⚠️ Audio MP3 falló:", e.name);
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            playGeneratedSound();
           });
-        } catch (error) {
-          console.log("❌ Error con audio MP3:", error);
         }
+      } catch (error) {
+        playGeneratedSound();
       }
-    }, 100);
-  };
-
-  // Y asegúrate que la función playGeneratedSound sea así:
-  const playGeneratedSound = () => {
-    try {
-      console.log("🎶 Generando sonido de notificación...");
-
-      // Crear contexto de audio
-      const audioContext = new (
-        window.AudioContext || window.webkitAudioContext
-      )();
-
-      // Crear oscilador
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Configurar sonido de notificación
-      oscillator.frequency.value = 1500; // Frecuencia alta para notificación
-      oscillator.type = "sine";
-
-      // Configurar volumen (beep corto)
-      const now = audioContext.currentTime;
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05); // Attack rápido
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3); // Decay
-
-      // Reproducir
-      oscillator.start(now);
-      oscillator.stop(now + 0.3);
-
-      // Limpiar
-      oscillator.onended = () => {
-        oscillator.disconnect();
-        gainNode.disconnect();
-        audioContext.close();
-      };
-    } catch (error) {
-      console.log("❌ Error en sonido generado:", error);
+    } else {
+      playGeneratedSound();
     }
   };
 
-  // NUEVA FUNCIÓN: Abrir modal para asignar costo de envío
+  const playGeneratedSound = () => {
+    if (!sonidoActivo) return;
+
+    try {
+      if (audioRef.current?.audioContext?.state === "suspended") {
+        audioRef.current.audioContext.resume();
+      }
+
+      if (audioRef.current?.audioContext) {
+        const { audioContext } = audioRef.current;
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = 1200;
+        oscillator.type = "sine";
+
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioContext.currentTime + 0.3,
+        );
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          gainNode.disconnect();
+        };
+      }
+    } catch (error) {
+      console.log("Error en sonido generado:", error);
+    }
+  };
+
+  // FUNCIÓN CORREGIDA: Abrir modal para asignar costo de envío
   const abrirModalAsignarEnvio = (pedido) => {
     console.log("🔄 Abriendo modal para asignar envío a pedido:", pedido.id);
     setPedidoSeleccionado(pedido);
 
-    // Si ya tiene un costo de envío, cargarlo
     if (pedido.costo_envio && pedido.costo_envio > 0) {
       setCostoEnvio(pedido.costo_envio.toString());
     } else {
@@ -174,33 +157,37 @@ export default function PedidosAdmin() {
     setMostrarModalEnvio(true);
   };
 
-  // NUEVA FUNCIÓN: Guardar costo de envío
-  // SOLUCIÓN ALTERNATIVA: Forzar recarga de datos después de actualizar
-const guardarCostoEnvioAlternativo = async () => {
-  // ... (mismo código de validación inicial)
-  
-  try {
-    // ... (mismo código de fetch)
-    
-    if (data.ok) {
-      // FORZAR RECARGA de datos desde el servidor
-      await cargarPedidos(paginaActual);
-      
-      // También recargar los nuevos pedidos
-      await verificarNuevosPedidos();
-      
-      // Cerrar modal
-      setMostrarModalEnvio(false);
-      setPedidoSeleccionado(null);
-      setCostoEnvio("");
-      
-      alert("✅ Costo de envío actualizado. Los datos se recargaron.");
+  // FUNCIÓN CRÍTICAMENTE CORREGIDA: Guardar costo de envío (sin errores de async/await)
+  const guardarCostoEnvio = async () => {
+    if (!pedidoSeleccionado || !costoEnvio.trim()) {
+      alert("Por favor ingresa un costo de envío válido");
+      return;
     }
-    
-  } catch (error) {
-    // ... manejo de errores
-  }
-};
+
+    const costo = parseFloat(costoEnvio);
+    if (isNaN(costo) || costo < 0) {
+      alert("Por favor ingresa un número válido para el costo de envío");
+      return;
+    }
+
+    setActualizandoEnvio(true);
+
+    try {
+      console.log(
+        `🔄 Actualizando costo de envío para pedido #${pedidoSeleccionado.id}: $${costo}`,
+      );
+
+      const response = await fetch(
+        `${API}/api/pedidos/${pedidoSeleccionado.id}/envio`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ costo_envio: costo }),
+        },
+      );
 
       const data = await response.json();
 
@@ -211,34 +198,36 @@ const guardarCostoEnvioAlternativo = async () => {
       console.log(`✅ Costo de envío actualizado:`, data);
 
       // Actualizar el pedido en el estado local
+      const nuevoCostoEnvio = data.pedido.costo_envio;
+      const nuevoTotal = data.pedido.total;
+
       setPedidos((prev) =>
         prev.map((p) =>
           p.id === pedidoSeleccionado.id
             ? {
                 ...p,
-                costo_envio: costo,
-                total: (p.total || 0) + costo,
+                costo_envio: nuevoCostoEnvio,
+                total: nuevoTotal,
                 tiene_envio_asignado: true,
               }
             : p,
         ),
       );
 
-      // También actualizar en nuevosPedidos si está allí
       setNuevosPedidos((prev) =>
         prev.map((p) =>
           p.id === pedidoSeleccionado.id
             ? {
                 ...p,
-                costo_envio: costo,
-                total: (p.total || 0) + costo,
+                costo_envio: nuevoCostoEnvio,
+                total: nuevoTotal,
                 tiene_envio_asignado: true,
               }
             : p,
         ),
       );
 
-      // Cerrar modal y mostrar confirmación
+      // Cerrar modal
       setMostrarModalEnvio(false);
       setPedidoSeleccionado(null);
       setCostoEnvio("");
@@ -247,12 +236,25 @@ const guardarCostoEnvioAlternativo = async () => {
         `✅ Costo de envío de $${costo.toLocaleString()} asignado al pedido #${pedidoSeleccionado.id}`,
       );
 
-      // Si el pedido es de Cali y el subtotal es menor a 200,000, enviar WhatsApp al cliente
-      if (
-        pedidoSeleccionado.ciudad_nombre?.toLowerCase().includes("cali") &&
-        (pedidoSeleccionado.subtotal || pedidoSeleccionado.total) < 200000
-      ) {
-        enviarWhatsAppConfirmacionEnvio(pedidoSeleccionado, costo);
+      // Si el pedido es de Cali y el subtotal es menor a 200,000, preguntar si enviar WhatsApp
+      const esCali = pedidoSeleccionado.ciudad_nombre
+        ?.toLowerCase()
+        .includes("cali");
+      const subtotalBajo =
+        (pedidoSeleccionado.subtotal || pedidoSeleccionado.total) < 200000;
+
+      if (esCali && subtotalBajo) {
+        const confirmar = window.confirm(
+          `¿Deseas enviar un WhatsApp a ${pedidoSeleccionado.nombre} confirmando el costo de envío de $${costo.toLocaleString()}?`,
+        );
+
+        if (confirmar) {
+          enviarWhatsAppConfirmacionEnvio(
+            pedidoSeleccionado,
+            costo,
+            nuevoTotal,
+          );
+        }
       }
     } catch (error) {
       console.error("Error actualizando costo de envío:", error);
@@ -262,8 +264,12 @@ const guardarCostoEnvioAlternativo = async () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Enviar WhatsApp confirmando costo de envío
-  const enviarWhatsAppConfirmacionEnvio = async (pedido, costoEnvio) => {
+  // Función para enviar WhatsApp confirmando costo de envío
+  const enviarWhatsAppConfirmacionEnvio = async (
+    pedido,
+    costoEnvio,
+    nuevoTotal,
+  ) => {
     try {
       const mensaje = `¡Hola ${pedido.nombre}! 😊
 
@@ -272,8 +278,8 @@ const guardarCostoEnvioAlternativo = async () => {
 Hemos confirmado el costo de envío a ${pedido.ciudad_nombre}:
 
 💰 *Costo de envío:* $${costoEnvio.toLocaleString()}
-💰 *Subtotal de productos:* $${(pedido.total - costoEnvio).toLocaleString()}
-💰 **Total actualizado:** $${(pedido.total + costoEnvio).toLocaleString()}
+💰 *Subtotal de productos:* $${(nuevoTotal - costoEnvio).toLocaleString()}
+💰 **Total actualizado:** $${nuevoTotal.toLocaleString()}
 
 📍 *Dirección de envío:* ${pedido.direccion}
 
@@ -296,14 +302,7 @@ Gracias por tu compra 💖
         : `57${telefonoLimpio}`;
       const urlWhatsApp = `https://wa.me/${telefonoWhatsApp}?text=${mensajeCodificado}`;
 
-      // Preguntar si quiere enviar el WhatsApp
-      const confirmarEnvio = window.confirm(
-        `¿Deseas enviar un WhatsApp a ${pedido.nombre} confirmando el costo de envío de $${costoEnvio.toLocaleString()}?`,
-      );
-
-      if (confirmarEnvio) {
-        window.open(urlWhatsApp, "_blank");
-      }
+      window.open(urlWhatsApp, "_blank");
     } catch (error) {
       console.error("Error preparando WhatsApp de confirmación:", error);
     }
@@ -351,7 +350,7 @@ Gracias por tu compra 💖
     cargarPedidos(1);
   };
 
-  // Cargar pedidos
+  // FUNCIÓN CORREGIDA: Cargar pedidos
   const cargarPedidos = async (page = 1) => {
     setLoading(true);
     try {
@@ -393,7 +392,7 @@ Gracias por tu compra 💖
     }
   };
 
-  // WhatsApp original
+  // FUNCIÓN CORREGIDA: WhatsApp
   const enviarMensajeWhatsApp = async (pedido) => {
     try {
       setEnviandoWhatsApp(true);
@@ -417,7 +416,6 @@ Gracias por tu compra 💖
         console.log("Error obteniendo productos:", error);
       }
 
-      // Incluir costo de envío si existe
       const costoEnvioTexto = pedido.costo_envio
         ? `🚚 *Costo de envío:* $${Number(pedido.costo_envio).toLocaleString()}\n`
         : "";
@@ -459,7 +457,7 @@ Gracias por tu compra 💖
     }
   };
 
-  // Cambiar estado de pedido
+  // FUNCIÓN CORREGIDA: Cambiar estado de pedido
   const cambiarEstado = async (id, estadoActual) => {
     try {
       setActualizandoEstados((prev) => ({ ...prev, [id]: true }));
@@ -503,56 +501,45 @@ Gracias por tu compra 💖
     }
   };
 
-  // Verificar nuevos pedidos
+  // FUNCIÓN CORREGIDA: Verificar nuevos pedidos
   const verificarNuevosPedidos = async () => {
-    console.log("🔍 VERIFICANDO NUEVOS PEDIDOS - Último ID:", ultimoPedidoId);
-
+    console.log("🔄 Verificando nuevos pedidos...");
     try {
       const res = await fetch(`${API}/api/pedidos-completo?page=1&limit=10`);
-
-      if (!res.ok) {
-        console.log("❌ Error HTTP:", res.status);
-        return;
-      }
+      if (!res.ok) return;
 
       const data = await res.json();
-
-      if (!data.ok) {
-        console.log("❌ Error en respuesta:", data.message);
-        return;
-      }
+      if (!data.ok) return;
 
       const resultados = data.results || [];
 
-      // Filtrar pedidos nuevos (pendientes y con ID mayor al último conocido)
-      const nuevos = resultados.filter((pedido) => {
-        const esNuevo = !ultimoPedidoId || pedido.id > ultimoPedidoId;
-        const esPendiente = pedido.estado === "pendiente";
-
-        if (esNuevo && esPendiente) {
-          console.log(`🎯 ¡NUEVO PEDIDO #${pedido.id}!`);
-        }
-
-        return esNuevo && esPendiente;
-      });
-
-      console.log(`📊 ${nuevos.length} pedidos nuevos encontrados`);
+      const nuevos = resultados.filter(
+        (pedido) =>
+          (!ultimoPedidoId || pedido.id > ultimoPedidoId) &&
+          pedido.estado === "pendiente",
+      );
 
       if (nuevos.length > 0) {
-        // ACTUALIZAR EL ÚLTIMO ID (esto es clave)
         const maxId = Math.max(...nuevos.map((p) => p.id));
         if (!ultimoPedidoId || maxId > ultimoPedidoId) {
-          console.log(
-            `🆕 Actualizando último ID de ${ultimoPedidoId} a ${maxId}`,
-          );
           setUltimoPedidoId(maxId);
         }
 
-        // Mostrar notificación
-        mostrarNotificacionAnimada(nuevos);
+        if (!notificacionVisible && !notificacionMostrada) {
+          mostrarNotificacionAnimada(nuevos);
+        } else {
+          setNuevosPedidos((prev) => {
+            const nuevosIds = nuevos.map((p) => p.id);
+            const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
+            return [...nuevos, ...filtrados]
+              .sort((a, b) => b.id - a.id)
+              .slice(0, 5);
+          });
+          setContadorNuevos((prev) => prev + nuevos.length);
+        }
       }
     } catch (error) {
-      console.log("❌ Error verificando pedidos:", error);
+      console.log("Error verificando pedidos:", error);
     }
   };
 
@@ -738,10 +725,142 @@ Gracias por tu compra 💖
           className={`fixed top-4 right-4 z-50 animate-slide-in ${notificacionPulsando ? "animate-pulse" : ""}`}
         >
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-2xl border border-emerald-400 overflow-hidden max-w-sm">
-            {/* ... (código de notificación anterior se mantiene igual) */}
+            <div className="px-4 py-3 bg-emerald-700/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Bell className="w-5 h-5 text-white animate-bounce" />
+                    {notificacionPulsando && (
+                      <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-20"></div>
+                    )}
+                  </div>
+                  <p className="text-white font-bold text-sm">
+                    ¡NUEVO{nuevosPedidos.length > 1 ? "S" : ""} PEDIDO
+                    {nuevosPedidos.length > 1 ? "S" : ""}!
+                  </p>
+                </div>
+                <button
+                  onClick={aceptarNotificacion}
+                  className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1"
+                  title="Aceptar y actualizar lista"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-white">
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-bold text-gray-800">
+                    Detalles del pedido:
+                  </p>
+                  <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">
+                    {nuevosPedidos.length}{" "}
+                    {nuevosPedidos.length === 1 ? "nuevo" : "nuevos"}
+                  </span>
+                </div>
+
+                {nuevosPedidos.slice(0, 3).map((pedido, index) => (
+                  <div
+                    key={pedido.id}
+                    className={`mb-2 p-2 rounded-lg ${index % 2 === 0 ? "bg-emerald-50" : "bg-gray-50"}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-sm">
+                          #{pedido.id} - {pedido.nombre}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {pedido.ciudad_nombre || "Sin ciudad"}
+                        </p>
+                      </div>
+                      <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">
+                        ${Number(pedido.total || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {nuevosPedidos.length > 3 && (
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    +{nuevosPedidos.length - 3} más...
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={aceptarNotificacion}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Aceptar y Actualizar
+                </button>
+                <button
+                  onClick={() => {
+                    setNotificacionPulsando(false);
+                    setNotificacionVisible(false);
+                    if (pulseIntervalRef.current) {
+                      clearInterval(pulseIntervalRef.current);
+                    }
+                  }}
+                  className="px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors"
+                  title="Cerrar notificación"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                La lista se actualizará automáticamente al aceptar
+              </p>
+            </div>
+
+            <div className="h-1 bg-gradient-to-r from-emerald-400 to-green-400"></div>
           </div>
         </div>
       )}
+
+      {/* Botón de notificaciones móvil */}
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className="flex flex-col items-end gap-2">
+          {contadorNuevos > 0 && !notificacionVisible && (
+            <div className="animate-bounce">
+              <div className="bg-red-500 text-white text-xs font-bold rounded-full px-3 py-1 shadow-lg">
+                {contadorNuevos} nuevo{contadorNuevos !== 1 ? "s" : ""}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 bg-white rounded-full shadow-lg p-2">
+            <button
+              onClick={() => setSonidoActivo(!sonidoActivo)}
+              className={`p-2 rounded-full ${sonidoActivo ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}
+              title={sonidoActivo ? "Sonido activado" : "Sonido desactivado"}
+            >
+              {sonidoActivo ? (
+                <Volume2 className="w-5 h-5" />
+              ) : (
+                <VolumeX className="w-5 h-5" />
+              )}
+            </button>
+
+            <button
+              onClick={verificarNuevosPedidos}
+              className="relative p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all"
+              title="Verificar nuevos pedidos"
+            >
+              <Bell className="w-5 h-5" />
+              {contadorNuevos > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-red-500 text-xs font-bold rounded-full flex items-center justify-center border border-red-200 animate-pulse">
+                  {contadorNuevos}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="mb-4">
@@ -1057,11 +1176,112 @@ Gracias por tu compra 💖
         )}
       </div>
 
-      {/* ... (paginación y estilos se mantienen igual) */}
+      {/* Paginación */}
+      {totalPaginas > 1 && pedidos.length > 0 && (
+        <div className="mt-4 bg-white rounded-lg p-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-sm text-gray-600">
+              Página {paginaActual} de {totalPaginas}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={paginaActual === 1}
+                onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                className={`px-3 py-1.5 border border-gray-300 rounded text-sm ${
+                  paginaActual === 1
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                ← Anterior
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(3, totalPaginas) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setPaginaActual(page)}
+                      className={`w-8 h-8 rounded text-sm ${
+                        paginaActual === page
+                          ? "bg-red-500 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                {totalPaginas > 3 && (
+                  <>
+                    <span className="text-gray-400">...</span>
+                    <button
+                      onClick={() => setPaginaActual(totalPaginas)}
+                      className={`w-8 h-8 rounded text-sm ${
+                        paginaActual === totalPaginas
+                          ? "bg-red-500 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {totalPaginas}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <button
+                disabled={paginaActual === totalPaginas}
+                onClick={() =>
+                  setPaginaActual((p) => Math.min(totalPaginas, p + 1))
+                }
+                className={`px-3 py-1.5 border border-gray-300 rounded text-sm ${
+                  paginaActual === totalPaginas
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-in {
+          from { opacity: 0; transform: translateX(100px) scale(0.9); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animate-slide-in { animation: slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-pulse { animation: pulse 1s infinite; }
+        .animate-bounce { animation: bounce 1s infinite; }
+        .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        
+        @keyframes ping {
+          75%, 100% {
+            transform: scale(1.5);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
-
 // import { useEffect, useState, useRef } from "react";
 // import { Link } from "react-router-dom";
 // import {
