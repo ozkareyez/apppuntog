@@ -345,6 +345,7 @@ app.get("/api/productos", (req, res) => {
 });
 
 /* ================= PRODUCTO POR ID ================= */
+/* ================= PRODUCTO POR ID ================= */
 app.get("/api/productos/:id", (req, res) => {
   const { id } = req.params;
 
@@ -396,7 +397,7 @@ app.get("/api/productos/:id", (req, res) => {
       precio_antes: p.precio_antes ? Number(p.precio_antes) : null,
       descuento: p.descuento ? Number(p.descuento) : 0,
       es_oferta: Boolean(p.es_oferta),
-      estado: p.estado || 1,
+      estado: p.estado, // ✅ CORREGIDO: Quitar el "|| 1"
       categoria: p.categoria,
       talla: p.talla,
       color: p.color,
