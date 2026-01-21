@@ -22,6 +22,7 @@ export default function FormularioEnvioModal() {
   const [departamentos, setDepartamentos] = useState([]);
   const [ciudades, setCiudades] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pedidoId, setPedidoId] = useState(null);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -63,11 +64,9 @@ export default function FormularioEnvioModal() {
   }, [form.ciudad, subtotal]);
 
   const totalFinal = useMemo(() => {
-    // Si el costo de envío es string o vacío, solo muestra el subtotal
     if (typeof costoEnvio === "string" || costoEnvio === 0) {
       return subtotal;
     }
-    // Si es un número, súmalo
     return subtotal + costoEnvio;
   }, [subtotal, costoEnvio]);
 
@@ -80,14 +79,12 @@ export default function FormularioEnvioModal() {
   const esEnvioGratis = costoEnvio === "" || costoEnvio === 0;
 
   /* ================= FUNCIÓN WHATSAPP ================= */
-  const construirMensajeWhatsApp = () => {
-    // Obtener nombre del departamento seleccionado
+  const construirMensajeWhatsApp = (pedidoId = "PENDIENTE") => {
     const deptoSeleccionado = departamentos.find(
       (d) => d.id == form.departamento_id,
     );
     const nombreDepto = deptoSeleccionado?.nombre || "";
 
-    // Construir lista de productos
     const listaProductos = cart
       .map(
         (item) =>
@@ -95,27 +92,29 @@ export default function FormularioEnvioModal() {
       )
       .join("\n• ");
 
-    // Construir mensaje
     const mensaje =
-      `¡Hola! Acabo de realizar mi pedido.\n\n` +
-      `📋 **Datos del Pedido:**\n` +
+      `🛒 **NUEVO PEDIDO**` +
+      `👤 **Cliente:**\n` +
       `• Nombre: ${form.nombre}\n` +
       `• Teléfono: ${form.telefono}\n` +
       `• Dirección: ${form.direccion}\n` +
       `• Ciudad: ${form.ciudad}\n` +
       `• Departamento: ${nombreDepto}\n\n` +
-      `🛒 **Productos:**\n• ${listaProductos}\n\n` +
-      `💰 **Resumen de Pago:**\n` +
-      `• Subtotal: $${subtotal.toLocaleString()}\n` +
-      `• Envío: ${mostrarCostoEnvio}\n` +
-      `• Total: $${totalFinal.toLocaleString()}\n\n` +
-      `Por favor, confírmame la recepción de este pedido.`;
+      `📦 **Productos:**\n• ${listaProductos}\n\n` +
+      `💰 **Total:** $${totalFinal.toLocaleString()}\n` +
+      `   (Subtotal: $${subtotal.toLocaleString()} + Envío: ${mostrarCostoEnvio})\n\n` +
+      `⏰ **Fecha:** ${new Date().toLocaleString()}`;
 
-    // Codificar para URL
     return encodeURIComponent(mensaje);
   };
 
-  /* ================= ENVIAR ================= */
+  const abrirWhatsApp = (pedidoId) => {
+    const mensaje = construirMensajeWhatsApp(pedidoId);
+    const url = `https://wa.me/573147041149?text=${mensaje}`;
+    window.open(url, "_blank");
+  };
+
+  /* ================= ENVIAR PEDIDO ================= */
   const enviarPedido = async () => {
     if (
       !form.nombre ||
@@ -128,7 +127,6 @@ export default function FormularioEnvioModal() {
       return;
     }
 
-    // Validación especial para Cali
     if (form.ciudad.toLowerCase() === "cali" && subtotal < 200000) {
       const confirmar = window.confirm(
         "Para envíos a Cali, el costo del envío varía según la zona. " +
@@ -165,14 +163,27 @@ export default function FormularioEnvioModal() {
       const data = await res.json();
       if (!data.ok) throw new Error();
 
-      // Éxito
-      alert("¡Pedido confirmado! Te contactaremos pronto.");
-      clearCart();
-      setShowShippingModal(false);
-      setShowCart(false);
+      // Guardar ID del pedido si viene en la respuesta
+      const nuevoPedidoId =
+        data.pedidoId || `ORD-${Date.now().toString().slice(-6)}`;
+      setPedidoId(nuevoPedidoId);
+
+      // Éxito - mostrar alerta y abrir WhatsApp
+      alert("¡Pedido confirmado! Se abrirá WhatsApp para enviar los detalles.");
+
+      // Abrir WhatsApp con los datos
+      setTimeout(() => {
+        abrirWhatsApp(nuevoPedidoId);
+      }, 500);
+
+      // Limpiar carrito y cerrar modales
+      setTimeout(() => {
+        clearCart();
+        setShowShippingModal(false);
+        setShowCart(false);
+      }, 1000);
     } catch {
       alert("Error al enviar el pedido. Por favor intenta de nuevo.");
-    } finally {
       setLoading(false);
     }
   };
@@ -440,11 +451,11 @@ export default function FormularioEnvioModal() {
                   </div>
                 </div>
 
-                {/* Botón de confirmación principal */}
+                {/* BOTÓN ÚNICO - CONFIRMAR Y ENVIAR POR WHATSAPP */}
                 <button
                   onClick={enviarPedido}
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
+                  className="w-full bg-gradient-to-r from-red-600 via-red-700 to-red-800 hover:from-red-700 hover:via-red-800 hover:to-red-900 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4 group"
                 >
                   {loading ? (
                     <>
@@ -455,27 +466,19 @@ export default function FormularioEnvioModal() {
                     </>
                   ) : (
                     <>
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
                       <span className="text-sm sm:text-base">
                         {form.ciudad.toLowerCase() === "cali" &&
                         subtotal < 200000
-                          ? "Continuar con pedido"
-                          : "Confirmar y realizar pedido"}
+                          ? "Continuar y notificar por WhatsApp"
+                          : "Confirmar y notificar por WhatsApp"}
                       </span>
-                      <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                     </>
                   )}
                 </button>
-
-                {/* Botón de WhatsApp - NUEVO */}
-                <a
-                  href={`https://wa.me/573147041149=${construirMensajeWhatsApp()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 mt-3"
-                >
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>También enviar por WhatsApp</span>
-                </a>
 
                 <p className="text-center text-xs text-gray-500 mt-3 sm:mt-4 px-2">
                   Al confirmar, aceptas nuestros{" "}
@@ -486,6 +489,15 @@ export default function FormularioEnvioModal() {
                     términos y condiciones
                   </a>
                 </p>
+
+                {/* Nota sobre WhatsApp */}
+                <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-xs text-gray-600 text-center">
+                    <MessageCircle className="inline w-3 h-3 mr-1 text-green-600" />
+                    <strong>Nota:</strong> Después de confirmar el pedido, se
+                    abrirá WhatsApp automáticamente para enviarte los detalles.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
