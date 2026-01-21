@@ -945,6 +945,97 @@ app.get("/api/exportar-productos-excel", async (req, res) => {
   }
 });
 
+/* ================= FORMULARIO CLIENTE ================= */
+app.post("/api/enviar-formulario", (req, res) => {
+  const {
+    nombre,
+    email = null,
+    telefono,
+    direccion,
+    departamento_id,
+    ciudad_id,
+    carrito,
+    costo_envio = 0,
+  } = req.body;
+
+  if (!nombre || !telefono || !direccion || !departamento_id || !ciudad_id) {
+    return res.status(400).json({ ok: false });
+  }
+
+  if (!Array.isArray(carrito) || !carrito.length) {
+    return res.status(400).json({ ok: false });
+  }
+
+  const subtotal = carrito.reduce(
+    (s, p) => s + Number(p.precio) * Number(p.cantidad),
+    0,
+  );
+
+  const total = subtotal + Number(costo_envio);
+
+  DB.query(
+    `
+    SELECT d.nombre AS departamento, c.nombre AS ciudad
+    FROM departamentos d
+    JOIN ciudades c ON c.id = ?
+    WHERE d.id = ?
+    `,
+    [ciudad_id, departamento_id],
+    (err, rows) => {
+      if (err || !rows.length) return res.status(500).json({ ok: false });
+
+      const { departamento, ciudad } = rows[0];
+
+      DB.query(
+        `
+        INSERT INTO pedidos
+        (
+          nombre, email, telefono, direccion,
+          departamento, departamento_id,
+          ciudad, ciudad_id,
+          total, costo_envio, estado
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?,'pendiente')
+        `,
+        [
+          nombre,
+          email,
+          telefono,
+          direccion,
+          departamento,
+          departamento_id,
+          ciudad,
+          ciudad_id,
+          total,
+          costo_envio,
+        ],
+        (err2, result) => {
+          if (err2) return res.status(500).json({ ok: false });
+
+          const detalles = carrito.map((p) => [
+            result.insertId,
+            p.id,
+            p.nombre,
+            Number(p.precio),
+            Number(p.cantidad),
+            Number(p.precio) * Number(p.cantidad),
+          ]);
+
+          DB.query(
+            `
+            INSERT INTO pedido_detalles
+            (pedido_id,producto_id,nombre,precio,cantidad,subtotal)
+            VALUES ?
+            `,
+            [detalles],
+            () => res.json({ ok: true, pedido_id: result.insertId }),
+          );
+        },
+      );
+    },
+  );
+});
+
 /* ================= SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`
