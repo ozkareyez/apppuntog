@@ -873,6 +873,91 @@ app.put("/api/pedidos-estado/:id", async (req, res) => {
   }
 });
 
+/* ================= ACTUALIZAR COSTO DE ENVÍO ================= */
+app.put("/api/pedidos/:id/envio", async (req, res) => {
+  const { id } = req.params;
+  const { costo_envio } = req.body;
+
+  console.log(`🚚 PUT /api/pedidos/${id}/envio`, { costo_envio });
+
+  // Validación
+  if (!costo_envio || isNaN(parseFloat(costo_envio))) {
+    return res.status(400).json({
+      ok: false,
+      message: "Costo de envío inválido. Debe ser un número.",
+    });
+  }
+
+  const costo = parseFloat(costo_envio);
+
+  if (costo < 0) {
+    return res.status(400).json({
+      ok: false,
+      message: "El costo de envío no puede ser negativo",
+    });
+  }
+
+  try {
+    // 1. Obtener el pedido actual
+    const [pedidoRows] = await DB.promise().query(
+      "SELECT total, costo_envio FROM pedidos WHERE id = ?",
+      [id],
+    );
+
+    if (!pedidoRows.length) {
+      return res.status(404).json({
+        ok: false,
+        message: "Pedido no encontrado",
+      });
+    }
+
+    const pedido = pedidoRows[0];
+
+    // 2. Calcular nuevo total (mantener subtotal)
+    const subtotal = pedido.total - (pedido.costo_envio || 0);
+    const nuevoTotal = subtotal + costo;
+
+    console.log(`💰 Cálculos: Subtotal=${subtotal}, Nuevo total=${nuevoTotal}`);
+
+    // 3. Actualizar en la base de datos
+    const [result] = await DB.promise().query(
+      `UPDATE pedidos 
+       SET costo_envio = ?, total = ?, updated_at = NOW() 
+       WHERE id = ?`,
+      [costo, nuevoTotal, id],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(500).json({
+        ok: false,
+        message: "No se pudo actualizar el pedido",
+      });
+    }
+
+    console.log(
+      `✅ Pedido ${id} actualizado: Envío=$${costo}, Total=$${nuevoTotal}`,
+    );
+
+    res.json({
+      ok: true,
+      message: "Costo de envío actualizado correctamente",
+      pedido: {
+        id,
+        costo_envio: costo,
+        total: nuevoTotal,
+        subtotal: subtotal,
+      },
+    });
+  } catch (error) {
+    console.error(`❌ Error actualizando envío del pedido ${id}:`, error);
+    res.status(500).json({
+      ok: false,
+      message: "Error interno del servidor",
+      error: error.message,
+    });
+  }
+});
+
 /* ================= EXPORTAR A EXCEL ================= */
 app.get("/api/exportar-productos-excel", async (req, res) => {
   try {

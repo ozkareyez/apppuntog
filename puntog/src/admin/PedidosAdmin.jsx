@@ -88,61 +88,74 @@ export default function PedidosAdmin() {
 
   // Función para reproducir sonido
   const playNotificationSound = () => {
-    if (!sonidoActivo) return;
+    console.log("🔊 Intentando reproducir notificación...");
 
-    if (notificationAudioRef.current) {
-      try {
-        notificationAudioRef.current.currentTime = 0;
-        const playPromise = notificationAudioRef.current.play();
-
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            playGeneratedSound();
-          });
-        }
-      } catch (error) {
-        playGeneratedSound();
-      }
-    } else {
-      playGeneratedSound();
+    if (!sonidoActivo) {
+      console.log("🔇 Sonido desactivado");
+      return;
     }
+
+    // PRIMERO: Intentar con sonido generado (siempre funciona)
+    playGeneratedSound();
+
+    // LUEGO: Intentar con audio MP3 (como respaldo mejorado)
+    setTimeout(() => {
+      if (notificationAudioRef.current) {
+        try {
+          console.log("🎵 Intentando audio MP3...");
+          notificationAudioRef.current.currentTime = 0;
+          notificationAudioRef.current.volume = 0.5;
+
+          // No usar promesa para evitar bloqueos
+          notificationAudioRef.current.play().catch((e) => {
+            console.log("⚠️ Audio MP3 falló:", e.name);
+          });
+        } catch (error) {
+          console.log("❌ Error con audio MP3:", error);
+        }
+      }
+    }, 100);
   };
 
+  // Y asegúrate que la función playGeneratedSound sea así:
   const playGeneratedSound = () => {
-    if (!sonidoActivo) return;
-
     try {
-      if (audioRef.current?.audioContext?.state === "suspended") {
-        audioRef.current.audioContext.resume();
-      }
+      console.log("🎶 Generando sonido de notificación...");
 
-      if (audioRef.current?.audioContext) {
-        const { audioContext } = audioRef.current;
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+      // Crear contexto de audio
+      const audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+      // Crear oscilador
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
 
-        oscillator.frequency.value = 1200;
-        oscillator.type = "sine";
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(
-          0.01,
-          audioContext.currentTime + 0.3,
-        );
+      // Configurar sonido de notificación
+      oscillator.frequency.value = 1500; // Frecuencia alta para notificación
+      oscillator.type = "sine";
 
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
+      // Configurar volumen (beep corto)
+      const now = audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05); // Attack rápido
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3); // Decay
 
-        oscillator.onended = () => {
-          oscillator.disconnect();
-          gainNode.disconnect();
-        };
-      }
+      // Reproducir
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+
+      // Limpiar
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gainNode.disconnect();
+        audioContext.close();
+      };
     } catch (error) {
-      console.log("Error en sonido generado:", error);
+      console.log("❌ Error en sonido generado:", error);
     }
   };
 
@@ -500,43 +513,54 @@ Gracias por tu compra 💖
 
   // Verificar nuevos pedidos
   const verificarNuevosPedidos = async () => {
-    console.log("🔄 Verificando nuevos pedidos...");
+    console.log("🔍 VERIFICANDO NUEVOS PEDIDOS - Último ID:", ultimoPedidoId);
+
     try {
       const res = await fetch(`${API}/api/pedidos-completo?page=1&limit=10`);
-      if (!res.ok) return;
+
+      if (!res.ok) {
+        console.log("❌ Error HTTP:", res.status);
+        return;
+      }
 
       const data = await res.json();
-      if (!data.ok) return;
+
+      if (!data.ok) {
+        console.log("❌ Error en respuesta:", data.message);
+        return;
+      }
 
       const resultados = data.results || [];
 
-      const nuevos = resultados.filter(
-        (pedido) =>
-          (!ultimoPedidoId || pedido.id > ultimoPedidoId) &&
-          pedido.estado === "pendiente",
-      );
+      // Filtrar pedidos nuevos (pendientes y con ID mayor al último conocido)
+      const nuevos = resultados.filter((pedido) => {
+        const esNuevo = !ultimoPedidoId || pedido.id > ultimoPedidoId;
+        const esPendiente = pedido.estado === "pendiente";
+
+        if (esNuevo && esPendiente) {
+          console.log(`🎯 ¡NUEVO PEDIDO #${pedido.id}!`);
+        }
+
+        return esNuevo && esPendiente;
+      });
+
+      console.log(`📊 ${nuevos.length} pedidos nuevos encontrados`);
 
       if (nuevos.length > 0) {
+        // ACTUALIZAR EL ÚLTIMO ID (esto es clave)
         const maxId = Math.max(...nuevos.map((p) => p.id));
         if (!ultimoPedidoId || maxId > ultimoPedidoId) {
+          console.log(
+            `🆕 Actualizando último ID de ${ultimoPedidoId} a ${maxId}`,
+          );
           setUltimoPedidoId(maxId);
         }
 
-        if (!notificacionVisible && !notificacionMostrada) {
-          mostrarNotificacionAnimada(nuevos);
-        } else {
-          setNuevosPedidos((prev) => {
-            const nuevosIds = nuevos.map((p) => p.id);
-            const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
-            return [...nuevos, ...filtrados]
-              .sort((a, b) => b.id - a.id)
-              .slice(0, 5);
-          });
-          setContadorNuevos((prev) => prev + nuevos.length);
-        }
+        // Mostrar notificación
+        mostrarNotificacionAnimada(nuevos);
       }
     } catch (error) {
-      console.log("Error verificando pedidos:", error);
+      console.log("❌ Error verificando pedidos:", error);
     }
   };
 
