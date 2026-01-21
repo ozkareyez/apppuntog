@@ -28,7 +28,6 @@ export default function PedidosAdmin() {
 
   const [nuevosPedidos, setNuevosPedidos] = useState([]);
   const [ultimoPedidoId, setUltimoPedidoId] = useState(null);
-  const [mostrarNotificacion, setMostrarNotificacion] = useState(false);
   const [sonidoActivo, setSonidoActivo] = useState(true);
   const [contadorNuevos, setContadorNuevos] = useState(0);
   const [enviandoWhatsApp, setEnviandoWhatsApp] = useState(false);
@@ -39,39 +38,55 @@ export default function PedidosAdmin() {
   const [notificacionVisible, setNotificacionVisible] = useState(false);
   const [notificacionPulsando, setNotificacionPulsando] = useState(false);
   const [notificacionMostrada, setNotificacionMostrada] = useState(false);
+  const [mostrarDebug, setMostrarDebug] = useState(false); // Para depuración
   const notificationAudioRef = useRef(null);
-  const notificationTimeoutRef = useRef(null);
   const pulseIntervalRef = useRef(null);
 
   const audioRef = useRef(null);
 
-  // Inicializar audio de notificación mejorado
+  // Inicializar audio de notificación mejorado - VERSIÓN MÁS ROBUSTA
   useEffect(() => {
-    // Audio para el sonido de notificación - usando tu archivo local
-    notificationAudioRef.current = new Audio("/sound/notification.mp3");
-    notificationAudioRef.current.volume = 0.5;
+    console.log("🔊 Inicializando sistema de audio...");
 
-    // Audio para sonido suave de verificación
-    const audioContext = new (
-      window.AudioContext || window.webkitAudioContext
-    )();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    try {
+      // 1. Intentar cargar el sonido local
+      notificationAudioRef.current = new Audio("/sounds/notification.mp3");
+      notificationAudioRef.current.volume = 0.7;
+      notificationAudioRef.current.preload = "auto";
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+      // Eventos para depuración
+      notificationAudioRef.current.addEventListener("canplaythrough", () => {
+        console.log("✅ Audio listo para reproducir");
+      });
 
-    oscillator.frequency.value = 800;
-    oscillator.type = "sine";
+      notificationAudioRef.current.addEventListener("error", (e) => {
+        console.error("❌ Error cargando audio:", e);
+        console.log("Ruta intentada:", "/sounds/notification.mp3");
+      });
 
-    audioRef.current = { audioContext, oscillator, gainNode };
+      // 2. Audio de respaldo usando Web Audio API
+      const audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = 800;
+      oscillator.type = "sine";
+
+      audioRef.current = { audioContext, oscillator, gainNode };
+
+      console.log("✅ Sistema de audio inicializado correctamente");
+    } catch (error) {
+      console.error("❌ Error inicializando audio:", error);
+    }
 
     return () => {
-      if (audioContext.state !== "closed") {
-        audioContext.close();
-      }
-      if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
+      if (audioRef.current?.audioContext?.state !== "closed") {
+        audioRef.current?.audioContext?.close();
       }
       if (pulseIntervalRef.current) {
         clearInterval(pulseIntervalRef.current);
@@ -79,43 +94,60 @@ export default function PedidosAdmin() {
     };
   }, []);
 
-  // Función para reproducir sonido de notificación (más robusta)
+  // Función para reproducir sonido de notificación - VERSIÓN MEJORADA
   const playNotificationSound = () => {
-    if (!sonidoActivo || !notificationAudioRef.current) return;
+    console.log(
+      "🎵 Intentando reproducir sonido. Sonido activo:",
+      sonidoActivo,
+    );
+    if (!sonidoActivo) {
+      console.log("🔇 Sonido desactivado por usuario");
+      return;
+    }
 
-    try {
-      // Reiniciar el audio si ya estaba reproduciéndose
-      notificationAudioRef.current.currentTime = 0;
+    // Intentar con el audio local primero
+    if (notificationAudioRef.current) {
+      try {
+        console.log("🔊 Reproduciendo audio local...");
 
-      // Intentar reproducir
-      const playPromise = notificationAudioRef.current.play();
+        // Reiniciar si ya estaba reproduciéndose
+        notificationAudioRef.current.currentTime = 0;
 
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.log("Error reproduciendo notificación:", error);
-          // Fallback al sonido anterior si hay error
-          playFallbackSound();
-        });
+        // Intentar reproducir
+        const playPromise = notificationAudioRef.current.play();
+
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log("✅ Audio local reproducido correctamente");
+            })
+            .catch((error) => {
+              console.log("❌ Error reproduciendo audio local:", error);
+              // Fallback al sonido generado
+              console.log("🔄 Usando sonido generado como fallback");
+              playGeneratedSound();
+            });
+        }
+      } catch (error) {
+        console.log("❌ Excepción reproduciendo audio local:", error);
+        playGeneratedSound();
       }
-    } catch (error) {
-      console.log("Error en playNotificationSound:", error);
-      playFallbackSound();
+    } else {
+      console.log("⚠️ No hay audio local disponible, usando generado");
+      playGeneratedSound();
     }
   };
 
-  // Función de respaldo para sonido
-  const playFallbackSound = () => {
+  // Función para sonido generado
+  const playGeneratedSound = () => {
     if (!sonidoActivo) return;
 
     try {
-      if (
-        audioRef.current &&
-        audioRef.current.audioContext.state === "suspended"
-      ) {
+      if (audioRef.current?.audioContext?.state === "suspended") {
         audioRef.current.audioContext.resume();
       }
 
-      if (audioRef.current && audioRef.current.audioContext) {
+      if (audioRef.current?.audioContext) {
         const { audioContext } = audioRef.current;
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
@@ -123,37 +155,65 @@ export default function PedidosAdmin() {
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.value = 1000;
+        // Sonido más parecido a una notificación
+        oscillator.frequency.value = 1200;
         oscillator.type = "sine";
 
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(
           0.01,
-          audioContext.currentTime + 0.8,
+          audioContext.currentTime + 0.3,
         );
 
         oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.8);
+        oscillator.stop(audioContext.currentTime + 0.3);
+
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          gainNode.disconnect();
+        };
+
+        console.log("🎶 Sonido generado reproducido");
       }
     } catch (error) {
-      console.log("Error en fallback sound:", error);
+      console.log("❌ Error en sonido generado:", error);
     }
   };
 
   // NUEVA FUNCIÓN: Mostrar notificación animada
   const mostrarNotificacionAnimada = (nuevosPedidosArr) => {
-    if (nuevosPedidosArr.length === 0) return;
+    console.log(
+      "🔔 Mostrando notificación con",
+      nuevosPedidosArr.length,
+      "pedidos nuevos",
+    );
+
+    if (nuevosPedidosArr.length === 0) {
+      console.log("⚠️ No hay pedidos nuevos para notificar");
+      return;
+    }
 
     // Detener cualquier notificación anterior
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current);
-    }
     if (pulseIntervalRef.current) {
       clearInterval(pulseIntervalRef.current);
     }
 
     // Reproducir sonido
     playNotificationSound();
+
+    // Actualizar lista de nuevos pedidos
+    setNuevosPedidos((prev) => {
+      const nuevosIds = nuevosPedidosArr.map((p) => p.id);
+      const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
+      const combinados = [...nuevosPedidosArr, ...filtrados]
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 5);
+      console.log(
+        "📋 Nuevos pedidos actualizados:",
+        combinados.map((p) => p.id),
+      );
+      return combinados;
+    });
 
     // Mostrar notificación con animación de entrada
     setNotificacionVisible(true);
@@ -167,16 +227,21 @@ export default function PedidosAdmin() {
 
     // Mostrar el contador
     setContadorNuevos((prev) => prev + nuevosPedidosArr.length);
+    console.log(
+      "📊 Contador actualizado:",
+      contadorNuevos + nuevosPedidosArr.length,
+    );
 
-    // La notificación NO se cierra automáticamente - queda hasta que el usuario la acepte
+    // La notificación NO se cierra automáticamente
   };
 
   // NUEVA FUNCIÓN: Aceptar notificación y actualizar lista
   const aceptarNotificacion = () => {
+    console.log("✅ Aceptando notificación...");
+
     // Detener animaciones
     setNotificacionPulsando(false);
     setNotificacionVisible(false);
-    setMostrarNotificacion(false);
 
     if (pulseIntervalRef.current) {
       clearInterval(pulseIntervalRef.current);
@@ -191,14 +256,7 @@ export default function PedidosAdmin() {
     // Actualizar la lista de pedidos automáticamente
     cargarPedidos(1);
 
-    // También agregar los nuevos pedidos a la lista actual
-    if (nuevosPedidos.length > 0) {
-      setPedidos((prev) => {
-        const nuevosIds = nuevosPedidos.map((p) => p.id);
-        const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
-        return [...nuevosPedidos, ...filtrados].sort((a, b) => b.id - a.id);
-      });
-    }
+    console.log("🔄 Lista actualizada, notificación cerrada");
   };
 
   // Cargar pedidos
@@ -233,6 +291,7 @@ export default function PedidosAdmin() {
       }
 
       setError("");
+      console.log(`📥 ${resultados.length} pedidos cargados`);
     } catch (err) {
       console.error("Error cargando pedidos:", err);
       setError(err.message || "Error al cargar pedidos");
@@ -348,46 +407,78 @@ Gracias por tu compra 💖
     }
   };
 
-  // Verificar nuevos pedidos - VERSIÓN MEJORADA
+  // Verificar nuevos pedidos - VERSIÓN MEJORADA CON DEPURACIÓN
   const verificarNuevosPedidos = async () => {
+    console.log("🔄 Verificando nuevos pedidos...");
     try {
       const res = await fetch(`${API}/api/pedidos-completo?page=1&limit=10`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        console.log("❌ Error en la respuesta HTTP:", res.status);
+        return;
+      }
 
       const data = await res.json();
-      if (!data.ok) return;
+      if (!data.ok) {
+        console.log("❌ Error en la respuesta del servidor");
+        return;
+      }
 
       const resultados = data.results || [];
+      console.log("📊 Total de pedidos obtenidos:", resultados.length);
+      console.log("📌 Último ID conocido:", ultimoPedidoId);
 
       // Filtrar solo pedidos realmente nuevos
-      const nuevos = resultados.filter(
-        (pedido) =>
-          (!ultimoPedidoId || pedido.id > ultimoPedidoId) &&
-          pedido.estado === "pendiente",
-      );
+      const nuevos = resultados.filter((pedido) => {
+        const esNuevo = !ultimoPedidoId || pedido.id > ultimoPedidoId;
+        const esPendiente = pedido.estado === "pendiente";
+        if (esNuevo && esPendiente) {
+          console.log(
+            `🎯 Pedido nuevo encontrado: #${pedido.id} - ${pedido.nombre}`,
+          );
+        }
+        return esNuevo && esPendiente;
+      });
+
+      console.log("🎯 Pedidos nuevos encontrados:", nuevos.length);
 
       if (nuevos.length > 0) {
         const maxId = Math.max(...nuevos.map((p) => p.id));
         if (!ultimoPedidoId || maxId > ultimoPedidoId) {
+          console.log(
+            `🆕 Actualizando último ID de ${ultimoPedidoId} a ${maxId}`,
+          );
           setUltimoPedidoId(maxId);
         }
 
-        setNuevosPedidos((prev) => {
-          const nuevosIds = nuevos.map((p) => p.id);
-          const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
-          return [...nuevos, ...filtrados]
-            .sort((a, b) => b.id - a.id)
-            .slice(0, 5);
-        });
-
         // Mostrar notificación animada si no está ya visible
         if (!notificacionVisible && !notificacionMostrada) {
+          console.log("🔔 Mostrando notificación animada");
           mostrarNotificacionAnimada(nuevos);
+        } else {
+          console.log(
+            "ℹ️ Notificación ya visible o mostrada, agregando a lista",
+          );
+          setNuevosPedidos((prev) => {
+            const nuevosIds = nuevos.map((p) => p.id);
+            const filtrados = prev.filter((p) => !nuevosIds.includes(p.id));
+            return [...nuevos, ...filtrados]
+              .sort((a, b) => b.id - a.id)
+              .slice(0, 5);
+          });
+          setContadorNuevos((prev) => prev + nuevos.length);
         }
+      } else {
+        console.log("✅ No hay pedidos nuevos");
       }
     } catch (error) {
-      console.log("Error verificando pedidos:", error);
+      console.log("❌ Error verificando pedidos:", error);
     }
+  };
+
+  // Función para probar el sonido manualmente
+  const probarSonido = () => {
+    console.log("🔊 Probando sonido manualmente...");
+    playNotificationSound();
   };
 
   // Effects
@@ -396,8 +487,8 @@ Gracias por tu compra 💖
   }, [paginaActual, estadoFiltro, busqueda]);
 
   useEffect(() => {
-    const interval = setInterval(verificarNuevosPedidos, 30000);
-    const timeout = setTimeout(verificarNuevosPedidos, 2000);
+    const interval = setInterval(verificarNuevosPedidos, 30000); // 30 segundos
+    const timeout = setTimeout(verificarNuevosPedidos, 2000); // 2 segundos inicial
 
     return () => {
       clearInterval(interval);
@@ -406,10 +497,13 @@ Gracias por tu compra 💖
   }, [ultimoPedidoId, notificacionVisible, notificacionMostrada]);
 
   useEffect(() => {
-    if (pedidos.length > 0 && contadorNuevos > 0 && notificacionMostrada) {
-      setContadorNuevos(0);
-    }
-  }, [pedidos, notificacionMostrada]);
+    console.log(
+      "📊 Estado actualizado - Nuevos pedidos:",
+      nuevosPedidos.length,
+    );
+    console.log("📊 Pedidos en lista:", pedidos.length);
+    console.log("📊 Notificación visible:", notificacionVisible);
+  }, [nuevosPedidos, pedidos, notificacionVisible]);
 
   // Loading
   if (loading && pedidos.length === 0) {
@@ -425,13 +519,47 @@ Gracias por tu compra 💖
 
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-4 relative">
-      {/* NOTIFICACIÓN MEJORADA - Con animación y persistente */}
+      {/* Botón de depuración */}
+      <button
+        onClick={() => {
+          setMostrarDebug(!mostrarDebug);
+          probarSonido();
+        }}
+        className="fixed top-4 left-4 z-50 bg-gray-800 text-white px-3 py-1 rounded-lg text-xs opacity-70 hover:opacity-100"
+      >
+        🔧 Debug
+      </button>
+
+      {/* Panel de depuración */}
+      {mostrarDebug && (
+        <div className="fixed top-12 left-4 z-50 bg-black/80 text-white p-3 rounded-lg text-xs max-w-xs">
+          <h3 className="font-bold mb-2">🔍 Estado del sistema:</h3>
+          <p>🆕 Nuevos pedidos: {nuevosPedidos.length}</p>
+          <p>📊 Contador: {contadorNuevos}</p>
+          <p>🔔 Notificación visible: {notificacionVisible ? "Sí" : "No"}</p>
+          <p>🔊 Sonido activo: {sonidoActivo ? "Sí" : "No"}</p>
+          <p>📌 Último ID: {ultimoPedidoId || "Ninguno"}</p>
+          <button
+            onClick={probarSonido}
+            className="mt-2 bg-blue-500 px-2 py-1 rounded text-xs"
+          >
+            Probar sonido
+          </button>
+          <button
+            onClick={verificarNuevosPedidos}
+            className="mt-1 ml-2 bg-green-500 px-2 py-1 rounded text-xs"
+          >
+            Verificar ahora
+          </button>
+        </div>
+      )}
+
+      {/* NOTIFICACIÓN MEJORADA */}
       {notificacionVisible && (
         <div
           className={`fixed top-4 right-4 z-50 animate-slide-in ${notificacionPulsando ? "animate-pulse" : ""}`}
         >
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-2xl border border-emerald-400 overflow-hidden max-w-sm transform transition-all duration-300 hover:scale-[1.02]">
-            {/* Header de notificación */}
             <div className="px-4 py-3 bg-emerald-700/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -456,7 +584,6 @@ Gracias por tu compra 💖
               </div>
             </div>
 
-            {/* Contenido de notificación */}
             <div className="p-4 bg-white">
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
@@ -497,7 +624,6 @@ Gracias por tu compra 💖
                 )}
               </div>
 
-              {/* Botones de acción */}
               <div className="flex gap-2">
                 <button
                   onClick={aceptarNotificacion}
@@ -526,7 +652,6 @@ Gracias por tu compra 💖
               </p>
             </div>
 
-            {/* Indicador de tiempo */}
             <div className="h-1 bg-gradient-to-r from-emerald-400 to-green-400"></div>
           </div>
         </div>
@@ -592,7 +717,7 @@ Gracias por tu compra 💖
             )}
             {notificacionVisible && (
               <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                🔔 Activa
+                🔔 Notificación activa
               </span>
             )}
           </div>
@@ -686,134 +811,145 @@ Gracias por tu compra 💖
             </button>
           </div>
         ) : pedidos.length > 0 ? (
-          pedidos.map((p) => (
-            <div
-              key={p.id}
-              className={`bg-white rounded-lg border overflow-hidden ${
-                nuevosPedidos.some((np) => np.id === p.id)
-                  ? "border-emerald-400 border-2 shadow-md"
-                  : "border-gray-200"
-              }`}
-            >
-              {/* Header de la card - MODIFICADO para mostrar "NUEVO" en mejor posición */}
-              <div className="px-4 py-3 border-b border-gray-100 relative">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-400" />
-                    <span className="font-mono font-bold text-gray-800 text-sm">
-                      #{p.id}
+          pedidos.map((p) => {
+            const esNuevo = nuevosPedidos.some((np) => np.id === p.id);
+            console.log(`Pedido #${p.id} - Es nuevo: ${esNuevo}`);
+
+            return (
+              <div
+                key={p.id}
+                className={`bg-white rounded-lg border overflow-hidden ${
+                  esNuevo
+                    ? "border-emerald-400 border-2 shadow-md relative"
+                    : "border-gray-200"
+                }`}
+              >
+                {/* Indicador de nuevo pedido más visible */}
+                {esNuevo && (
+                  <div className="absolute -top-2 -right-2 z-10">
+                    <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse shadow-lg flex items-center gap-1">
+                      <span className="text-lg">🆕</span>
+                      <span>NUEVO</span>
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Etiqueta "NUEVO" movida aquí para que no sea tapada */}
-                    {nuevosPedidos.some((np) => np.id === p.id) && (
-                      <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full animate-pulse font-bold">
-                        🆕 NUEVO
+                )}
+
+                {/* Header de la card */}
+                <div className="px-4 py-3 border-b border-gray-100 relative">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      <span className="font-mono font-bold text-gray-800 text-sm">
+                        #{p.id}
                       </span>
-                    )}
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        p.estado === "pendiente"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          p.estado === "pendiente"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {p.estado === "pendiente"
+                          ? "⏳ Pendiente"
+                          : "✅ Entregado"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contenido */}
+                <div className="p-4">
+                  <div className="mb-3">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      {p.nombre}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                      <span>{p.telefono}</span>
+                      <span>•</span>
+                      <span className="truncate">{p.ciudad_nombre}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Total</p>
+                      <p className="text-lg font-bold text-red-600">
+                        ${Number(p.total || 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Dirección</p>
+                      <p className="text-sm text-gray-700 truncate max-w-[120px]">
+                        {p.direccion || "Sin dirección"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Botones */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => enviarMensajeWhatsApp(p)}
+                      disabled={
+                        enviandoWhatsApp || pedidosConfirmados.includes(p.id)
+                      }
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
+                        pedidosConfirmados.includes(p.id)
+                          ? "bg-green-500 text-white"
+                          : "bg-emerald-500 text-white hover:bg-emerald-600"
+                      } ${enviandoWhatsApp ? "opacity-70" : ""}`}
                     >
-                      {p.estado === "pendiente"
-                        ? "⏳ Pendiente"
-                        : "✅ Entregado"}
-                    </span>
+                      {enviandoWhatsApp ? (
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : pedidosConfirmados.includes(p.id) ? (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="hidden xs:inline">Confirmado</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="w-4 h-4" />
+                          <span className="hidden xs:inline">WhatsApp</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => cambiarEstado(p.id, p.estado)}
+                      disabled={actualizandoEstados[p.id]}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
+                        p.estado === "pendiente"
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-gray-500 hover:bg-gray-600 text-white"
+                      } ${actualizandoEstados[p.id] ? "opacity-70" : ""}`}
+                    >
+                      {actualizandoEstados[p.id] ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Truck className="w-4 h-4" />
+                          <span className="hidden xs:inline">
+                            {p.estado === "pendiente"
+                              ? "Marcar Entregado"
+                              : "Marcar Pendiente"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    <Link
+                      to={`/admin/orden-servicio/${p.id}`}
+                      className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="hidden xs:inline">Ver</span>
+                    </Link>
                   </div>
                 </div>
               </div>
-
-              {/* Contenido */}
-              <div className="p-4">
-                <div className="mb-3">
-                  <h3 className="font-medium text-gray-900 mb-1">{p.nombre}</h3>
-                  <div className="flex flex-wrap gap-2 text-sm text-gray-600">
-                    <span>{p.telefono}</span>
-                    <span>•</span>
-                    <span className="truncate">{p.ciudad_nombre}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500">Total</p>
-                    <p className="text-lg font-bold text-red-600">
-                      ${Number(p.total || 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Dirección</p>
-                    <p className="text-sm text-gray-700 truncate max-w-[120px]">
-                      {p.direccion || "Sin dirección"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Botones */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => enviarMensajeWhatsApp(p)}
-                    disabled={
-                      enviandoWhatsApp || pedidosConfirmados.includes(p.id)
-                    }
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
-                      pedidosConfirmados.includes(p.id)
-                        ? "bg-green-500 text-white"
-                        : "bg-emerald-500 text-white hover:bg-emerald-600"
-                    } ${enviandoWhatsApp ? "opacity-70" : ""}`}
-                  >
-                    {enviandoWhatsApp ? (
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : pedidosConfirmados.includes(p.id) ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="hidden xs:inline">Confirmado</span>
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="hidden xs:inline">WhatsApp</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => cambiarEstado(p.id, p.estado)}
-                    disabled={actualizandoEstados[p.id]}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
-                      p.estado === "pendiente"
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-gray-500 hover:bg-gray-600 text-white"
-                    } ${actualizandoEstados[p.id] ? "opacity-70" : ""}`}
-                  >
-                    {actualizandoEstados[p.id] ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Truck className="w-4 h-4" />
-                        <span className="hidden xs:inline">
-                          {p.estado === "pendiente"
-                            ? "Marcar Entregado"
-                            : "Marcar Pendiente"}
-                        </span>
-                      </>
-                    )}
-                  </button>
-
-                  <Link
-                    to={`/admin/orden-servicio/${p.id}`}
-                    className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-1"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="hidden xs:inline">Ver</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="bg-white rounded-lg p-8 text-center">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
