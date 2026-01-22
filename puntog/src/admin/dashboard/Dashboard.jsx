@@ -81,20 +81,66 @@ export default function Dashboard() {
         `🔍 Fetching: ${API_URL}/api/pedidos-completo?${params.toString()}`,
       );
 
+      // AÑADIR: Timeout para evitar peticiones eternas
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch(
         `${API_URL}/api/pedidos-completo?${params.toString()}`,
         {
+          signal: controller.signal,
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
+          // CORRECIÓN CLAVE: Evitar redirecciones automáticas
+          redirect: "manual", // ← ESTA ES LA LÍNEA MÁS IMPORTANTE
+          credentials: "include", // Mantener para cookies de sesión
         },
       );
 
-      console.log("📊 Response status:", res.status);
+      clearTimeout(timeoutId);
 
-      if (!res.ok) {
+      console.log("📊 Response status:", res.status);
+      console.log("📊 Response headers:", [...res.headers.entries()]);
+
+      // MANEJAR REDIRECCIONES MANUALMENTE
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("Location");
+        console.log("🔄 Redirección detectada a:", location);
+
+        if (location && location.includes("/login")) {
+          console.log("🔐 El servidor pide login");
+
+          // Mostrar mensaje amigable en lugar de redirigir automáticamente
+          setError(
+            "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+          );
+          setLoading(false);
+
+          // Opcional: Redirigir después de 3 segundos mostrando el mensaje
+          setTimeout(() => {
+            window.location.href = location;
+          }, 3000);
+
+          return;
+        }
+      }
+
+      if (!res.ok && res.status !== 401 && res.status !== 403) {
         throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      // Si es 401/403, manejarlo como "no autorizado"
+      if (res.status === 401 || res.status === 403) {
+        console.log("⛔ Acceso no autorizado");
+        setError(
+          "No tienes permisos para ver los pedidos. Inicia sesión con una cuenta autorizada.",
+        );
+        setPedidos([]);
+        calcularEstadisticas([]);
+        setLoading(false);
+        return;
       }
 
       const data = await res.json();
@@ -118,7 +164,16 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("❌ Error cargando pedidos:", error);
-      setError(error.message || "Error al conectar con el servidor");
+
+      // Manejar diferentes tipos de error
+      if (error.name === "AbortError") {
+        setError("La solicitud tardó demasiado tiempo. Intenta nuevamente.");
+      } else if (error.message.includes("Failed to fetch")) {
+        setError("Error de conexión con el servidor. Verifica tu internet.");
+      } else {
+        setError(error.message || "Error al conectar con el servidor");
+      }
+
       setPedidos([]);
       calcularEstadisticas([]);
     } finally {
@@ -171,6 +226,16 @@ export default function Dashboard() {
 
   // Carga inicial
   useEffect(() => {
+    // Verificar si ya venimos de una redirección
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("reason") === "unauthorized") {
+      console.log("🔐 Recuperando de redirección por falta de autorización");
+      setError("Tu sesión expiró. Por favor, inicia sesión nuevamente.");
+
+      // Limpiar parámetros de la URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     fetchPedidos();
   }, []);
 
@@ -364,7 +429,9 @@ export default function Dashboard() {
               <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-800">
-                  Error al cargar pedidos
+                  {error.includes("sesión")
+                    ? "Error de sesión"
+                    : "Error al cargar pedidos"}
                 </p>
                 <p className="text-sm text-red-600 mt-1">{error}</p>
                 <div className="mt-3 flex gap-2">
@@ -374,9 +441,17 @@ export default function Dashboard() {
                   >
                     Reintentar
                   </button>
+                  {error.includes("sesión") && (
+                    <button
+                      onClick={() => (window.location.href = "/admin/login")}
+                      className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded hover:bg-red-200 transition-colors"
+                    >
+                      Ir al Login
+                    </button>
+                  )}
                   <button
                     onClick={() => setError(null)}
-                    className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded hover:bg-red-200 transition-colors"
+                    className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded hover:bg-gray-200 transition-colors"
                   >
                     Descartar
                   </button>
