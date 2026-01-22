@@ -17,12 +17,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ===== CONFIGURACIÓN PARA PRODUCCIÓN =====
+// ===== CONFIGURACIÓN =====
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "https://gleaming-motivation-production-4018.up.railway.app";
 
-// Usuarios visibles (sin contraseñas, solo para mostrar en UI)
+// Usuarios visibles (sin contraseñas, solo para UI)
 const VISIBLE_USERS = [
   {
     username: "admin",
@@ -52,7 +52,7 @@ export default function Login() {
   const [backendAvailable, setBackendAvailable] = useState(true);
   const navigate = useNavigate();
 
-  // Verificar si el backend está disponible
+  // Verificar backend al cargar
   useEffect(() => {
     const checkBackend = async () => {
       try {
@@ -60,67 +60,31 @@ export default function Login() {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-
-        if (response.ok) {
-          setBackendAvailable(true);
-          console.log("✅ Backend disponible");
-        } else {
-          setBackendAvailable(false);
-          console.warn("⚠️ Backend no responde correctamente");
-        }
+        setBackendAvailable(response.ok);
       } catch {
         setBackendAvailable(false);
-        console.error("❌ Error conectando al backend");
       }
     };
-
     checkBackend();
   }, []);
 
   // Forzar cierre de sesión al entrar
   useEffect(() => {
     localStorage.removeItem("admin_token");
-    localStorage.removeItem("user_session");
     document.title = "Panel Admin | PuntoG";
 
-    // Cargar intentos fallidos del localStorage
+    // Cargar intentos fallidos
     const savedAttempts = localStorage.getItem("login_failed_attempts");
     if (savedAttempts) {
       setFailedAttempts(JSON.parse(savedAttempts));
     }
 
     // Verificar modo desarrollador
-    const isDeveloper =
-      localStorage.getItem("developer_mode") === "true" ||
-      window.location.search.includes("dev=true");
+    const isDeveloper = localStorage.getItem("developer_mode") === "true";
     setDeveloperMode(isDeveloper);
-
-    // Limpiar timers de bloqueo expirados
-    const now = Date.now();
-    const newAttempts = { ...failedAttempts };
-    let changed = false;
-
-    Object.keys(newAttempts).forEach((username) => {
-      const lockKey = `lockout_${username}`;
-      const lockTime = localStorage.getItem(lockKey);
-
-      if (lockTime && now > parseInt(lockTime)) {
-        delete newAttempts[username];
-        localStorage.removeItem(lockKey);
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      setFailedAttempts(newAttempts);
-      localStorage.setItem(
-        "login_failed_attempts",
-        JSON.stringify(newAttempts),
-      );
-    }
   }, []);
 
-  // Efecto para mostrar nivel de seguridad de contraseña
+  // Nivel de seguridad de contraseña
   useEffect(() => {
     if (password.length === 0) {
       setSecurityLevel(0);
@@ -135,22 +99,22 @@ export default function Login() {
     }
   }, [password]);
 
-  // Auto-completar solo usuario al seleccionar (NO la contraseña)
+  // Seleccionar usuario (solo usuario, no contraseña)
   const handleUserSelect = (userObj) => {
     setSelectedUser(userObj);
     setUser(userObj.username);
-    setPassword(""); // Importante: NO auto-completar contraseña
+    setPassword("");
     setError("");
   };
 
-  // Acceso directo para desarrollador (Ctrl+Shift+O)
+  // Atajo Ctrl+Shift+O para desarrollador
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === "O") {
         e.preventDefault();
         setDeveloperMode(true);
         setUser("oscar");
-        setPassword(""); // El usuario debe ingresar la contraseña manualmente
+        setPassword("");
         setSelectedUser({
           username: "oscar",
           role: "Desarrollador",
@@ -159,12 +123,11 @@ export default function Login() {
         localStorage.setItem("developer_mode", "true");
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // ===== FUNCIÓN DE LOGIN SEGURO =====
+  // ===== FUNCIÓN DE LOGIN FUNCIONAL =====
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -178,39 +141,10 @@ export default function Login() {
       return;
     }
 
-    // Verificar intentos fallidos recientes
-    const userAttempts = failedAttempts[user] || 0;
-    if (userAttempts >= 5) {
-      const lockTime = localStorage.getItem(`lockout_${user}`);
-
-      if (lockTime && Date.now() < parseInt(lockTime)) {
-        const minutesLeft = Math.ceil(
-          (parseInt(lockTime) - Date.now()) / (1000 * 60),
-        );
-        setError(
-          `Cuenta bloqueada. Intenta nuevamente en ${minutesLeft} minuto(s)`,
-        );
-        setShake(true);
-        return;
-      } else {
-        // Resetear intentos después del tiempo de bloqueo
-        const newAttempts = { ...failedAttempts };
-        delete newAttempts[user];
-        setFailedAttempts(newAttempts);
-        localStorage.setItem(
-          "login_failed_attempts",
-          JSON.stringify(newAttempts),
-        );
-        localStorage.removeItem(`lockout_${user}`);
-      }
-    }
-
     setLoading(true);
 
     try {
-      // === LLAMADA AL BACKEND SEGURO EN PRODUCCIÓN ===
-      console.log(`🔐 Conectando a: ${API_URL}/api/auth/login`);
-
+      // LLAMADA AL BACKEND FUNCIONAL
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
@@ -223,16 +157,13 @@ export default function Login() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Error en la autenticación");
-      }
+      console.log("📥 Respuesta del backend:", data);
 
       // === LOGIN EXITOSO ===
       if (data.success && data.token) {
-        // Guardar token seguro del backend
+        // Guardar token CORRECTAMENTE
         const tokenData = {
-          token: data.token,
+          token: data.token, // ¡IMPORTANTE: "token" no "value"!
           expires: Date.now() + (data.expiresIn || 3600) * 1000,
           issued: Date.now(),
           user: data.user?.username || user,
@@ -241,19 +172,10 @@ export default function Login() {
           permissions: data.user?.permissions || [],
         };
 
+        console.log("💾 Guardando token:", tokenData);
         localStorage.setItem("admin_token", JSON.stringify(tokenData));
 
-        // Guardar sesión mínima en sessionStorage
-        sessionStorage.setItem(
-          "user_session",
-          JSON.stringify({
-            username: tokenData.user,
-            role: tokenData.role,
-            loggedInAt: Date.now(),
-          }),
-        );
-
-        // Limpiar intentos fallidos para este usuario
+        // Limpiar intentos fallidos
         const newAttempts = { ...failedAttempts };
         delete newAttempts[user];
         setFailedAttempts(newAttempts);
@@ -261,22 +183,15 @@ export default function Login() {
           "login_failed_attempts",
           JSON.stringify(newAttempts),
         );
-        localStorage.removeItem(`lockout_${user}`);
 
-        // Registro de acceso
-        console.log("✅ Acceso seguro registrado:", {
-          user: tokenData.user,
-          role: tokenData.role,
-          backend: API_URL,
-          timestamp: new Date().toISOString(),
-        });
+        console.log("✅ Login exitoso, redirigiendo...");
 
-        // Animación de éxito antes de redirigir
+        // Redirigir INMEDIATAMENTE
         setTimeout(() => {
           navigate("/admin/dashboard", {
             replace: true,
             state: {
-              from: "secure_login",
+              from: "login",
               timestamp: Date.now(),
               user: tokenData.user,
               role: tokenData.role,
@@ -284,50 +199,36 @@ export default function Login() {
           });
         }, 300);
       } else {
-        throw new Error("Credenciales incorrectas");
+        // Credenciales incorrectas
+        throw new Error(data.message || "Credenciales incorrectas");
       }
     } catch (err) {
-      // === MANEJO DE ERRORES ===
-      let errorMessage =
-        err.message || "Error en el sistema. Intenta más tarde.";
+      console.error("❌ Error en login:", err);
 
-      // Si es error de conexión
+      // Manejo de errores mejorado
+      let errorMessage = err.message;
+
       if (
         err.message.includes("Failed to fetch") ||
         err.message.includes("Network")
       ) {
-        errorMessage =
-          "No se puede conectar al servidor. Verifica tu conexión.";
+        errorMessage = "Error de conexión con el servidor";
         setBackendAvailable(false);
       }
 
-      // Registrar intento fallido (solo si no es error de conexión)
-      if (!errorMessage.includes("conectar al servidor")) {
-        const newAttempts = {
-          ...failedAttempts,
-          [user]: (failedAttempts[user] || 0) + 1,
-        };
-
-        setFailedAttempts(newAttempts);
-        localStorage.setItem(
-          "login_failed_attempts",
-          JSON.stringify(newAttempts),
-        );
-
-        // Bloquear después de 5 intentos
-        if (newAttempts[user] >= 5) {
-          const lockoutTime = Date.now() + 15 * 60 * 1000; // 15 minutos
-          localStorage.setItem(`lockout_${user}`, lockoutTime.toString());
-          errorMessage =
-            "Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.";
-        } else if (newAttempts[user] >= 3) {
-          errorMessage = `Credenciales incorrectas. ${5 - newAttempts[user]} intento(s) restantes antes de bloqueo.`;
-        }
-      }
+      // Registrar intento fallido
+      const newAttempts = {
+        ...failedAttempts,
+        [user]: (failedAttempts[user] || 0) + 1,
+      };
+      setFailedAttempts(newAttempts);
+      localStorage.setItem(
+        "login_failed_attempts",
+        JSON.stringify(newAttempts),
+      );
 
       setError(errorMessage);
       setShake(true);
-      setTimeout(() => setShake(false), 500);
     } finally {
       setLoading(false);
     }
@@ -358,18 +259,14 @@ export default function Login() {
     </div>
   );
 
-  // Filtrar solo usuarios visibles para mostrar
-  const visibleUsers = VISIBLE_USERS.filter((user) => user.visible);
-
-  // Información de seguridad
+  // Variables de estado
+  const visibleUsers = VISIBLE_USERS.filter((u) => u.visible);
   const userAttempts = failedAttempts[user] || 0;
   const isLocked = userAttempts >= 5;
 
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
-      {/* Fondo con gradiente y efectos */}
       <BackgroundParticles />
-
       <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-transparent to-red-800/5" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600/30 to-transparent" />
@@ -390,9 +287,7 @@ export default function Login() {
         >
           <div className="relative">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-red-500 to-red-700 rounded-2xl blur opacity-30" />
-
             <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl overflow-hidden h-full">
-              {/* Header del panel de usuarios */}
               <div className="relative p-6 border-b border-gray-800">
                 <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-red-800/5" />
                 <div className="relative flex items-center gap-3">
@@ -404,86 +299,38 @@ export default function Login() {
                       Usuarios Autorizados
                     </h2>
                     <p className="text-gray-400 text-sm">
-                      {backendAvailable
-                        ? "Backend disponible"
-                        : "⚠️ Verificando conexión..."}
+                      Selecciona un perfil
                     </p>
                   </div>
                 </div>
-
-                {/* Indicador de seguridad */}
-                {user && (
-                  <div className="mt-4 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Intentos fallidos:</span>
-                      <span
-                        className={`font-semibold ${
-                          userAttempts === 0
-                            ? "text-green-400"
-                            : userAttempts < 3
-                              ? "text-yellow-400"
-                              : "text-red-400"
-                        }`}
-                      >
-                        {userAttempts} / 5
-                      </span>
-                    </div>
-                    {isLocked && (
-                      <p className="text-red-400 text-xs mt-2">
-                        ⚠️ Cuenta temporalmente bloqueada
-                      </p>
-                    )}
-                    {!backendAvailable && (
-                      <p className="text-amber-400 text-xs mt-2">
-                        🔄 Reconectando con el servidor...
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Lista de usuarios VISIBLES */}
               <div className="p-6 space-y-3">
-                {visibleUsers.map((userObj, index) => (
+                {visibleUsers.map((userObj) => (
                   <motion.button
                     key={userObj.username}
                     type="button"
                     onClick={() => handleUserSelect(userObj)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    disabled={isLocked && user === userObj.username}
                     className={`w-full p-4 rounded-xl transition-all border ${
                       selectedUser?.username === userObj.username
                         ? "bg-gradient-to-r from-red-900/30 to-red-800/20 border-red-700"
                         : "bg-gray-900/50 border-gray-800 hover:bg-gray-800/50"
-                    } ${isLocked && user === userObj.username ? "opacity-50 cursor-not-allowed" : ""}`}
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div
-                        className={`text-2xl ${
-                          selectedUser?.username === userObj.username
-                            ? "animate-pulse"
-                            : ""
-                        }`}
-                      >
-                        {userObj.icon}
-                      </div>
+                      <div className="text-2xl">{userObj.icon}</div>
                       <div className="text-left">
                         <p className="text-white font-medium">
                           {userObj.username}
                         </p>
                         <p className="text-gray-400 text-sm">{userObj.role}</p>
                       </div>
-                      {selectedUser?.username === userObj.username && (
-                        <div className="ml-auto">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                        </div>
-                      )}
                     </div>
                   </motion.button>
                 ))}
 
-                {/* Espacio para acceso de desarrollador */}
                 {developerMode && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -506,12 +353,7 @@ export default function Login() {
                       }
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      disabled={isLocked && user === "oscar"}
-                      className={`w-full p-4 rounded-xl transition-all border ${
-                        selectedUser?.username === "oscar"
-                          ? "border-blue-700 bg-gradient-to-r from-blue-900/30 to-blue-800/20"
-                          : "border-blue-700/30 bg-gradient-to-r from-blue-900/20 to-blue-800/10"
-                      } ${isLocked && user === "oscar" ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className="w-full p-4 rounded-xl transition-all border border-blue-700/30 bg-gradient-to-r from-blue-900/20 to-blue-800/10"
                     >
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">👨‍💻</div>
@@ -525,56 +367,11 @@ export default function Login() {
                   </motion.div>
                 )}
               </div>
-
-              {/* Información de seguridad */}
-              <div className="p-6 border-t border-gray-800">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Servidor:</span>
-                    <span
-                      className={`font-semibold ${backendAvailable ? "text-green-400" : "text-red-400"}`}
-                    >
-                      {backendAvailable ? "✅ En línea" : "❌ Desconectado"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Autenticación:</span>
-                    <span className="text-green-400 font-semibold">
-                      Backend Seguro
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Tiempo de sesión:</span>
-                    <span className="text-amber-400">60 min</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Protección:</span>
-                    <span className="text-green-400">Anti-fuerza bruta</span>
-                  </div>
-                </div>
-
-                {/* Indicador de modo desarrollador */}
-                {developerMode && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-3 pt-3 border-t border-blue-800/30"
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-blue-400">Modo desarrollador</span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                        <span className="text-blue-300">Activo</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Panel derecho: Formulario de login */}
+        {/* Panel derecho: Formulario */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -582,11 +379,8 @@ export default function Login() {
           className="w-full lg:w-2/3"
         >
           <div className="relative">
-            {/* Efecto de borde animado */}
             <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-red-500 to-red-700 rounded-2xl blur opacity-30" />
-
             <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl overflow-hidden">
-              {/* Header con efecto glassmorphism */}
               <div className="relative p-8 border-b border-gray-800">
                 <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-red-800/5" />
                 <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -595,64 +389,21 @@ export default function Login() {
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/50">
                         <Shield className="w-8 h-8 text-white" />
                       </div>
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          duration: 20,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                        className="absolute inset-0 rounded-2xl border-2 border-red-500/30"
-                      />
                     </div>
-
                     <div>
                       <h1 className="text-2xl font-bold text-white mb-2">
-                        Panel Administrativo Seguro
+                        Panel Administrativo
                       </h1>
                       <p className="text-gray-400 text-sm">
                         {selectedUser
-                          ? `Autenticación backend para: ${selectedUser.role}`
-                          : developerMode
-                            ? "Modo desarrollador activo"
-                            : "Ingresa tus credenciales seguras"}
+                          ? `Acceso como: ${selectedUser.role}`
+                          : "Ingresa tus credenciales"}
                       </p>
-                      {!backendAvailable && (
-                        <p className="text-amber-400 text-xs mt-1">
-                          ⚠️ Verificando conexión con el servidor...
-                        </p>
-                      )}
                     </div>
                   </div>
-
-                  {selectedUser && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`px-4 py-2 rounded-lg border ${
-                        selectedUser.username === "oscar"
-                          ? "bg-gradient-to-r from-blue-900/30 to-blue-800/20 border-blue-700/30"
-                          : "bg-gradient-to-r from-red-900/30 to-red-800/20 border-red-700/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{selectedUser.icon}</span>
-                        <div>
-                          <p className="text-white font-medium">
-                            {selectedUser.username}
-                          </p>
-                          <p className="text-gray-300 text-xs">
-                            {selectedUser.role}
-                            {isLocked && " • ⚠️ Bloqueado"}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
               </div>
 
-              {/* Formulario */}
               <form onSubmit={handleLogin} className="p-8 space-y-6">
                 <AnimatePresence>
                   {error && (
@@ -660,133 +411,56 @@ export default function Login() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className={`p-4 rounded-xl border ${
-                        error.includes("bloqueada") ||
-                        error.includes("Demasiados")
-                          ? "bg-red-900/30 border-red-800"
-                          : error.includes("conectar al servidor")
-                            ? "bg-amber-900/30 border-amber-800"
-                            : error.includes("correctas")
-                              ? "bg-red-900/20 border-red-800"
-                              : "bg-amber-900/20 border-amber-800"
-                      } flex items-start gap-3 ${shake ? "animate-shake" : ""}`}
+                      className={`p-4 rounded-xl border bg-red-900/20 border-red-800 flex items-start gap-3 ${shake ? "animate-shake" : ""}`}
                     >
                       <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-red-300 text-sm font-medium">
                           {error}
                         </p>
-                        {error.includes("intento(s) restantes") && (
-                          <p className="text-red-400/70 text-xs mt-1">
-                            La cuenta se bloqueará temporalmente tras 5 intentos
-                            fallidos
-                          </p>
-                        )}
-                        {error.includes("conectar al servidor") && (
-                          <p className="text-amber-400/70 text-xs mt-1">
-                            Verifica tu conexión a internet o contacta al
-                            administrador
-                          </p>
-                        )}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Información para desarrollador */}
-                {developerMode && selectedUser?.username === "oscar" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="p-3 bg-gradient-to-r from-blue-900/20 to-blue-800/10 border border-blue-800/30 rounded-xl"
-                  >
-                    <div className="flex items-center gap-2 text-blue-300 text-sm">
-                      <Code className="w-4 h-4" />
-                      <span>
-                        Acceso de desarrollador - Autenticación backend
-                      </span>
-                    </div>
-                    <p className="text-blue-400/70 text-xs mt-1">
-                      URL del backend: {API_URL}
-                    </p>
-                  </motion.div>
-                )}
-
-                {/* Campos de credenciales */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Campo Usuario */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                      <User className="w-4 h-4 text-gray-400" />
-                      Usuario
-                      {user && (
-                        <span className="ml-auto text-xs text-gray-500">
-                          {isLocked ? "🔒 Bloqueado" : "✅ Activo"}
-                        </span>
-                      )}
+                      <User className="w-4 h-4 text-gray-400" /> Usuario
                     </label>
-                    <div className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="relative">
                       <input
                         type="text"
                         value={user}
-                        onChange={(e) => {
-                          setUser(e.target.value);
-                          if (e.target.value === "oscar") {
-                            setDeveloperMode(true);
-                            localStorage.setItem("developer_mode", "true");
-                          }
-                        }}
-                        className="relative w-full px-4 py-3 pl-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
-                        placeholder="Ingresa tu usuario"
-                        disabled={loading || isLocked || !backendAvailable}
+                        onChange={(e) => setUser(e.target.value)}
+                        className="w-full px-4 py-3 pl-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
+                        placeholder="admin"
+                        disabled={loading}
                         autoComplete="username"
                       />
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                        <User className="w-5 h-5 text-gray-500" />
-                      </div>
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     </div>
                   </div>
 
-                  {/* Campo Contraseña */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                      <Key className="w-4 h-4 text-gray-400" />
-                      Contraseña
-                      {password.length > 0 && (
-                        <span className="text-xs text-gray-500 ml-auto">
-                          Seguridad:{" "}
-                          {securityLevel === 0
-                            ? "❌"
-                            : securityLevel === 1
-                              ? "🔴"
-                              : securityLevel === 2
-                                ? "🟡"
-                                : securityLevel === 3
-                                  ? "🟢"
-                                  : "🔒"}
-                        </span>
-                      )}
+                      <Key className="w-4 h-4 text-gray-400" /> Contraseña
                     </label>
-                    <div className="relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="relative w-full px-4 py-3 pl-12 pr-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 pl-12 pr-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
                         placeholder="••••••••"
-                        disabled={loading || isLocked || !backendAvailable}
+                        disabled={loading}
                         autoComplete="current-password"
                       />
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                        <Lock className="w-5 h-5 text-gray-500" />
-                      </div>
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
-                        disabled={isLocked || !backendAvailable}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                       >
                         {showPassword ? (
                           <EyeOff size={20} />
@@ -795,138 +469,34 @@ export default function Login() {
                         )}
                       </button>
                     </div>
-
-                    {/* Barra de fortaleza de contraseña */}
-                    {password.length > 0 && (
-                      <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(securityLevel / 4) * 100}%` }}
-                          className={`h-full rounded-full ${
-                            securityLevel === 1
-                              ? "bg-red-500"
-                              : securityLevel === 2
-                                ? "bg-amber-500"
-                                : securityLevel === 3
-                                  ? "bg-green-500"
-                                  : securityLevel === 4
-                                    ? "bg-emerald-500"
-                                    : ""
-                          }`}
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Botón de Login */}
                 <motion.button
                   type="submit"
-                  disabled={loading || isLocked || !backendAvailable}
-                  whileHover={
-                    isLocked || !backendAvailable ? {} : { scale: 1.02 }
-                  }
-                  whileTap={
-                    isLocked || !backendAvailable ? {} : { scale: 0.98 }
-                  }
-                  className={`w-full py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all ${
-                    isLocked || !backendAvailable
-                      ? "bg-gray-800 cursor-not-allowed"
-                      : loading
-                        ? "bg-gray-800 cursor-wait"
-                        : user === "oscar"
-                          ? "bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-blue-900/50"
-                          : "bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg hover:shadow-red-900/50"
-                  }`}
+                  disabled={loading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-3 bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg hover:shadow-red-900/50"
                 >
-                  {!backendAvailable ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-amber-500 rounded-full" />
-                      <span className="text-amber-400">
-                        Servidor no disponible
-                      </span>
-                    </>
-                  ) : isLocked ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-red-500 rounded-full" />
-                      <span className="text-gray-400">Cuenta Bloqueada</span>
-                    </>
-                  ) : loading ? (
+                  {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 text-white animate-spin" />
-                      <span className="text-white">Autenticando...</span>
-                    </>
-                  ) : user === "oscar" ? (
-                    <>
-                      <Code className="w-5 h-5" />
-                      <span className="text-white">
-                        Acceso Seguro Desarrollador
-                      </span>
+                      <span className="text-white">Verificando...</span>
                     </>
                   ) : (
                     <>
                       <LogIn className="w-5 h-5" />
-                      <span className="text-white">
-                        {selectedUser
-                          ? `Autenticar como ${selectedUser.username}`
-                          : "Iniciar Sesión Segura"}
-                      </span>
+                      <span className="text-white">Iniciar Sesión</span>
                     </>
                   )}
                 </motion.button>
-
-                {/* Atajo de teclado para desarrollador */}
-                {!developerMode && backendAvailable && (
-                  <div className="text-center">
-                    <p className="text-gray-500 text-xs">
-                      <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400">
-                        Ctrl
-                      </kbd>{" "}
-                      +
-                      <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
-                        Shift
-                      </kbd>{" "}
-                      +
-                      <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400">
-                        O
-                      </kbd>{" "}
-                      para acceso de desarrollador
-                    </p>
-                  </div>
-                )}
-
-                {/* Información de seguridad */}
-                <div className="pt-6 border-t border-gray-800">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-3 h-3" />
-                      <span>PuntoG Secure v2.0</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Cpu className="w-3 h-3" />
-                      <span>Producción: {API_URL.replace("https://", "")}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3 h-3" />
-                      <span>Autenticación Backend Segura</span>
-                    </div>
-                  </div>
-                </div>
               </form>
-
-              {/* Footer del card */}
-              <div className="px-8 py-4 bg-gradient-to-r from-gray-900/50 to-gray-950/50 border-t border-gray-800">
-                <p className="text-center text-xs text-gray-500">
-                  🔐 Autenticación Segura • Credenciales protegidas en backend •
-                  Todos los accesos son auditados
-                </p>
-              </div>
             </div>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* CSS para animación de shake */}
       <style jsx>{`
         @keyframes shake {
           0%,
