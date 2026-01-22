@@ -14,9 +14,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS COMPLETO
+// ================= CORS - CONFIGURACIÓN CORREGIDA =================
+const allowedOrigins = [
+  "http://localhost:3000", // Desarrollo local de React
+  "http://localhost:5173", // Posible puerto Vite
+  "https://puntogsexshop.com", // Tu dominio principal
+  "https://www.puntogsexshop.com", // Variante con www
+];
+
 app.use(
   cors({
-    origin: "*",
+    origin: function (origin, callback) {
+      // Permite solicitudes sin 'origin' (como herramientas de API)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️ Intento de acceso CORS bloqueado desde: ${origin}`);
+        callback(new Error("Origen no permitido por CORS"));
+      }
+    },
+    credentials: true, // ✅ AHORA SÍ FUNCIONA
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
       "Content-Type",
@@ -24,10 +43,12 @@ app.use(
       "Accept",
       "X-HTTP-Method-Override",
     ],
-    credentials: true,
     optionsSuccessStatus: 204,
   }),
 );
+
+// ELIMINA el bloque app.options("*", ...) que tienes después
+// La configuración de cors() ya maneja las preflight requests
 
 // Manejo explícito de OPTIONS
 app.options("*", (req, res) => {
