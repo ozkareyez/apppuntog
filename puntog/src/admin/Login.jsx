@@ -184,7 +184,10 @@ export default function Login() {
           JSON.stringify(newAttempts),
         );
 
-        console.log("✅ Login exitoso, redirigiendo...");
+        console.log("✅ Login exitoso, redirigiendo ahora...");
+        // Forzar redirección SIN timeout
+        window.location.href = "/admin/dashboard";
+        return; // Importante: salir de la función aquí
 
         // Redirigir INMEDIATAMENTE
         setTimeout(() => {
