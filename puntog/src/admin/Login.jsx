@@ -23,7 +23,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Usuarios autorizados - VERSIÓN SIMPLE QUE FUNCIONA
+  // Usuarios autorizados
   const AUTHORIZED_USERS = [
     {
       username: "admin",
@@ -45,6 +45,25 @@ export default function Login() {
     },
   ];
 
+  // Limpiar localStorage al cargar
+  useEffect(() => {
+    // Opcional: mantener la sesión si existe
+    const currentAuth = localStorage.getItem("admin_auth");
+    if (currentAuth === "yes") {
+      // Verificar si el token tiene tiempo de vida
+      const lastLogin = localStorage.getItem("last_login");
+      if (lastLogin) {
+        const timeDiff = Date.now() - parseInt(lastLogin);
+        // Si han pasado más de 8 horas, cerrar sesión
+        if (timeDiff > 8 * 60 * 60 * 1000) {
+          localStorage.removeItem("admin_auth");
+          localStorage.removeItem("admin_user");
+          localStorage.removeItem("last_login");
+        }
+      }
+    }
+  }, []);
+
   const handleLogin = (e) => {
     e.preventDefault();
     setError("");
@@ -57,7 +76,7 @@ export default function Login() {
 
     setLoading(true);
 
-    // Pequeño delay
+    // Pequeño delay para mejor UX
     setTimeout(() => {
       // Buscar usuario
       const validUser = AUTHORIZED_USERS.find(
@@ -65,7 +84,7 @@ export default function Login() {
       );
 
       if (validUser) {
-        // Sistema simple que funciona
+        // Guardar autenticación
         localStorage.setItem("admin_auth", "yes");
         localStorage.setItem(
           "admin_user",
@@ -75,11 +94,12 @@ export default function Login() {
             icon: validUser.icon,
           }),
         );
+        localStorage.setItem("last_login", Date.now().toString());
 
         console.log("✅ Login exitoso:", validUser.username);
 
         // Redirigir al dashboard
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else {
         setError("Usuario o contraseña incorrectos");
       }
@@ -137,6 +157,9 @@ export default function Login() {
                   placeholder="admin"
                   disabled={loading}
                   required
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2">
                   <User className="w-5 h-5 text-gray-500" />
@@ -159,6 +182,7 @@ export default function Login() {
                   placeholder="••••••••"
                   disabled={loading}
                   required
+                  autoComplete="current-password"
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2">
                   <Lock className="w-5 h-5 text-gray-500" />
@@ -166,8 +190,11 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
                   disabled={loading}
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -182,7 +209,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-50"
+              className="w-full py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -198,20 +225,38 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Atajo de teclado para oscar */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-500 text-xs">
+              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+                Ctrl
+              </kbd>{" "}
+              +
+              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+                Shift
+              </kbd>{" "}
+              +
+              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+                O
+              </kbd>
+              para acceso de desarrollador
+            </p>
+          </div>
+
           {/* Información de usuarios */}
           <div className="mt-8 pt-6 border-t border-gray-700">
-            <div className="grid grid-cols-3 gap-4 text-center text-xs text-gray-500">
-              <div>
-                <p className="text-gray-300">admin</p>
-                <p>admin123</p>
+            <div className="grid grid-cols-3 gap-4 text-center text-xs">
+              <div className="p-2 bg-gray-800/50 rounded-lg">
+                <p className="text-gray-300 font-medium">admin</p>
+                <p className="text-gray-500">admin123</p>
               </div>
-              <div>
-                <p className="text-gray-300">ventas</p>
-                <p>ventas123</p>
+              <div className="p-2 bg-gray-800/50 rounded-lg">
+                <p className="text-gray-300 font-medium">ventas</p>
+                <p className="text-gray-500">ventas123</p>
               </div>
-              <div>
-                <p className="text-gray-300">oscar</p>
-                <p>811012</p>
+              <div className="p-2 bg-gray-800/50 rounded-lg">
+                <p className="text-gray-300 font-medium">oscar</p>
+                <p className="text-gray-500">811012</p>
               </div>
             </div>
           </div>
