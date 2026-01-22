@@ -1,249 +1,130 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Shield,
-  User,
-  Lock,
-  Eye,
-  EyeOff,
-  Key,
-  AlertCircle,
-  LogIn,
-  Building2,
-  Cpu,
-  Users,
-  Code,
-} from "lucide-react";
 
-export default function Login() {
+export default function LoginEmergencia() {
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Usuarios autorizados
-  const AUTHORIZED_USERS = [
-    {
-      username: "admin",
-      password: "admin123",
-      role: "Supervisor",
-      icon: "👔",
-    },
-    {
-      username: "ventas",
-      password: "ventas123",
-      role: "Ventas",
-      icon: "📊",
-    },
-    {
-      username: "oscar",
-      password: "811012",
-      role: "Desarrollador",
-      icon: "👨‍💻",
-    },
-  ];
-
-  // Limpiar localStorage al cargar
-  useEffect(() => {
-    // Opcional: mantener la sesión si existe
-    const currentAuth = localStorage.getItem("admin_auth");
-    if (currentAuth === "yes") {
-      // Verificar si el token tiene tiempo de vida
-      const lastLogin = localStorage.getItem("last_login");
-      if (lastLogin) {
-        const timeDiff = Date.now() - parseInt(lastLogin);
-        // Si han pasado más de 8 horas, cerrar sesión
-        if (timeDiff > 8 * 60 * 60 * 1000) {
-          localStorage.removeItem("admin_auth");
-          localStorage.removeItem("admin_user");
-          localStorage.removeItem("last_login");
-        }
-      }
-    }
-  }, []);
-
   const handleLogin = (e) => {
     e.preventDefault();
     setError("");
-
-    // Validación básica
-    if (!user.trim() || !password.trim()) {
-      setError("Completa todos los campos");
-      return;
-    }
-
     setLoading(true);
 
-    // Pequeño delay para mejor UX
-    setTimeout(() => {
-      // Buscar usuario
-      const validUser = AUTHORIZED_USERS.find(
-        (u) => u.username === user && u.password === password,
-      );
+    // Credenciales FIJAS
+    const validUsers = {
+      admin: "admin123",
+      ventas: "ventas123",
+      oscar: "811012",
+    };
 
-      if (validUser) {
-        // Guardar autenticación
+    console.log("🔍 Probando login:", user, password);
+
+    setTimeout(() => {
+      if (validUsers[user] && validUsers[user] === password) {
+        console.log("✅ Credenciales correctas");
+
+        // GUARDAR DE FORMA SEGURA
         localStorage.setItem("admin_auth", "yes");
         localStorage.setItem(
           "admin_user",
           JSON.stringify({
-            username: validUser.username,
-            role: validUser.role,
-            icon: validUser.icon,
+            username: user,
+            role:
+              user === "admin"
+                ? "Supervisor"
+                : user === "ventas"
+                  ? "Ventas"
+                  : "Desarrollador",
           }),
         );
-        localStorage.setItem("last_login", Date.now().toString());
 
-        console.log("✅ Login exitoso:", validUser.username);
+        console.log(
+          "📝 localStorage guardado:",
+          localStorage.getItem("admin_auth"),
+        );
 
-        // Redirigir al dashboard
+        // OPCIÓN 1: Intentar con navigate
         navigate("/admin/dashboard", { replace: true });
+
+        // OPCIÓN 2: Forzar después de 200ms si navigate falla
+        setTimeout(() => {
+          console.log("🔄 Forzando redirección...");
+          window.location.href = "/admin/dashboard";
+        }, 200);
       } else {
-        setError("Usuario o contraseña incorrectos");
+        console.log("❌ Credenciales incorrectas");
+        setError("Usuario o contraseña incorrectos. Usa: admin/admin123");
       }
 
       setLoading(false);
-    }, 500);
+    }, 300);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-950">
       <div className="relative w-full max-w-md mx-4">
-        {/* Efecto de borde */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl blur opacity-30"></div>
 
-        {/* Tarjeta principal */}
         <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700 p-8 shadow-2xl">
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Shield className="w-10 h-10 text-white" />
+              <div className="text-white text-2xl">🔒</div>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Panel Administrativo
-            </h1>
-            <p className="text-gray-400">Acceso restringido</p>
+            <h1 className="text-2xl font-bold text-white mb-2">Panel Admin</h1>
+            <p className="text-gray-400">Sistema de emergencia</p>
           </div>
 
-          {/* Mensaje de error */}
           {error && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-red-300 text-sm font-medium">{error}</p>
-                <p className="text-red-400/70 text-xs mt-1">
-                  Usa admin/admin123 para entrar
-                </p>
-              </div>
+            <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl">
+              <p className="text-red-300 text-sm font-medium">{error}</p>
             </div>
           )}
 
-          {/* Formulario */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Campo Usuario */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <User className="w-4 h-4 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Usuario
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={user}
-                  onChange={(e) => setUser(e.target.value)}
-                  className="w-full px-4 py-3 pl-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
-                  placeholder="admin"
-                  disabled={loading}
-                  required
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                />
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <User className="w-5 h-5 text-gray-500" />
-                </div>
-              </div>
+              <input
+                type="text"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="admin"
+                disabled={loading}
+                required
+                autoComplete="username"
+              />
             </div>
 
-            {/* Campo Contraseña */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <Key className="w-4 h-4 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Contraseña
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pl-12 pr-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
-                  placeholder="••••••••"
-                  disabled={loading}
-                  required
-                  autoComplete="current-password"
-                />
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Lock className="w-5 h-5 text-gray-500" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
-                  disabled={loading}
-                  aria-label={
-                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                  }
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="admin123"
+                disabled={loading}
+                required
+                autoComplete="current-password"
+              />
             </div>
 
-            {/* Botón de Login */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Verificando...</span>
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  <span>Iniciar Sesión</span>
-                </>
-              )}
+              {loading ? "Verificando..." : "Iniciar Sesión"}
             </button>
           </form>
 
-          {/* Atajo de teclado para oscar */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-500 text-xs">
-              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
-                Ctrl
-              </kbd>{" "}
-              +
-              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
-                Shift
-              </kbd>{" "}
-              +
-              <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
-                O
-              </kbd>
-              para acceso de desarrollador
-            </p>
-          </div>
-
-          {/* Información de usuarios */}
           <div className="mt-8 pt-6 border-t border-gray-700">
             <div className="grid grid-cols-3 gap-4 text-center text-xs">
               <div className="p-2 bg-gray-800/50 rounded-lg">
@@ -260,11 +141,299 @@ export default function Login() {
               </div>
             </div>
           </div>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                // Forzar limpieza y login automático
+                localStorage.setItem("admin_auth", "yes");
+                localStorage.setItem(
+                  "admin_user",
+                  JSON.stringify({
+                    username: "admin",
+                    role: "Supervisor",
+                  }),
+                );
+                window.location.href = "/admin/dashboard";
+              }}
+              className="text-sm text-amber-400 hover:text-amber-300"
+            >
+              🔧 Forzar acceso (emergencia)
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+// import { useState, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+// import {
+//   Shield,
+//   User,
+//   Lock,
+//   Eye,
+//   EyeOff,
+//   Key,
+//   AlertCircle,
+//   LogIn,
+//   Building2,
+//   Cpu,
+//   Users,
+//   Code,
+// } from "lucide-react";
+
+// export default function Login() {
+//   const [user, setUser] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [error, setError] = useState("");
+//   const [loading, setLoading] = useState(false);
+//   const navigate = useNavigate();
+
+//   // Usuarios autorizados
+//   const AUTHORIZED_USERS = [
+//     {
+//       username: "admin",
+//       password: "admin123",
+//       role: "Supervisor",
+//       icon: "👔",
+//     },
+//     {
+//       username: "ventas",
+//       password: "ventas123",
+//       role: "Ventas",
+//       icon: "📊",
+//     },
+//     {
+//       username: "oscar",
+//       password: "811012",
+//       role: "Desarrollador",
+//       icon: "👨‍💻",
+//     },
+//   ];
+
+//   // Limpiar localStorage al cargar
+//   useEffect(() => {
+//     // Opcional: mantener la sesión si existe
+//     const currentAuth = localStorage.getItem("admin_auth");
+//     if (currentAuth === "yes") {
+//       // Verificar si el token tiene tiempo de vida
+//       const lastLogin = localStorage.getItem("last_login");
+//       if (lastLogin) {
+//         const timeDiff = Date.now() - parseInt(lastLogin);
+//         // Si han pasado más de 8 horas, cerrar sesión
+//         if (timeDiff > 8 * 60 * 60 * 1000) {
+//           localStorage.removeItem("admin_auth");
+//           localStorage.removeItem("admin_user");
+//           localStorage.removeItem("last_login");
+//         }
+//       }
+//     }
+//   }, []);
+
+//   const handleLogin = (e) => {
+//     e.preventDefault();
+//     setError("");
+
+//     // Validación básica
+//     if (!user.trim() || !password.trim()) {
+//       setError("Completa todos los campos");
+//       return;
+//     }
+
+//     setLoading(true);
+
+//     // Pequeño delay para mejor UX
+//     setTimeout(() => {
+//       // Buscar usuario
+//       const validUser = AUTHORIZED_USERS.find(
+//         (u) => u.username === user && u.password === password,
+//       );
+
+//       if (validUser) {
+//         // Guardar autenticación
+//         localStorage.setItem("admin_auth", "yes");
+//         localStorage.setItem(
+//           "admin_user",
+//           JSON.stringify({
+//             username: validUser.username,
+//             role: validUser.role,
+//             icon: validUser.icon,
+//           }),
+//         );
+//         localStorage.setItem("last_login", Date.now().toString());
+
+//         console.log("✅ Login exitoso:", validUser.username);
+
+//         // Redirigir al dashboard
+//         navigate("/admin/dashboard", { replace: true });
+//       } else {
+//         setError("Usuario o contraseña incorrectos");
+//       }
+
+//       setLoading(false);
+//     }, 500);
+//   };
+
+//   return (
+//     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-950">
+//       <div className="relative w-full max-w-md mx-4">
+//         {/* Efecto de borde */}
+//         <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl blur opacity-30"></div>
+
+//         {/* Tarjeta principal */}
+//         <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700 p-8 shadow-2xl">
+//           {/* Header */}
+//           <div className="text-center mb-8">
+//             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-4 shadow-lg">
+//               <Shield className="w-10 h-10 text-white" />
+//             </div>
+//             <h1 className="text-2xl font-bold text-white mb-2">
+//               Panel Administrativo
+//             </h1>
+//             <p className="text-gray-400">Acceso restringido</p>
+//           </div>
+
+//           {/* Mensaje de error */}
+//           {error && (
+//             <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl flex items-start gap-3">
+//               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+//               <div>
+//                 <p className="text-red-300 text-sm font-medium">{error}</p>
+//                 <p className="text-red-400/70 text-xs mt-1">
+//                   Usa admin/admin123 para entrar
+//                 </p>
+//               </div>
+//             </div>
+//           )}
+
+//           {/* Formulario */}
+//           <form onSubmit={handleLogin} className="space-y-6">
+//             {/* Campo Usuario */}
+//             <div className="space-y-2">
+//               <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+//                 <User className="w-4 h-4 text-gray-400" />
+//                 Usuario
+//               </label>
+//               <div className="relative">
+//                 <input
+//                   type="text"
+//                   value={user}
+//                   onChange={(e) => setUser(e.target.value)}
+//                   className="w-full px-4 py-3 pl-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
+//                   placeholder="admin"
+//                   disabled={loading}
+//                   required
+//                   autoComplete="username"
+//                   autoCapitalize="none"
+//                   autoCorrect="off"
+//                 />
+//                 <div className="absolute left-4 top-1/2 -translate-y-1/2">
+//                   <User className="w-5 h-5 text-gray-500" />
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Campo Contraseña */}
+//             <div className="space-y-2">
+//               <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+//                 <Key className="w-4 h-4 text-gray-400" />
+//                 Contraseña
+//               </label>
+//               <div className="relative">
+//                 <input
+//                   type={showPassword ? "text" : "password"}
+//                   value={password}
+//                   onChange={(e) => setPassword(e.target.value)}
+//                   className="w-full px-4 py-3 pl-12 pr-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent"
+//                   placeholder="••••••••"
+//                   disabled={loading}
+//                   required
+//                   autoComplete="current-password"
+//                 />
+//                 <div className="absolute left-4 top-1/2 -translate-y-1/2">
+//                   <Lock className="w-5 h-5 text-gray-500" />
+//                 </div>
+//                 <button
+//                   type="button"
+//                   onClick={() => setShowPassword(!showPassword)}
+//                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
+//                   disabled={loading}
+//                   aria-label={
+//                     showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+//                   }
+//                 >
+//                   {showPassword ? (
+//                     <EyeOff className="w-5 h-5" />
+//                   ) : (
+//                     <Eye className="w-5 h-5" />
+//                   )}
+//                 </button>
+//               </div>
+//             </div>
+
+//             {/* Botón de Login */}
+//             <button
+//               type="submit"
+//               disabled={loading}
+//               className="w-full py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+//             >
+//               {loading ? (
+//                 <>
+//                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+//                   <span>Verificando...</span>
+//                 </>
+//               ) : (
+//                 <>
+//                   <LogIn className="w-5 h-5" />
+//                   <span>Iniciar Sesión</span>
+//                 </>
+//               )}
+//             </button>
+//           </form>
+
+//           {/* Atajo de teclado para oscar */}
+//           <div className="mt-6 text-center">
+//             <p className="text-gray-500 text-xs">
+//               <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+//                 Ctrl
+//               </kbd>{" "}
+//               +
+//               <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+//                 Shift
+//               </kbd>{" "}
+//               +
+//               <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400 mx-1">
+//                 O
+//               </kbd>
+//               para acceso de desarrollador
+//             </p>
+//           </div>
+
+//           {/* Información de usuarios */}
+//           <div className="mt-8 pt-6 border-t border-gray-700">
+//             <div className="grid grid-cols-3 gap-4 text-center text-xs">
+//               <div className="p-2 bg-gray-800/50 rounded-lg">
+//                 <p className="text-gray-300 font-medium">admin</p>
+//                 <p className="text-gray-500">admin123</p>
+//               </div>
+//               <div className="p-2 bg-gray-800/50 rounded-lg">
+//                 <p className="text-gray-300 font-medium">ventas</p>
+//                 <p className="text-gray-500">ventas123</p>
+//               </div>
+//               <div className="p-2 bg-gray-800/50 rounded-lg">
+//                 <p className="text-gray-300 font-medium">oscar</p>
+//                 <p className="text-gray-500">811012</p>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 // import { useState, useEffect } from "react";
 // import { useNavigate } from "react-router-dom";
