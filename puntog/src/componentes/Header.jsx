@@ -55,7 +55,7 @@ export default function Header() {
           <div className="truncate text-center">
             🚚 <span className="font-semibold">ENVÍO GRATIS</span> +$200.000
             <span className="mx-1 md:mx-2">•</span>
-            🎁 <span className="font-semibold">DESPACHOS A TODA </span> COLOMBIA
+            🎁 <span className="font-semibold">DESPACHOS SOLO A </span> COLOMBIA
           </div>
           <Sparkles size={10} className="text-yellow-300 flex-shrink-0" />
         </div>
@@ -82,7 +82,7 @@ export default function Header() {
                   onError={(e) => {
                     console.log(
                       "Logo error, current src:",
-                      e.currentTarget.src
+                      e.currentTarget.src,
                     );
                     // Fallback si la imagen no carga
                     e.currentTarget.alt = "Punto G";
@@ -108,8 +108,8 @@ export default function Header() {
                           ? "text-red-600 bg-red-50"
                           : "text-gray-700 hover:text-red-600 hover:bg-red-50"
                         : isActive
-                        ? "text-white bg-white/20"
-                        : "text-white hover:bg-white/10"
+                          ? "text-white bg-white/20"
+                          : "text-white hover:bg-white/10"
                     }
                   `}
                 >
