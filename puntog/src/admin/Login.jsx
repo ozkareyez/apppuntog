@@ -21,52 +21,36 @@ import {
   ShieldCheck,
   Network,
   Globe,
+  Server,
+  Database,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // 🔐 Configuración de seguridad
 const SECRET_KEY =
   import.meta.env.VITE_APP_SECRET_KEY || "clave-temporal-segura-2024";
+const ENCRYPTION_KEY =
+  import.meta.env.VITE_APP_ENCRYPTION_KEY || "clave-encripcion-32-caracteres";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://gleaming-motivation-production-4018.up.railway.app/";
 const MAX_ATTEMPTS = 3;
-const BLOCK_TIME = 15 * 60 * 1000; // 15 minutos
-const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 horas
+const BLOCK_TIME = 15 * 60 * 1000;
 
-// 🔒 USUARIOS CIFRADOS CON SALT
-const ENCRYPTED_USERS = (() => {
-  const users = [
-    {
-      username: "admin",
-      passwordHash: CryptoJS.SHA256("admin123" + "salt_admin_2024").toString(),
-      role: "Supervisor",
-      salt: "salt_admin_2024",
-    },
-    {
-      username: "ventas",
-      passwordHash: CryptoJS.SHA256(
-        "ventas123" + "salt_ventas_2024",
-      ).toString(),
-      role: "Ventas",
-      salt: "salt_ventas_2024",
-    },
-    {
-      username: "oscar",
-      passwordHash: CryptoJS.SHA256("811012" + "salt_oscar_2024").toString(),
-      role: "Desarrollador",
-      salt: "salt_oscar_2024",
-    },
-  ];
+// 🔒 Función para cifrar datos
+const encryptData = (data) => {
+  return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+};
 
-  return users.map((user) => ({
-    ...user,
-    icon:
-      user.username === "admin"
-        ? "👔"
-        : user.username === "ventas"
-          ? "📊"
-          : "👨‍💻",
-    visible: user.username !== "oscar",
-  }));
-})();
+// 🔓 Función para descifrar datos
+const decryptData = (ciphertext) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  } catch {
+    return null;
+  }
+};
 
 export default function Login() {
   const [user, setUser] = useState("");
@@ -80,65 +64,40 @@ export default function Login() {
   const [developerMode, setDeveloperMode] = useState(false);
   const [blockedTime, setBlockedTime] = useState(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [locationData, setLocationData] = useState(null);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [apiStatus, setApiStatus] = useState("checking");
+  const [connectionTested, setConnectionTested] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🌍 OBTENER DATOS DE UBICACIÓN
+  // 🌐 Verificar estado de la API al cargar
   useEffect(() => {
-    const getLocationData = async () => {
+    const checkApiStatus = async () => {
       try {
-        const response = await fetch("https://ipapi.co/json/");
-        const data = await response.json();
-        setLocationData({
-          ip: data.ip,
-          country: data.country_name,
-          city: data.city,
-          isp: data.org,
+        const response = await fetch(`${API_URL}health`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          timeout: 5000,
         });
-        localStorage.setItem("current_ip", data.ip);
+
+        if (response.ok) {
+          setApiStatus("online");
+        } else {
+          setApiStatus("offline");
+        }
       } catch (error) {
-        console.log("No se pudo obtener ubicación");
+        console.warn("API no disponible, usando modo local");
+        setApiStatus("offline");
+      } finally {
+        setConnectionTested(true);
       }
     };
 
-    getLocationData();
-
-    // 🔍 Detectar intentos de inyección
-    const detectInjection = () => {
-      const inputs = document.querySelectorAll("input");
-      inputs.forEach((input) => {
-        input.addEventListener("input", (e) => {
-          const value = e.target.value;
-          const dangerousPatterns = [
-            /<script\b[^>]*>/i,
-            /javascript:/i,
-            /on\w+\s*=/i,
-            /eval\(/i,
-            /document\./i,
-            /window\./i,
-            /localStorage\./i,
-          ];
-
-          dangerousPatterns.forEach((pattern) => {
-            if (pattern.test(value)) {
-              console.warn("Intento de inyección detectado");
-              e.target.value = value.replace(pattern, "");
-              setError("Caracteres peligrosos detectados");
-              setShake(true);
-              setTimeout(() => setShake(false), 500);
-            }
-          });
-        });
-      });
-    };
-
-    detectInjection();
+    checkApiStatus();
   }, []);
 
-  // 🕒 VERIFICAR BLOQUEOS
+  // 🕒 Verificar bloqueos
   useEffect(() => {
     if (!user) return;
 
@@ -170,7 +129,35 @@ export default function Login() {
     checkBlock();
   }, [user]);
 
-  // 🔐 FUNCIÓN DE LOGIN MEJORADA
+  // 📊 Nivel de seguridad de contraseña
+  useEffect(() => {
+    if (password.length === 0) {
+      setSecurityLevel(0);
+    } else if (password.length < 4) {
+      setSecurityLevel(1);
+    } else if (password.length < 6) {
+      setSecurityLevel(2);
+    } else if (password.length < 8) {
+      setSecurityLevel(3);
+    } else {
+      setSecurityLevel(4);
+    }
+  }, [password]);
+
+  // 👤 Seleccionar usuario
+  const handleUserSelect = (username, role) => {
+    if (blockedTime && Date.now() < blockedTime) {
+      setError("Este usuario está temporalmente bloqueado");
+      return;
+    }
+
+    setSelectedUser({ username, role });
+    setUser(username);
+    setPassword("");
+    setError("");
+  };
+
+  // 🔐 FUNCIÓN PRINCIPAL DE LOGIN
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -213,48 +200,128 @@ export default function Login() {
 
     setLoading(true);
 
-    // ⏳ Delay con variabilidad
-    const delay = 800 + Math.random() * 400;
-    await new Promise((resolve) => setTimeout(resolve, delay));
-
     try {
-      // 🔎 Buscar usuario
-      const validUser = ENCRYPTED_USERS.find((u) => u.username === user);
+      let loginSuccessful = false;
+      let userData = null;
 
-      if (!validUser) {
-        handleFailedAttempt(user);
-        return;
+      // 🔄 Intentar conectar a la API primero
+      if (apiStatus === "online") {
+        try {
+          const encryptedCredentials = encryptData({
+            username: user,
+            password: password,
+            timestamp: Date.now(),
+          });
+
+          const response = await fetch(`${API_URL}auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({ credentials: encryptedCredentials }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            if (data.success && data.token) {
+              loginSuccessful = true;
+              userData = {
+                username: data.user.username || user,
+                role: data.user.role || "Usuario",
+                token: data.token,
+                expiresAt: data.expiresAt || Date.now() + 8 * 60 * 60 * 1000,
+              };
+
+              console.log("✅ Login exitoso via API");
+            }
+          }
+        } catch (apiError) {
+          console.warn("Error en API, usando modo local:", apiError);
+        }
       }
 
-      // 🔑 Verificar contraseña con hash
-      const inputHash = CryptoJS.SHA256(password + validUser.salt).toString();
+      // 🔄 Si la API falla, usar autenticación local
+      if (!loginSuccessful) {
+        // 🔐 Credenciales locales encriptadas
+        const LOCAL_USERS = [
+          {
+            username: "admin",
+            passwordHash: CryptoJS.SHA256(
+              "admin123" + "salt_admin_2024",
+            ).toString(),
+            role: "Supervisor",
+            salt: "salt_admin_2024",
+          },
+          {
+            username: "ventas",
+            passwordHash: CryptoJS.SHA256(
+              "ventas123" + "salt_ventas_2024",
+            ).toString(),
+            role: "Ventas",
+            salt: "salt_ventas_2024",
+          },
+          {
+            username: "oscar",
+            passwordHash: CryptoJS.SHA256(
+              "811012" + "salt_oscar_2024",
+            ).toString(),
+            role: "Desarrollador",
+            salt: "salt_oscar_2024",
+          },
+        ];
 
-      if (inputHash === validUser.passwordHash) {
+        const userObj = LOCAL_USERS.find((u) => u.username === user);
+
+        if (userObj) {
+          const inputHash = CryptoJS.SHA256(password + userObj.salt).toString();
+
+          if (inputHash === userObj.passwordHash) {
+            loginSuccessful = true;
+            userData = {
+              username: userObj.username,
+              role: userObj.role,
+              token: null,
+              expiresAt: Date.now() + 8 * 60 * 60 * 1000,
+            };
+
+            console.log("✅ Login exitoso local");
+          }
+        }
+      }
+
+      if (loginSuccessful && userData) {
         // ✅ LOGIN EXITOSO
-        localStorage.removeItem(`attempts_${CryptoJS.SHA256(user).toString()}`);
-        localStorage.removeItem(`block_${CryptoJS.SHA256(user).toString()}`);
+        const hashedUser = CryptoJS.SHA256(user).toString();
+        localStorage.removeItem(`attempts_${hashedUser}`);
+        localStorage.removeItem(`block_${hashedUser}`);
 
-        // 🎫 Generar JWT seguro
-        const jwtToken = generateJWT({
-          user: validUser.username,
-          role: validUser.role,
+        // 🎫 Guardar datos de sesión segura
+        const sessionData = {
+          user: userData.username,
+          role: userData.role,
+          loginTime: Date.now(),
+          expiresAt: userData.expiresAt,
+          apiToken: userData.token,
+          apiMode: apiStatus === "online",
           sessionId: CryptoJS.lib.WordArray.random(32).toString(),
-        });
+        };
 
-        localStorage.setItem("admin_jwt", jwtToken);
+        // 🔐 Encriptar datos sensibles
+        const encryptedSession = encryptData(sessionData);
+        localStorage.setItem("admin_session", encryptedSession);
         localStorage.setItem("session_start", Date.now().toString());
-        localStorage.setItem("last_login", Date.now().toString());
 
-        // 📝 Auditoría de login
-        console.log("✅ Login seguro exitoso:", {
-          usuario: validUser.username,
-          rol: validUser.role,
-          hora: new Date().toISOString(),
-          ubicacion: locationData,
-          userAgent: navigator.userAgent,
+        // 📝 Auditoría
+        console.log("🎉 Sesión iniciada:", {
+          usuario: userData.username,
+          rol: userData.role,
+          modo: apiStatus === "online" ? "API" : "Local",
+          expira: new Date(userData.expiresAt).toLocaleString(),
         });
 
-        // 🚀 Redirigir
+        // 🚀 Redirigir al dashboard
         setTimeout(() => {
           const redirectTo =
             new URLSearchParams(location.search).get("redirect") ||
@@ -262,17 +329,20 @@ export default function Login() {
           navigate(redirectTo, {
             replace: true,
             state: {
-              secured: true,
+              from: "login",
               timestamp: Date.now(),
-              sessionStart: Date.now(),
+              user: userData.username,
+              role: userData.role,
+              apiMode: apiStatus === "online",
             },
           });
         }, 300);
       } else {
+        // ❌ LOGIN FALLIDO
         handleFailedAttempt(user);
       }
     } catch (err) {
-      console.error("🔥 Error en login:", err);
+      console.error("🔥 Error crítico en login:", err);
       setError("⚠️ Error en el sistema. Intenta más tarde.");
       setShake(true);
     } finally {
@@ -280,7 +350,7 @@ export default function Login() {
     }
   };
 
-  // ❌ MANEJAR INTENTO FALLIDO
+  // ❌ Manejar intento fallido
   const handleFailedAttempt = (username) => {
     const hashedUser = CryptoJS.SHA256(username).toString();
     const attemptsKey = `attempts_${hashedUser}`;
@@ -296,7 +366,6 @@ export default function Login() {
       setBlockedTime(blockUntil);
       setError(`🔒 Demasiados intentos. Usuario bloqueado por 15 minutos.`);
 
-      // 📧 Notificar bloqueo (simulado)
       console.warn(
         `🚫 BLOQUEO: ${username} - ${new Date(blockUntil).toLocaleString()}`,
       );
@@ -310,69 +379,516 @@ export default function Login() {
     setTimeout(() => setShake(false), 500);
   };
 
-  // 🔐 GENERAR JWT
-  const generateJWT = (payload) => {
-    const header = {
-      alg: "HS256",
-      typ: "JWT",
-    };
-
-    const extendedPayload = {
-      ...payload,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor((Date.now() + SESSION_TIMEOUT) / 1000),
-      jti: CryptoJS.lib.WordArray.random(16).toString(),
-      ip: locationData?.ip || "unknown",
-    };
-
-    const encodedHeader = CryptoJS.enc.Base64.stringify(
-      CryptoJS.enc.Utf8.parse(JSON.stringify(header)),
-    ).replace(/=+$/, "");
-
-    const encodedPayload = CryptoJS.enc.Base64.stringify(
-      CryptoJS.enc.Utf8.parse(JSON.stringify(extendedPayload)),
-    ).replace(/=+$/, "");
-
-    const signature = CryptoJS.HmacSHA256(
-      `${encodedHeader}.${encodedPayload}`,
-      SECRET_KEY,
-    );
-
-    const encodedSignature = CryptoJS.enc.Base64.stringify(signature)
-      .replace(/=+$/, "")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
-
-    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+  // 🔧 Probar conexión manualmente
+  const testConnection = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}health`);
+      if (response.ok) {
+        setApiStatus("online");
+        setError("✅ Conexión exitosa con la API");
+      } else {
+        setApiStatus("offline");
+        setError("❌ API no responde correctamente");
+      }
+    } catch {
+      setApiStatus("offline");
+      setError("❌ No se pudo conectar a la API");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setError(""), 3000);
+    }
   };
-
-  // ✨ COMPONENTES ADICIONALES...
 
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
-      {/* ... (mantener el JSX existente pero agregar mejoras) ... */}
-
-      {/* 🛡️ PANEL DE SEGURIDAD */}
-      <div className="absolute bottom-4 right-4 z-20">
-        <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-xl p-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-300">
-              Conexión {locationData ? "segura" : "verificando..."}
-            </span>
-          </div>
-          {locationData && (
-            <div className="mt-2 text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <Globe className="w-3 h-3" />
-                <span>{locationData.country}</span>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* 🌌 Fondo con efectos */}
+      <div className="absolute inset-0">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-red-500/20 rounded-full"
+            initial={{
+              x: Math.random() * 100 + "vw",
+              y: Math.random() * 100 + "vh",
+            }}
+            animate={{
+              x: Math.random() * 100 + "vw",
+              y: Math.random() * 100 + "vh",
+            }}
+            transition={{
+              duration: Math.random() * 10 + 10,
+              repeat: Infinity,
+              repeatType: "reverse",
+            }}
+          />
+        ))}
       </div>
 
-      {/* ... (resto del JSX) ... */}
+      <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-transparent to-red-800/5" />
+
+      {/* 🎴 Tarjeta de Login */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-6xl mx-4"
+      >
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* 👈 Panel Izquierdo */}
+          <div className="w-full lg:w-2/5">
+            <div className="relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-red-500 to-red-700 rounded-2xl blur opacity-30" />
+
+              <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl overflow-hidden h-full">
+                {/* 📋 Header del Panel */}
+                <div className="relative p-6 border-b border-gray-800">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-red-800/5" />
+                  <div className="relative flex items-center gap-3">
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                        apiStatus === "online"
+                          ? "bg-gradient-to-br from-green-600 to-green-800 shadow-green-900/50"
+                          : apiStatus === "offline"
+                            ? "bg-gradient-to-br from-red-600 to-red-800 shadow-red-900/50"
+                            : "bg-gradient-to-br from-amber-600 to-amber-800 shadow-amber-900/50"
+                      }`}
+                    >
+                      <Server className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-bold text-white">
+                        Estado del Sistema
+                      </h2>
+                      <p className="text-gray-400 text-sm">
+                        {apiStatus === "online"
+                          ? "Conectado a la API"
+                          : apiStatus === "offline"
+                            ? "Modo local activado"
+                            : "Verificando conexión..."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📊 Información de Conexión */}
+                <div className="p-6 space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Servidor:</span>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            apiStatus === "online"
+                              ? "bg-green-500 animate-pulse"
+                              : apiStatus === "offline"
+                                ? "bg-red-500"
+                                : "bg-amber-500"
+                          }`}
+                        />
+                        <span
+                          className={`text-sm font-medium ${
+                            apiStatus === "online"
+                              ? "text-green-400"
+                              : apiStatus === "offline"
+                                ? "text-red-400"
+                                : "text-amber-400"
+                          }`}
+                        >
+                          {apiStatus === "online"
+                            ? "En línea"
+                            : apiStatus === "offline"
+                              ? "Sin conexión"
+                              : "Verificando"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Endpoint:</span>
+                      <span className="text-gray-300 text-sm font-mono truncate ml-2">
+                        {API_URL.replace("https://", "")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Modo:</span>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          apiStatus === "online"
+                            ? "bg-green-900/30 text-green-400 border border-green-800/50"
+                            : "bg-red-900/30 text-red-400 border border-red-800/50"
+                        }`}
+                      >
+                        {apiStatus === "online" ? "API Remota" : "Local"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 🔧 Botón de prueba de conexión */}
+                  <button
+                    onClick={testConnection}
+                    disabled={loading || !connectionTested}
+                    className="w-full py-2 px-4 rounded-xl border border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 transition flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">Probando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Database className="w-4 h-4" />
+                        <span className="text-sm">Probar conexión</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 👥 Usuarios Disponibles */}
+                <div className="p-6 border-t border-gray-800">
+                  <h3 className="text-white font-semibold mb-3">
+                    Usuarios Disponibles
+                  </h3>
+                  <div className="space-y-2">
+                    {[
+                      { username: "admin", role: "Supervisor", icon: "👔" },
+                      { username: "ventas", role: "Ventas", icon: "📊" },
+                      { username: "oscar", role: "Desarrollador", icon: "👨‍💻" },
+                    ].map((userObj) => (
+                      <button
+                        key={userObj.username}
+                        onClick={() =>
+                          handleUserSelect(userObj.username, userObj.role)
+                        }
+                        className={`w-full p-3 rounded-lg text-left transition ${
+                          selectedUser?.username === userObj.username
+                            ? "bg-gradient-to-r from-red-900/30 to-red-800/20 border border-red-700/50"
+                            : "bg-gray-900/30 border border-gray-800 hover:bg-gray-800/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{userObj.icon}</span>
+                          <div>
+                            <p className="text-white font-medium">
+                              {userObj.username}
+                            </p>
+                            <p className="text-gray-400 text-sm">
+                              {userObj.role}
+                            </p>
+                          </div>
+                          {selectedUser?.username === userObj.username && (
+                            <CheckCircle className="ml-auto w-4 h-4 text-green-400" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 📊 Información de Seguridad */}
+                <div className="p-6 border-t border-gray-800">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">Sesión máxima:</span>
+                      <span className="text-amber-400">8 horas</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">Encriptación:</span>
+                      <span className="text-green-400">AES-256</span>
+                    </div>
+                    {failedAttempts > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">
+                          Intentos fallidos:
+                        </span>
+                        <span
+                          className={`font-semibold ${failedAttempts >= 3 ? "text-red-400" : "text-amber-400"}`}
+                        >
+                          {failedAttempts}/3
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 👉 Panel Derecho - Formulario */}
+          <div className="w-full lg:w-3/5">
+            <div className="relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-red-500 to-red-700 rounded-2xl blur opacity-30" />
+
+              <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl overflow-hidden">
+                {/* 🏢 Header */}
+                <div className="relative p-8 border-b border-gray-800">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-red-800/5" />
+                  <div className="relative">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="relative">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/50">
+                          <Shield className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h1 className="text-2xl font-bold text-white mb-1">
+                          Panel Administrativo PuntoG
+                        </h1>
+                        <p className="text-gray-400 text-sm">
+                          Sistema de autenticación seguro{" "}
+                          {apiStatus === "online"
+                            ? "con API remota"
+                            : "en modo local"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📝 Formulario */}
+                <form onSubmit={handleLogin} className="p-8 space-y-6">
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className={`p-4 rounded-xl border flex items-start gap-3 ${
+                          error.includes("bloqueado") ||
+                          error.includes("Demasiados")
+                            ? "bg-red-900/30 border-red-700/50"
+                            : error.includes("incorrectas")
+                              ? "bg-amber-900/20 border-amber-700/50"
+                              : error.includes("✅") ||
+                                  error.includes("exitosa")
+                                ? "bg-green-900/20 border-green-700/50"
+                                : "bg-red-900/20 border-red-800"
+                        } ${shake ? "animate-shake" : ""}`}
+                      >
+                        {error.includes("✅") || error.includes("exitosa") ? (
+                          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                        ) : error.includes("bloqueado") ? (
+                          <Ban className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p
+                            className={`text-sm font-medium ${
+                              error.includes("✅") || error.includes("exitosa")
+                                ? "text-green-300"
+                                : error.includes("bloqueado") ||
+                                    error.includes("Demasiados")
+                                  ? "text-red-300"
+                                  : error.includes("incorrectas")
+                                    ? "text-amber-300"
+                                    : "text-red-300"
+                            }`}
+                          >
+                            {error}
+                          </p>
+                          {failedAttempts > 0 &&
+                            !error.includes("bloqueado") &&
+                            !error.includes("Demasiados") && (
+                              <p className="text-gray-400 text-xs mt-1">
+                                {3 - failedAttempts > 0
+                                  ? `Te quedan ${3 - failedAttempts} intento${failedAttempts === 2 ? "" : "s"} antes del bloqueo`
+                                  : "Último intento antes del bloqueo"}
+                              </p>
+                            )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* ✍️ Campos de Credenciales */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* 👤 Usuario */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                        <User className="w-4 h-4 text-gray-400" />
+                        Usuario
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                        <input
+                          type="text"
+                          value={user}
+                          onChange={(e) => setUser(e.target.value)}
+                          className="relative w-full px-4 py-3 pl-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
+                          placeholder="Ingresa tu usuario"
+                          disabled={loading || blockedTime}
+                          autoComplete="username"
+                        />
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <User className="w-5 h-5 text-gray-500" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 🔐 Contraseña */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                        <Key className="w-4 h-4 text-gray-400" />
+                        Contraseña
+                        {password.length > 0 && (
+                          <span className="text-xs text-gray-500 ml-auto">
+                            {securityLevel <= 1
+                              ? "Débil"
+                              : securityLevel <= 2
+                                ? "Regular"
+                                : securityLevel <= 3
+                                  ? "Buena"
+                                  : "Excelente"}
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="relative w-full px-4 py-3 pl-12 pr-12 bg-gray-900/50 border border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all"
+                          placeholder="••••••••"
+                          disabled={loading || blockedTime}
+                          autoComplete="current-password"
+                        />
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <Lock className="w-5 h-5 text-gray-500" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
+                          disabled={loading || blockedTime}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* 📊 Barra de Seguridad */}
+                      {password.length > 0 && (
+                        <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(securityLevel / 4) * 100}%` }}
+                            className={`h-full rounded-full transition-colors ${
+                              securityLevel <= 1
+                                ? "bg-red-500"
+                                : securityLevel <= 2
+                                  ? "bg-amber-500"
+                                  : securityLevel <= 3
+                                    ? "bg-green-500"
+                                    : "bg-emerald-500"
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 🚀 Botón de Login */}
+                  <motion.button
+                    type="submit"
+                    disabled={loading || blockedTime}
+                    whileHover={{ scale: blockedTime ? 1 : 1.02 }}
+                    whileTap={{ scale: blockedTime ? 1 : 0.98 }}
+                    className={`w-full py-4 px-6 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all ${
+                      loading || blockedTime
+                        ? "bg-gray-800 cursor-not-allowed"
+                        : "bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 shadow-lg hover:shadow-red-900/50"
+                    }`}
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="text-white">
+                          {apiStatus === "online"
+                            ? "Conectando a API..."
+                            : "Verificando..."}
+                        </span>
+                      </>
+                    ) : blockedTime ? (
+                      <>
+                        <Clock className="w-5 h-5" />
+                        <span className="text-white">Usuario Bloqueado</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-5 h-5" />
+                        <span className="text-white">
+                          Iniciar Sesión Segura
+                        </span>
+                      </>
+                    )}
+                  </motion.button>
+
+                  {/* 🛡️ Información de Seguridad */}
+                  <div className="pt-6 border-t border-gray-800">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-3 h-3" />
+                        <span>Encriptación AES-256</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-3 h-3" />
+                        <span>
+                          {apiStatus === "online" ? "API Remota" : "Modo Local"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3 h-3" />
+                        <span>3 intentos máx.</span>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+
+                {/* 📄 Footer */}
+                <div className="px-8 py-4 bg-gradient-to-r from-gray-900/50 to-gray-950/50 border-t border-gray-800">
+                  <p className="text-center text-xs text-gray-500">
+                    🔐 Sistema seguro •{" "}
+                    {apiStatus === "online" ? "API Conectada" : "Modo Local"} •
+                    Bloqueo anti-intentos
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 🎬 CSS para animación shake */}
+      <style jsx>{`
+        @keyframes shake {
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          10%,
+          30%,
+          50%,
+          70%,
+          90% {
+            transform: translateX(-5px);
+          }
+          20%,
+          40%,
+          60%,
+          80% {
+            transform: translateX(5px);
+          }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
