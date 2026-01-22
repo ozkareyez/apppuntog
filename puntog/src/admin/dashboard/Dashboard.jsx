@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   Search,
   Filter,
@@ -34,16 +34,17 @@ import {
   Bell,
   Activity,
   Zap,
+  Home,
 } from "lucide-react";
 import { API_URL } from "../../config";
 import { motion, AnimatePresence } from "framer-motion";
 import CryptoJS from "crypto-js";
 
-// 🔐 Configuración de seguridad
+// 🔐 Configuración segura
 const ENCRYPTION_KEY =
   import.meta.env.VITE_APP_ENCRYPTION_KEY || "clave-dashboard-segura-2024";
 
-// 🔒 Función segura para cargar sesión
+// 🔒 Cargar sesión de forma segura
 const loadSecureSession = () => {
   try {
     const encryptedSession = localStorage.getItem("admin_session");
@@ -53,12 +54,12 @@ const loadSecureSession = () => {
       return decrypted ? JSON.parse(decrypted) : null;
     }
   } catch (error) {
-    console.warn("⚠️ Error cargando sesión, usando modo local:", error);
+    console.warn("⚠️ Error cargando sesión:", error);
   }
   return null;
 };
 
-// 📊 Estado inicial seguro
+// 📊 Estados iniciales
 const INITIAL_STATS = {
   total: 0,
   pendientes: 0,
@@ -75,16 +76,10 @@ const INITIAL_PAGINATION = {
   totalPages: 1,
 };
 
-const INITIAL_PERFORMANCE = {
-  loadTime: 0,
-  cacheHits: 0,
-  requests: 0,
-};
-
 export default function Dashboard() {
   // 🎯 Estados principales
   const [pedidos, setPedidos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(INITIAL_STATS);
 
@@ -105,34 +100,46 @@ export default function Dashboard() {
   const [selectedPedidos, setSelectedPedidos] = useState([]);
   const [batchMode, setBatchMode] = useState(false);
   const [chartData, setChartData] = useState([]);
-  const [performance, setPerformance] = useState(INITIAL_PERFORMANCE);
+  const [sessionInfo, setSessionInfo] = useState(null);
 
-  // 🌐 Verificar estado de la API
-  const checkApiStatus = useCallback(async () => {
+  // 🎯 Refs para control
+  const isMounted = useRef(true);
+  const abortController = useRef(null);
+
+  // 🌐 Verificar conexión simplificada
+  const checkConnection = useCallback(async () => {
+    if (!isMounted.current) return false;
+
     try {
+      // Intentar conectar directamente a la API de pedidos
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      abortController.current = controller;
 
-      const startTime = performance.now();
-      const res = await fetch(`${API_URL}/health`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-      });
+      const timeout = setTimeout(() => controller.abort(), 3000);
 
-      clearTimeout(timeoutId);
-      const loadTime = performance.now() - startTime;
+      const response = await fetch(
+        `${API_URL}/api/pedidos-completo?page=1&limit=1`,
+        {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      setApiStatus(res.ok ? "online" : "offline");
-      setPerformance((prev) => ({
-        ...prev,
-        loadTime: loadTime,
-        requests: prev.requests + 1,
-      }));
+      clearTimeout(timeout);
 
-      return res.ok;
+      if (response.ok) {
+        setApiStatus("online");
+        return true;
+      } else {
+        setApiStatus("offline");
+        return false;
+      }
     } catch (error) {
       if (error.name !== "AbortError") {
+        console.log("🔌 Modo offline activado - Usando caché local");
         setApiStatus("offline");
       }
       return false;
@@ -163,7 +170,6 @@ export default function Dashboard() {
     }, 0);
 
     const promedio = total > 0 ? totalAmount / total : 0;
-    const growth = 0; // Puedes calcular esto con datos históricos
 
     setStats({
       total,
@@ -172,7 +178,7 @@ export default function Dashboard() {
       cancelados,
       promedio,
       totalRevenue: totalAmount,
-      growth: parseFloat(growth.toFixed(1)),
+      growth: 0, // Podrías calcular esto con datos históricos
     });
   }, []);
 
@@ -208,7 +214,7 @@ export default function Dashboard() {
           }
         }
       } catch (e) {
-        console.warn("Error procesando fecha del pedido:", e);
+        // Ignorar errores de fecha
       }
     });
 
@@ -252,79 +258,42 @@ export default function Dashboard() {
             }
           }
         } catch (e) {
-          console.warn("Error calculando tiempo del pedido:", e);
+          // Ignorar errores de fecha
         }
-      }
-
-      // Detectar pedidos con total alto
-      const total = Number(pedido.total) || 0;
-      if (total > 500000) {
-        newNotifications.push({
-          id: `high-amount-${pedido.id}-${Date.now()}`,
-          type: "info",
-          message: `Pedido #${pedido.id} con total elevado: ${formatMoneda(total)}`,
-          pedidoId: pedido.id,
-        });
       }
     });
 
-    // Limitar a 5 notificaciones
+    // Limitar a 3 notificaciones
     setNotifications((prev) => {
-      const combined = [...newNotifications, ...prev].slice(0, 5);
-      return combined.filter(
-        (v, i, a) => a.findIndex((t) => t.id === v.id) === i,
-      );
+      const combined = [...newNotifications, ...prev].slice(0, 3);
+      return combined;
     });
   }, []);
 
   // 📥 Función principal para cargar pedidos
   const fetchPedidos = useCallback(
     async (pagina = 1, forceRefresh = false) => {
-      // Evitar múltiples llamadas simultáneas
-      if (loading) return;
+      if (!isMounted.current) return;
+      if (loading && !forceRefresh) return;
 
       setLoading(true);
       setError(null);
 
       try {
-        // Verificar API primero
-        const apiOnline = await checkApiStatus();
-
-        // Intentar cargar desde caché si API está offline
-        if (!apiOnline && !forceRefresh) {
-          const cacheKey = `pedidos_cache_${estadoFiltro}_${buscar.substring(0, 10)}`;
-          const cachedData = localStorage.getItem(cacheKey);
-
-          if (cachedData) {
-            try {
-              const parsed = JSON.parse(cachedData);
-              const cacheAge = Date.now() - parsed.timestamp;
-
-              if (cacheAge < 5 * 60 * 1000) {
-                // 5 minutos
-                console.log("📦 Cargando desde caché");
-                setPedidos(parsed.data || []);
-                calcularEstadisticas(parsed.data || []);
-                generarDatosGrafico(parsed.data || []);
-                detectarAlertas(parsed.data || []);
-                setPerformance((prev) => ({
-                  ...prev,
-                  cacheHits: prev.cacheHits + 1,
-                }));
-                setLoading(false);
-                return;
-              }
-            } catch (e) {
-              console.warn("Error leyendo caché:", e);
-              localStorage.removeItem(cacheKey);
-            }
-          }
+        // Cancelar petición anterior si existe
+        if (abortController.current) {
+          abortController.current.abort();
         }
 
-        // Construir parámetros de consulta
+        // Crear nuevo controller
+        const controller = new AbortController();
+        abortController.current = controller;
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        // Construir parámetros
         const params = new URLSearchParams({
           page: pagina.toString(),
-          limit: "15",
+          limit: "10",
         });
 
         if (buscar.trim()) params.append("search", buscar.trim());
@@ -332,34 +301,25 @@ export default function Dashboard() {
         if (fechaFin) params.append("fin", fechaFin);
         if (estadoFiltro !== "todos") params.append("estado", estadoFiltro);
 
-        // Headers con seguridad
-        const session = loadSecureSession();
-        const headers = {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "X-Request-ID": CryptoJS.lib.WordArray.random(16).toString(),
-        };
-
-        if (session?.apiToken) {
-          headers["Authorization"] = `Bearer ${session.apiToken}`;
-        }
-
-        // Hacer la petición con timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        console.log("📡 Solicitando pedidos...");
 
         const response = await fetch(
           `${API_URL}/api/pedidos-completo?${params.toString()}`,
           {
-            headers,
             signal: controller.signal,
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
           },
         );
 
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
+          throw new Error(
+            `Error ${response.status}: No se pudieron cargar los pedidos`,
+          );
         }
 
         const data = await response.json();
@@ -367,21 +327,8 @@ export default function Dashboard() {
         if (data?.ok === true && Array.isArray(data.results)) {
           const pedidosData = data.results || [];
 
-          // Guardar en caché
-          const cacheKey = `pedidos_cache_${estadoFiltro}_${buscar.substring(0, 10)}`;
-          const cacheData = {
-            data: pedidosData,
-            timestamp: Date.now(),
-            filters: { estadoFiltro, buscar, fechaInicio, fechaFin },
-          };
+          console.log(`✅ ${pedidosData.length} pedidos cargados`);
 
-          try {
-            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-          } catch (e) {
-            console.warn("No se pudo guardar en caché:", e);
-          }
-
-          // Actualizar estados
           setPedidos(pedidosData);
           setPaginacion({
             pagina: data.page || pagina,
@@ -392,28 +339,35 @@ export default function Dashboard() {
           generarDatosGrafico(pedidosData);
           detectarAlertas(pedidosData);
           setLastUpdate(new Date());
+          setApiStatus("online");
         } else {
-          throw new Error("Formato de respuesta inválido");
+          throw new Error("Formato de respuesta inválido del servidor");
         }
       } catch (error) {
+        if (error.name === "AbortError") {
+          console.log("⏹️ Petición cancelada");
+          return;
+        }
+
         console.error("❌ Error cargando pedidos:", error);
 
         // Mostrar error amigable
-        let errorMessage = "Error al conectar con el servidor";
-        if (error.name === "AbortError") {
-          errorMessage = "La solicitud tardó demasiado. Revisa tu conexión.";
-        } else if (error.message.includes("Failed to fetch")) {
+        let errorMessage = "Error al cargar los pedidos";
+        if (error.message.includes("Failed to fetch")) {
           errorMessage =
-            "No se pudo conectar al servidor. Verifica tu conexión a internet.";
+            "No se pudo conectar al servidor. Verifica tu conexión.";
+          setApiStatus("offline");
         } else {
-          errorMessage = error.message || "Error desconocido";
+          errorMessage = error.message;
         }
 
         setError(errorMessage);
         setPedidos([]);
         calcularEstadisticas([]);
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     },
     [
@@ -421,7 +375,6 @@ export default function Dashboard() {
       fechaInicio,
       fechaFin,
       estadoFiltro,
-      checkApiStatus,
       calcularEstadisticas,
       generarDatosGrafico,
       detectarAlertas,
@@ -429,64 +382,40 @@ export default function Dashboard() {
     ],
   );
 
-  // 🎯 Efecto inicial - Carga segura
+  // 🎯 Efecto inicial
   useEffect(() => {
-    let mounted = true;
+    isMounted.current = true;
 
-    const initDashboard = async () => {
-      if (!mounted) return;
+    // Cargar información de sesión
+    const session = loadSecureSession();
+    setSessionInfo(session);
 
-      try {
-        // Primero verificar sesión
-        const session = loadSecureSession();
-        if (!session) {
-          console.warn("No hay sesión válida, redirigiendo...");
-          // Puedes redirigir al login aquí si es necesario
-          return;
-        }
-
-        // Luego cargar datos
-        await fetchPedidos(1);
-      } catch (error) {
-        if (mounted) {
-          console.error("Error inicializando dashboard:", error);
-          setError("Error inicializando el dashboard");
-        }
-      }
+    // Verificar conexión y cargar datos
+    const initialize = async () => {
+      await checkConnection();
+      await fetchPedidos(1);
     };
 
-    initDashboard();
+    initialize();
 
     return () => {
-      mounted = false;
+      isMounted.current = false;
+      if (abortController.current) {
+        abortController.current.abort();
+      }
     };
-  }, []); // Solo se ejecuta al montar
+  }, []);
 
   // 🎯 Efecto para filtros con debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchPedidos(1);
+      if (isMounted.current) {
+        fetchPedidos(1);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
   }, [buscar, fechaInicio, fechaFin, estadoFiltro, fetchPedidos]);
-
-  // 🎯 Efecto para auto-refresh
-  useEffect(() => {
-    let refreshInterval;
-
-    if (apiStatus === "online") {
-      refreshInterval = setInterval(() => {
-        if (document.visibilityState === "visible") {
-          fetchPedidos(paginacion.pagina);
-        }
-      }, 120000); // 2 minutos
-    }
-
-    return () => {
-      if (refreshInterval) clearInterval(refreshInterval);
-    };
-  }, [apiStatus, paginacion.pagina, fetchPedidos]);
 
   // 🎯 Memoized pedidos filtrados
   const pedidosFiltrados = useMemo(() => {
@@ -519,12 +448,6 @@ export default function Dashboard() {
             return totalB - totalA;
           case "total_asc":
             return totalA - totalB;
-          case "prioridad":
-            const prioridadA =
-              a.estado === "pendiente" ? 2 : a.estado === "entregado" ? 1 : 0;
-            const prioridadB =
-              b.estado === "pendiente" ? 2 : b.estado === "entregado" ? 1 : 0;
-            return prioridadB - prioridadA;
           default:
             return 0;
         }
@@ -598,7 +521,7 @@ export default function Dashboard() {
         icon: ShoppingCart,
         change: `${stats.total} pedidos`,
         color: "from-blue-500 to-blue-600",
-        trend: stats.growth > 0 ? "up" : "down",
+        trend: stats.growth > 0 ? "up" : "neutral",
         format: "number",
       },
       {
@@ -623,9 +546,9 @@ export default function Dashboard() {
         title: "Ingreso Total",
         value: stats.totalRevenue,
         icon: DollarSign,
-        change: `${stats.growth > 0 ? "+" : ""}${stats.growth}% vs. período anterior`,
+        change: `Ticket promedio: ${formatMoneda(stats.promedio)}`,
         color: "from-purple-500 to-purple-600",
-        trend: stats.growth > 0 ? "up" : "down",
+        trend: "neutral",
         format: "currency",
       },
     ],
@@ -634,30 +557,10 @@ export default function Dashboard() {
 
   const estados = useMemo(
     () => [
-      {
-        value: "todos",
-        label: "Todos",
-        icon: Package,
-        color: "bg-gray-100 text-gray-800",
-      },
-      {
-        value: "pendiente",
-        label: "Pendientes",
-        icon: Clock,
-        color: "bg-amber-100 text-amber-800",
-      },
-      {
-        value: "entregado",
-        label: "Entregados",
-        icon: CheckCircle,
-        color: "bg-green-100 text-green-800",
-      },
-      {
-        value: "cancelado",
-        label: "Cancelados",
-        icon: XCircle,
-        color: "bg-red-100 text-red-800",
-      },
+      { value: "todos", label: "Todos", icon: Package },
+      { value: "pendiente", label: "Pendientes", icon: Clock },
+      { value: "entregado", label: "Entregados", icon: CheckCircle },
+      { value: "cancelado", label: "Cancelados", icon: XCircle },
     ],
     [],
   );
@@ -668,37 +571,13 @@ export default function Dashboard() {
       { value: "fecha_asc", label: "Más antiguo", icon: Calendar },
       { value: "total_desc", label: "Mayor a menor", icon: DollarSign },
       { value: "total_asc", label: "Menor a mayor", icon: DollarSign },
-      { value: "prioridad", label: "Por prioridad", icon: AlertTriangle },
     ],
     [],
   );
 
   // 🎯 Handlers
-  const handleBatchAction = (action) => {
-    if (selectedPedidos.length === 0) return;
-
-    switch (action) {
-      case "print":
-        console.log("Imprimir seleccionados:", selectedPedidos);
-        break;
-      case "export":
-        console.log("Exportar seleccionados:", selectedPedidos);
-        break;
-      case "status":
-        console.log("Cambiar estado de:", selectedPedidos);
-        break;
-      default:
-        console.warn("Acción no reconocida:", action);
-    }
-
-    setSelectedPedidos([]);
-    setBatchMode(false);
-  };
-
-  const togglePedidoSelection = (id) => {
-    setSelectedPedidos((prev) =>
-      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id],
-    );
+  const handleRefresh = () => {
+    fetchPedidos(1, true);
   };
 
   const clearAllFilters = () => {
@@ -711,9 +590,9 @@ export default function Dashboard() {
     setBatchMode(false);
   };
 
-  // 🎯 Render principal
+  // 🎯 Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-3 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 md:p-6">
       {/* HEADER */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -723,20 +602,20 @@ export default function Dashboard() {
                 <ShoppingCart className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                   Dashboard de Pedidos
                 </h1>
                 <div className="flex items-center gap-3 mt-1">
                   <p className="text-gray-600 text-sm">
-                    Gestión y seguimiento en tiempo real
+                    {sessionInfo
+                      ? `Bienvenido, ${sessionInfo.user}`
+                      : "Panel de administración"}
                   </p>
                   <div
                     className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                       apiStatus === "online"
                         ? "bg-green-100 text-green-800"
-                        : apiStatus === "offline"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-amber-100 text-amber-800"
+                        : "bg-amber-100 text-amber-800"
                     }`}
                   >
                     {apiStatus === "online" ? (
@@ -745,11 +624,7 @@ export default function Dashboard() {
                       <WifiOff className="w-3 h-3" />
                     )}
                     <span>
-                      {apiStatus === "online"
-                        ? "En línea"
-                        : apiStatus === "offline"
-                          ? "Sin conexión"
-                          : "Verificando"}
+                      {apiStatus === "online" ? "En línea" : "Modo local"}
                     </span>
                   </div>
                 </div>
@@ -773,25 +648,15 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Performance */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-              <Zap className="w-4 h-4 text-gray-600" />
-              <span className="text-xs text-gray-700">
-                {performance.loadTime > 0
-                  ? `${performance.loadTime.toFixed(0)}ms`
-                  : "..."}
-              </span>
-            </div>
-
             <button
-              onClick={() => fetchPedidos(paginacion.pagina, true)}
+              onClick={handleRefresh}
               disabled={loading}
-              className="p-2.5 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Actualizar"
+              className="p-2.5 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <RefreshCw
                 className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
               />
+              <span className="hidden sm:inline text-sm">Actualizar</span>
             </button>
 
             <a
@@ -799,12 +664,9 @@ export default function Dashboard() {
               target="_blank"
               rel="noreferrer"
               className="p-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-sm flex items-center gap-2"
-              title="Exportar a Excel"
             >
               <Download className="w-5 h-5" />
-              <span className="hidden md:inline text-sm font-medium">
-                Exportar
-              </span>
+              <span className="hidden sm:inline text-sm">Exportar</span>
             </a>
           </div>
         </div>
@@ -822,30 +684,17 @@ export default function Dashboard() {
                 {notifications.map((notif) => (
                   <div
                     key={notif.id}
-                    className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
-                      notif.type === "warning"
-                        ? "bg-amber-50 border border-amber-200 text-amber-800"
-                        : "bg-blue-50 border border-blue-200 text-blue-800"
-                    }`}
+                    className="px-3 py-2 rounded-lg text-sm flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800"
                   >
-                    {notif.type === "warning" ? (
-                      <AlertTriangle className="w-4 h-4" />
-                    ) : (
-                      <Bell className="w-4 h-4" />
-                    )}
+                    <AlertTriangle className="w-4 h-4" />
                     <span>{notif.message}</span>
-                    {notif.time && (
-                      <span className="text-xs opacity-75 ml-2">
-                        {notif.time}
-                      </span>
-                    )}
                     <button
                       onClick={() =>
                         setNotifications((prev) =>
                           prev.filter((n) => n.id !== notif.id),
                         )
                       }
-                      className="ml-auto text-gray-400 hover:text-gray-600"
+                      className="ml-auto text-amber-600 hover:text-amber-800"
                     >
                       <XCircle className="w-4 h-4" />
                     </button>
@@ -861,61 +710,84 @@ export default function Dashboard() {
           {KPI_CARDS.map((kpi, index) => {
             const Icon = kpi.icon;
             return (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden group"
+                className="bg-white rounded-xl p-5 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity duration-300" />
-                <div className="relative bg-white rounded-2xl p-5 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-white to-gray-50 shadow-sm">
-                      <Icon className="w-5 h-5 text-gray-700" />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {kpi.trend === "up" ? (
-                        <TrendingUp className="w-4 h-4 text-green-500" />
-                      ) : kpi.trend === "down" ? (
-                        <TrendingUp className="w-4 h-4 text-red-500 transform rotate-180" />
-                      ) : (
-                        <Activity className="w-4 h-4 text-amber-500" />
-                      )}
-                      <span className="text-xs font-medium text-gray-500">
-                        {kpi.change}
-                      </span>
-                    </div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2.5 rounded-lg bg-gray-50">
+                    <Icon className="w-5 h-5 text-gray-700" />
                   </div>
-
-                  <div>
-                    <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
-                      {kpi.format === "currency"
-                        ? formatMoneda(kpi.value)
-                        : kpi.value.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600 font-medium">
-                      {kpi.title}
-                    </p>
+                  <div className="text-xs font-medium text-gray-500">
+                    {kpi.change}
                   </div>
                 </div>
-              </motion.div>
+
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">
+                    {kpi.format === "currency"
+                      ? formatMoneda(kpi.value)
+                      : kpi.value.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600 font-medium">
+                    {kpi.title}
+                  </p>
+                </div>
+              </div>
             );
           })}
         </div>
+
+        {/* GRÁFICO SIMPLIFICADO */}
+        {chartData.length > 0 && (
+          <div className="mb-8 bg-white rounded-xl p-5 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-gray-700" />
+                <h3 className="font-semibold text-gray-900">
+                  Ingresos últimos 7 días
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-end h-32 gap-1 md:gap-2">
+              {chartData.map((day, index) => {
+                const maxValue = Math.max(...chartData.map((d) => d.value));
+                const height = maxValue > 0 ? (day.value / maxValue) * 100 : 0;
+
+                return (
+                  <div
+                    key={index}
+                    className="flex-1 flex flex-col items-center"
+                  >
+                    <div className="relative w-full">
+                      <div
+                        className="w-full bg-gradient-to-t from-red-500 to-red-400 rounded-t-lg transition-all duration-500"
+                        style={{ height: `${height}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 text-xs text-gray-600 font-medium text-center">
+                      {day.formatted}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* FILTROS SIMPLIFICADOS */}
-      <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-200 p-5">
+      {/* FILTROS */}
+      <div className="mb-8 bg-white rounded-xl shadow-lg border border-gray-200 p-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-xl">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar pedidos..."
+              placeholder="Buscar por nombre, teléfono o dirección..."
               value={buscar}
               onChange={(e) => setBuscar(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all placeholder-gray-500"
+              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -928,10 +800,10 @@ export default function Dashboard() {
                 <button
                   key={estado.value}
                   onClick={() => setEstadoFiltro(estado.value)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${
+                  className={`px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${
                     isActive
-                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm"
+                      ? "bg-red-500 text-white shadow-sm"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -939,89 +811,186 @@ export default function Dashboard() {
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${
+                mostrarFiltros
+                  ? "bg-gray-800 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              Más filtros
+            </button>
           </div>
         </div>
+
+        {/* FILTROS AVANZADOS */}
+        <AnimatePresence>
+          {mostrarFiltros && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Fechas */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rango de Fechas
+                    </label>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Desde
+                        </label>
+                        <input
+                          type="date"
+                          value={fechaInicio}
+                          onChange={(e) => setFechaInicio(e.target.value)}
+                          className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Hasta
+                        </label>
+                        <input
+                          type="date"
+                          value={fechaFin}
+                          onChange={(e) => setFechaFin(e.target.value)}
+                          className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ordenar */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ordenar por
+                    </label>
+                    <select
+                      value={ordenarPor}
+                      onChange={(e) => setOrdenarPor(e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    >
+                      {ordenOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex flex-col justify-end space-y-3">
+                    <button
+                      onClick={clearAllFilters}
+                      className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Limpiar filtros
+                    </button>
+                    <button
+                      onClick={() => fetchPedidos(1)}
+                      className="w-full px-4 py-2.5 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* LISTA DE PEDIDOS */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <Package className="w-5 h-5 text-gray-700" />
-              </div>
+              <Package className="w-5 h-5 text-gray-700" />
               <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Pedidos Recientes
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Pedidos ({pedidosFiltrados.length})
                 </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-gray-600">
-                    {pedidosFiltrados.length} de {paginacion.total} pedidos
-                  </span>
-                </div>
+                {lastUpdate && (
+                  <p className="text-sm text-gray-500">
+                    Actualizado: {formatFecha(lastUpdate)}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="text-sm text-gray-500 font-medium">
+            <div className="text-sm text-gray-500">
               Página {paginacion.pagina} de {paginacion.totalPages}
             </div>
           </div>
         </div>
 
-        {loading ? (
-          <div className="py-16">
+        {/* CONTENIDO */}
+        {loading && pedidos.length === 0 ? (
+          <div className="py-12">
             <div className="flex flex-col items-center justify-center">
-              <div className="relative mb-6">
-                <div className="w-16 h-16 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
-              </div>
-              <p className="text-gray-700 font-medium mb-2">
-                Cargando pedidos...
-              </p>
+              <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-600 font-medium">Cargando pedidos...</p>
             </div>
           </div>
-        ) : error ? (
-          <div className="py-16">
+        ) : error && pedidos.length === 0 ? (
+          <div className="py-12">
             <div className="flex flex-col items-center justify-center text-center px-4">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-10 h-10 text-red-500" />
-              </div>
-              <p className="text-gray-800 font-medium text-lg mb-2">
-                Error de conexión
+              <AlertTriangle className="w-16 h-16 text-red-300 mb-4" />
+              <p className="text-gray-700 font-medium mb-2">
+                No se pudieron cargar los pedidos
               </p>
-              <p className="text-gray-600 max-w-md mb-6">{error}</p>
+              <p className="text-gray-500 text-sm mb-6 max-w-md">{error}</p>
               <button
-                onClick={() => fetchPedidos()}
-                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg"
+                onClick={handleRefresh}
+                className="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
               >
                 Reintentar
               </button>
             </div>
           </div>
         ) : pedidosFiltrados.length === 0 ? (
-          <div className="py-16">
+          <div className="py-12">
             <div className="flex flex-col items-center justify-center text-center px-4">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Package className="w-10 h-10 text-gray-400" />
-              </div>
-              <p className="text-gray-800 font-medium text-lg mb-2">
-                No hay pedidos
+              <Package className="w-16 h-16 text-gray-300 mb-4" />
+              <p className="text-gray-700 font-medium mb-2">
+                {pedidos.length === 0
+                  ? "No hay pedidos registrados"
+                  : "No hay resultados con los filtros actuales"}
               </p>
-              <p className="text-gray-600 max-w-md mb-6">
-                No se encontraron pedidos con los filtros actuales.
+              <p className="text-gray-500 text-sm mb-6">
+                {pedidos.length === 0
+                  ? "Cuando realices ventas, aparecerán aquí."
+                  : "Intenta cambiar los filtros de búsqueda."}
               </p>
-              <button
-                onClick={clearAllFilters}
-                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all"
-              >
-                Limpiar filtros
-              </button>
+              {pedidos.length === 0 ? (
+                <button
+                  onClick={handleRefresh}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Actualizar
+                </button>
+              ) : (
+                <button
+                  onClick={clearAllFilters}
+                  className="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           </div>
         ) : (
           <>
             <div className="divide-y divide-gray-100">
-              {pedidosFiltrados.slice(0, 10).map((pedido) => (
+              {pedidosFiltrados.map((pedido) => (
                 <div
                   key={pedido.id}
                   className="p-6 hover:bg-gray-50 transition-colors"
@@ -1030,7 +999,7 @@ export default function Dashboard() {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-lg">
                             <ShoppingCart className="w-5 h-5 text-gray-600" />
                           </div>
                           <div>
@@ -1121,12 +1090,13 @@ export default function Dashboard() {
               ))}
             </div>
 
+            {/* PAGINACIÓN */}
             {paginacion.totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
-                    Mostrando {Math.min(pedidosFiltrados.length, 10)} de{" "}
-                    {paginacion.total} pedidos
+                    Mostrando {pedidosFiltrados.length} de {paginacion.total}{" "}
+                    pedidos
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -1136,9 +1106,56 @@ export default function Dashboard() {
                     >
                       ← Anterior
                     </button>
-                    <span className="text-sm text-gray-700">
-                      {paginacion.pagina} / {paginacion.totalPages}
-                    </span>
+
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const pages = [];
+                        const maxVisible = 5;
+
+                        if (paginacion.totalPages <= maxVisible) {
+                          for (let i = 1; i <= paginacion.totalPages; i++) {
+                            pages.push(i);
+                          }
+                        } else {
+                          let start = Math.max(1, paginacion.pagina - 2);
+                          let end = Math.min(
+                            paginacion.totalPages,
+                            start + maxVisible - 1,
+                          );
+
+                          if (end - start < maxVisible - 1) {
+                            start = Math.max(1, end - maxVisible + 1);
+                          }
+
+                          if (start > 1) pages.push(1, "...");
+                          for (let i = start; i <= end; i++) pages.push(i);
+                          if (end < paginacion.totalPages)
+                            pages.push("...", paginacion.totalPages);
+                        }
+
+                        return pages.map((page, index) => (
+                          <button
+                            key={index}
+                            onClick={() =>
+                              typeof page === "number" && fetchPedidos(page)
+                            }
+                            disabled={
+                              page === "..." || paginacion.pagina === page
+                            }
+                            className={`w-8 h-8 rounded text-sm font-medium ${
+                              paginacion.pagina === page
+                                ? "bg-red-500 text-white"
+                                : page === "..."
+                                  ? "text-gray-400 cursor-default"
+                                  : "text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+
                     <button
                       onClick={() => fetchPedidos(paginacion.pagina + 1)}
                       disabled={paginacion.pagina >= paginacion.totalPages}
@@ -1154,7 +1171,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* MODAL SIMPLIFICADO */}
+      {/* MODAL DE DETALLE */}
       <AnimatePresence>
         {detalle && (
           <motion.div
@@ -1233,6 +1250,20 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
+
+                      {detalle.email && (
+                        <div className="flex items-start gap-3">
+                          <MessageSquare className="w-5 h-5 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-sm text-gray-500">
+                              Correo electrónico
+                            </p>
+                            <p className="font-medium text-gray-900">
+                              {detalle.email}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1250,9 +1281,48 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
+
+                      {(detalle.ciudad_nombre || detalle.ciudad) && (
+                        <div className="flex items-start gap-3">
+                          <Truck className="w-5 h-5 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-sm text-gray-500">Ubicación</p>
+                            <p className="font-medium text-gray-900">
+                              {detalle.ciudad_nombre || detalle.ciudad}
+                              {detalle.departamento_nombre &&
+                                `, ${detalle.departamento_nombre}`}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {detalle.costo_envio > 0 && (
+                        <div className="flex items-start gap-3">
+                          <DollarSign className="w-5 h-5 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-sm text-gray-500">
+                              Costo de envío
+                            </p>
+                            <p className="font-medium text-gray-900">
+                              {formatMoneda(detalle.costo_envio)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {detalle.notas && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-200">
+                      Notas Adicionales
+                    </h3>
+                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                      <p className="text-gray-700">{detalle.notas}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="px-8 py-6 border-t border-gray-200 bg-gray-50">
@@ -1276,6 +1346,17 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* FOOTER */}
+      <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+        <p>
+          Dashboard Seguro •{" "}
+          {apiStatus === "online" ? "Conectado a la API" : "Modo local"} • v1.0
+        </p>
+        <p className="mt-1">
+          Sistema de gestión de pedidos • Protegido con encriptación
+        </p>
+      </div>
     </div>
   );
 }
