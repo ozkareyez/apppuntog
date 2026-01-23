@@ -301,7 +301,8 @@ app.get("/api/auth/password-status", async (req, res) => {
 /* ================= ENDPOINT TEMPORAL: GENERAR HASHES ================= */
 app.get("/api/generate-hashes", async (req, res) => {
   try {
-    const bcrypt = require("bcryptjs");
+    // Usa bcrypt que ya tienes importado arriba (línea 7)
+    // const bcrypt = require('bcryptjs'); // ← ELIMINA ESTA LÍNEA
 
     const users = [
       { username: "admin", password: "PuntoG-2025*" },
@@ -329,6 +330,7 @@ app.get("/api/generate-hashes", async (req, res) => {
       instrucciones: "Copia los comandos SQL y ejecútalos en MySQL",
     });
   } catch (error) {
+    console.error("❌ Error generando hashes:", error);
     res.status(500).json({
       ok: false,
       error: error.message,
