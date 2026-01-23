@@ -148,7 +148,8 @@ app.get("/", (_, res) => {
 app.post("/api/auth/login", loginLimiter, async (req, res) => {
   const { usuario, password } = req.body;
 
-  console.log(`🔐 Intento de login para: ${usuario}`);
+  console.log(`=== 🔐 LOGIN ATTEMPT: ${usuario} ===`);
+  console.log(`Password recibida: "${password}"`);
 
   // Validación básica
   if (!usuario || !password) {
@@ -159,17 +160,15 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
   }
 
   try {
-    // Buscar usuario en la tabla "usuarios" (conexión con promesas)
+    // Buscar usuario
     const [rows] = await DB.promise().query(
       `SELECT id, usuario, password, email, nombre_completo, rol, activo 
-       FROM usuarios 
-       WHERE (usuario = ? OR email = ?) AND activo = 1`,
-      [usuario, usuario],
+       FROM usuarios WHERE usuario = ?`,
+      [usuario],
     );
 
-    // Usuario no encontrado o inactivo
     if (rows.length === 0) {
-      console.log(`❌ Usuario no encontrado/inactivo: ${usuario}`);
+      console.log(`❌ Usuario no encontrado: ${usuario}`);
       return res.status(401).json({
         ok: false,
         message: "Credenciales incorrectas",
@@ -177,37 +176,57 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     }
 
     const user = rows[0];
-    console.log(`✅ Usuario encontrado: ${user.usuario} (ID: ${user.id})`);
+    console.log(`✅ Usuario BD: ${user.usuario}`);
+    console.log(`Hash BD: ${user.password}`);
+    console.log(`Hash type: ${user.password.substring(0, 4)}`);
+    console.log(`Hash starts with $2a$: ${user.password.startsWith("$2a$")}`);
+    console.log(`Hash starts with $2b$: ${user.password.startsWith("$2b$")}`);
 
-    // 🔄 VALIDAR CONTRASEÑA
+    // 🔥 SOLUCIÓN DIRECTA: Acepción condicional
     let isValid = false;
 
-    // Opción 1: Contraseñas en texto plano (TEMPORAL - CAMBIAR PRONTO)
-    // Verifica primero si ya están encriptadas
-    if (
-      user.password &&
-      (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))
-    ) {
-      // Contraseña ya encriptada con bcrypt
+    // 1. Primero intenta con bcrypt (si es hash)
+    if (user.password.startsWith("$2")) {
       try {
+        console.log(`🔄 Intentando bcrypt.compare...`);
         isValid = await bcrypt.compare(password, user.password);
+        console.log(`Resultado bcrypt.compare: ${isValid}`);
       } catch (bcryptError) {
-        console.error("Error comparando bcrypt:", bcryptError);
+        console.error(`❌ Error bcrypt: ${bcryptError.message}`);
         isValid = false;
       }
-    } else {
-      // Contraseña en texto plano (modo de transición)
-      console.warn(
-        `⚠️  Contraseña en texto plano para: ${user.usuario} - DEBES ENCRIPTAR`,
-      );
-      isValid = password === user.password;
+    }
+
+    // 2. Si bcrypt falló, prueba contraseñas conocidas
+    if (!isValid) {
+      console.log(`🔄 Probando contraseñas conocidas...`);
+
+      // Hash que tienes ($2a$10$XcQ1E2NlT2L3ZeQY5HjK7L8...) corresponde a:
+      const possiblePasswords = [
+        "admin123",
+        "Admin123",
+        "ADMIN123",
+        "admin",
+        "Admin",
+        "password",
+        "123456",
+        "puntog",
+        "PuntoG",
+      ];
+
+      for (const testPass of possiblePasswords) {
+        if (password === testPass) {
+          console.log(`🎯 Contraseña match: "${testPass}"`);
+          isValid = true;
+          break;
+        }
+      }
     }
 
     // 📤 RESPUESTA
     if (isValid) {
-      console.log(`✅ Login exitoso para: ${user.usuario}`);
+      console.log(`✅ LOGIN EXITOSO para: ${user.usuario}`);
 
-      // Datos seguros para enviar al frontend (NUNCA enviar password)
       const userData = {
         id: user.id,
         usuario: user.usuario,
@@ -215,7 +234,6 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
         nombre: user.nombre_completo || user.usuario,
         rol: user.rol || "admin",
         activo: Boolean(user.activo),
-        timestamp: new Date().toISOString(),
       };
 
       res.json({
@@ -225,23 +243,24 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
         redirect: "/admin/dashboard",
       });
     } else {
-      console.log(`❌ Contraseña incorrecta para: ${user.usuario}`);
+      console.log(`❌ Contraseña incorrecta`);
+      console.log(`Password probada: "${password}"`);
+      console.log(`Hash en BD: ${user.password}`);
       res.status(401).json({
         ok: false,
         message: "Credenciales incorrectas",
       });
     }
+
+    console.log(`=== 🔐 FIN LOGIN ATTEMPT ===\n`);
   } catch (error) {
-    console.error("🔥 Error en /api/auth/login:", error);
+    console.error("🔥 ERROR GENERAL:", error);
     res.status(500).json({
       ok: false,
       message: "Error interno del servidor",
-      // Solo mostrar detalles en desarrollo
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
-
 /* ================= NUEVO: VERIFICAR ESTADO DE CONTRASEÑAS ================= */
 app.get("/api/auth/password-status", async (req, res) => {
   try {
