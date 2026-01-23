@@ -298,6 +298,44 @@ app.get("/api/auth/password-status", async (req, res) => {
   }
 });
 
+/* ================= ENDPOINT TEMPORAL: GENERAR HASHES ================= */
+app.get("/api/generate-hashes", async (req, res) => {
+  try {
+    const bcrypt = require("bcryptjs");
+
+    const users = [
+      { username: "admin", password: "PuntoG-2025*" },
+      { username: "oscar", password: "Em@nuel-0220" },
+    ];
+
+    const results = [];
+
+    for (const user of users) {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(user.password, salt);
+
+      results.push({
+        usuario: user.username,
+        contraseña: user.password,
+        hash: hash,
+        sql: `UPDATE usuarios SET password = '${hash}' WHERE usuario = '${user.username}';`,
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Hashes generados",
+      datos: results,
+      instrucciones: "Copia los comandos SQL y ejecútalos en MySQL",
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
+  }
+});
+
 /* ================= UPLOAD IMAGEN ================= */
 app.post("/api/upload-imagen", upload.single("imagen"), async (req, res) => {
   try {
