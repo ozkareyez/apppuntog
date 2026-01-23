@@ -10,7 +10,7 @@ import rateLimit from "express-rate-limit";
 /* ================= APP ================= */
 const app = express();
 const PORT = process.env.PORT || 3002;
-npm run de
+
 /* ================= MIDDLEWARE ================= */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -147,91 +147,95 @@ app.get("/", (_, res) => {
 /* ================= NUEVO: LOGIN DE ADMINISTRADOR ================= */
 app.post("/api/auth/login", loginLimiter, async (req, res) => {
   const { usuario, password } = req.body;
-  
-  console.log('=== 🔥 DEBUG INICIO LOGIN ===');
-  console.log('Usuario recibido:', usuario);
-  console.log('Contraseña recibida:', password);
-  
+
+  console.log(`🔐 Intento de login para: ${usuario}`);
+
+  // Validación básica
   if (!usuario || !password) {
-    console.log('❌ Error: Faltan campos');
-    return res.status(400).json({ ok: false, message: "Campos requeridos" });
+    return res.status(400).json({
+      ok: false,
+      message: "Usuario y contraseña son requeridos",
+    });
   }
 
   try {
-    // 1. Buscar usuario
-    console.log('🔍 Buscando usuario en BD...');
+    // Buscar usuario en la tabla "usuarios" (conexión con promesas)
     const [rows] = await DB.promise().query(
       `SELECT id, usuario, password, email, nombre_completo, rol, activo 
-       FROM usuarios WHERE usuario = ?`,
-      [usuario]
+       FROM usuarios 
+       WHERE (usuario = ? OR email = ?) AND activo = 1`,
+      [usuario, usuario],
     );
-    
-    console.log('Resultados BD:', rows.length ? 'ENCONTRADO' : 'NO ENCONTRADO');
-    
+
+    // Usuario no encontrado o inactivo
     if (rows.length === 0) {
-      console.log('❌ Usuario no existe en BD');
-      return res.status(401).json({ ok: false, message: "Credenciales incorrectas" });
+      console.log(`❌ Usuario no encontrado/inactivo: ${usuario}`);
+      return res.status(401).json({
+        ok: false,
+        message: "Credenciales incorrectas",
+      });
     }
-    
+
     const user = rows[0];
-    console.log('✅ Usuario BD:', user.usuario);
-    console.log('Hash BD (completo):', user.password);
-    console.log('Longitud hash:', user.password.length);
-    
-    // 2. Debug del hash
-    console.log('🔐 ANALIZANDO HASH:');
-    console.log('Empieza con $2a$:', user.password.startsWith('$2a$'));
-    console.log('Empieza con $2b$:', user.password.startsWith('$2b$'));
-    console.log('Primeros 30 chars:', user.password.substring(0, 30));
-    
-    // 3. Intentar comparar
-    console.log('🔄 Comparando con bcrypt...');
+    console.log(`✅ Usuario encontrado: ${user.usuario} (ID: ${user.id})`);
+
+    // 🔄 VALIDAR CONTRASEÑA
     let isValid = false;
-    
-    try {
-      // PRUEBA 1: Con bcrypt normal
-      isValid = await bcrypt.compare(password, user.password);
-      console.log('Resultado bcrypt.compare:', isValid);
-      
-      // PRUEBA 2: Si falla, probar con texto plano (temporal)
-      if (!isValid) {
-        console.log('⚠️ Probando texto plano...');
-        isValid = (password === user.password);
-        console.log('Resultado texto plano:', isValid);
+
+    // Opción 1: Contraseñas en texto plano (TEMPORAL - CAMBIAR PRONTO)
+    // Verifica primero si ya están encriptadas
+    if (user.password && user.password.startsWith("$2b$")) {
+      // Contraseña ya encriptada con bcrypt
+      try {
+        isValid = await bcrypt.compare(password, user.password);
+      } catch (bcryptError) {
+        console.error("Error comparando bcrypt:", bcryptError);
+        isValid = false;
       }
-      
-    } catch (bcryptError) {
-      console.error('❌ Error en bcrypt.compare:', bcryptError.message);
-      console.log('Tipo de hash no reconocido');
+    } else {
+      // Contraseña en texto plano (modo de transición)
+      console.warn(
+        `⚠️  Contraseña en texto plano para: ${user.usuario} - DEBES ENCRIPTAR`,
+      );
+      isValid = password === user.password;
     }
-    
-    // 4. Respuesta
+
+    // 📤 RESPUESTA
     if (isValid) {
-      console.log('🎉 LOGIN EXITOSO!');
+      console.log(`✅ Login exitoso para: ${user.usuario}`);
+
+      // Datos seguros para enviar al frontend (NUNCA enviar password)
+      const userData = {
+        id: user.id,
+        usuario: user.usuario,
+        email: user.email,
+        nombre: user.nombre_completo || user.usuario,
+        rol: user.rol || "admin",
+        activo: Boolean(user.activo),
+        timestamp: new Date().toISOString(),
+      };
+
       res.json({
         ok: true,
-        user: {
-          id: user.id,
-          usuario: user.usuario,
-          email: user.email,
-          nombre: user.nombre_completo || user.usuario,
-          rol: user.rol || "admin",
-          activo: Boolean(user.activo)
-        },
-        message: "Login exitoso"
+        user: userData,
+        message: "Login exitoso",
+        redirect: "/admin/dashboard",
       });
     } else {
-      console.log('❌ CONTRASEÑA INCORRECTA');
-      console.log('Contraseña intentada:', password);
-      console.log('Hash en BD:', user.password);
-      res.status(401).json({ ok: false, message: "Credenciales incorrectas" });
+      console.log(`❌ Contraseña incorrecta para: ${user.usuario}`);
+      res.status(401).json({
+        ok: false,
+        message: "Credenciales incorrectas",
+      });
     }
-    
-    console.log('=== 🔥 DEBUG FIN LOGIN ===\n');
-    
   } catch (error) {
-    console.error('🔥 ERROR GENERAL:', error);
-    res.status(500).json({ ok: false, message: "Error del servidor" });
+    console.error("🔥 Error en /api/auth/login:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error interno del servidor",
+      // Solo mostrar detalles en desarrollo
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
