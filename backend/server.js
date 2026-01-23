@@ -184,7 +184,10 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
 
     // Opción 1: Contraseñas en texto plano (TEMPORAL - CAMBIAR PRONTO)
     // Verifica primero si ya están encriptadas
-    if (user.password && user.password.startsWith("$2b$")) {
+    if (
+      user.password &&
+      (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))
+    ) {
       // Contraseña ya encriptada con bcrypt
       try {
         isValid = await bcrypt.compare(password, user.password);
