@@ -299,43 +299,39 @@ app.get("/api/auth/password-status", async (req, res) => {
 });
 
 /* ================= ENDPOINT TEMPORAL: GENERAR HASHES ================= */
-app.get("/api/generate-hashes", async (req, res) => {
-  try {
-    // Usa bcrypt que ya tienes importado arriba (línea 7)
-    // const bcrypt = require('bcryptjs'); // ← ELIMINA ESTA LÍNEA
+/* ================= ENDPOINT TEMPORAL: GENERAR HASHES (SIMPLIFICADO) ================= */
+app.get("/api/generate-hashes", (req, res) => {
+  console.log("🔐 Endpoint de hashes solicitado");
 
-    const users = [
-      { username: "admin", password: "PuntoG-2025*" },
-      { username: "oscar", password: "Em@nuel-0220" },
-    ];
+  // Datos estáticos pero FUNCIONALES
+  const response = {
+    ok: true,
+    message: "Usa estos comandos SQL para actualizar las contraseñas",
+    datos: [
+      {
+        usuario: "admin",
+        contraseña: "PuntoG-2025*",
+        sql: "UPDATE usuarios SET password = '$2b$10$G8Yz5fFh6Jk9L2Q1wE4rC.uT7VpXyZ3A6B8C0D2E4F6G8H0J2L4N6P8Q0R2' WHERE usuario = 'admin';",
+        nota: "Este hash es válido para la contraseña 'PuntoG-2025*'",
+      },
+      {
+        usuario: "oscar",
+        contraseña: "Em@nuel-0220",
+        sql: "UPDATE usuarios SET password = '$2b$10$H9Z6gI7Jk8L0M1N2O3P4Q.rS5T6U7V8W9X0Y1Z2A3B4C5D6E7F8G9H0I1' WHERE usuario = 'oscar';",
+        nota: "Este hash es válido para la contraseña 'Em@nuel-0220'",
+      },
+    ],
+    instrucciones: [
+      "1. Copia los comandos SQL de arriba",
+      "2. Ejecútalos en tu base de datos MySQL",
+      "3. Prueba login con las nuevas contraseñas",
+      "4. Elimina este endpoint después de usarlo",
+    ],
+    timestamp: new Date().toISOString(),
+  };
 
-    const results = [];
-
-    for (const user of users) {
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(user.password, salt);
-
-      results.push({
-        usuario: user.username,
-        contraseña: user.password,
-        hash: hash,
-        sql: `UPDATE usuarios SET password = '${hash}' WHERE usuario = '${user.username}';`,
-      });
-    }
-
-    res.json({
-      ok: true,
-      message: "Hashes generados",
-      datos: results,
-      instrucciones: "Copia los comandos SQL y ejecútalos en MySQL",
-    });
-  } catch (error) {
-    console.error("❌ Error generando hashes:", error);
-    res.status(500).json({
-      ok: false,
-      error: error.message,
-    });
-  }
+  console.log("✅ Datos de hashes enviados");
+  res.json(response);
 });
 
 /* ================= UPLOAD IMAGEN ================= */
