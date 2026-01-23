@@ -277,13 +277,13 @@ export default function Login() {
   const devUsers = [
     {
       username: "admin",
-      password: "admin123",
+      password: "PuntoG-2025*", // ← NUEVA CONTRASEÑA
       role: "Administrador",
       icon: "👔",
     },
     {
       username: "oscar",
-      password: "811012",
+      password: "Em@nuel-0220", // ← NUEVA CONTRASEÑA
       role: "Desarrollador",
       icon: "👨‍💻",
     },
