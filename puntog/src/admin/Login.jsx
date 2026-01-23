@@ -59,7 +59,6 @@ export default function Login() {
       const response = await fetch(`${BACKEND_URL}/`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-        timeout: 5000, // Timeout manual
       });
 
       if (response.ok) {
@@ -143,6 +142,8 @@ export default function Login() {
     setLoading(true);
 
     try {
+      console.log("🟡 Intentando login...", { user });
+
       // 🔐 LLAMADA REAL AL BACKEND
       const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
@@ -156,9 +157,12 @@ export default function Login() {
       });
 
       const data = await response.json();
+      console.log("🟡 Respuesta del backend:", data);
 
-      if (data.ok && data.success) {
+      if (data.ok) {
         // ✅ Login exitoso
+        console.log("✅ Login exitoso, datos recibidos:", data.user);
+
         const userData = {
           value: btoa(`${data.user.usuario}:${Date.now()}`),
           expires: Date.now() + 1000 * 60 * 60, // 1 hora
@@ -166,12 +170,16 @@ export default function Login() {
           user: data.user.usuario,
           role: data.user.rol || "admin",
           email: data.user.email,
-          nombre: data.user.nombre,
+          nombre: data.user.nombre_completo || data.user.usuario, // ← CORREGIDO
           activo: data.user.activo,
           backendData: data.user, // Guardamos toda la data del backend
         };
 
         localStorage.setItem("admin_token", JSON.stringify(userData));
+
+        // Verificar que se guardó
+        const storedToken = localStorage.getItem("admin_token");
+        console.log("✅ Token guardado en localStorage:", storedToken);
 
         // Registro de acceso
         const accessLog = {
@@ -179,26 +187,27 @@ export default function Login() {
           role: data.user.rol,
           timestamp: new Date().toISOString(),
           backend: BACKEND_URL,
-          responseTime: Date.now(),
         };
 
         console.log("✅ Login exitoso:", accessLog);
+        console.log("🟡 Redirigiendo a /admin/dashboard...");
 
         // Redirigir al dashboard
-        setTimeout(() => {
-          navigate("/admin/dashboard", {
-            replace: true,
-            state: {
-              from: "login",
-              timestamp: Date.now(),
-              user: data.user.usuario,
-              role: data.user.rol,
-              backend: "online",
-            },
-          });
-        }, 300);
+        navigate("/admin/dashboard", {
+          replace: true,
+          state: {
+            from: "login",
+            timestamp: Date.now(),
+            user: data.user.usuario,
+            role: data.user.rol,
+            backend: "online",
+          },
+        });
+
+        return; // ← Salir de la función
       } else {
         // ❌ Error en el login
+        console.log("❌ Error del backend:", data.message);
         setError(
           data.message || "Credenciales incorrectas. Intenta nuevamente.",
         );
