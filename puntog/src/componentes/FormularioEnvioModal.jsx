@@ -110,7 +110,7 @@ export default function FormularioEnvioModal() {
 
   const abrirWhatsApp = (pedidoId) => {
     const mensaje = construirMensajeWhatsApp(pedidoId);
-    const url = `https://wa.me/573147041149?text=${mensaje}`;
+    const url = `https://wa.me/573117687596?text=${mensaje}`;
     window.open(url, "_blank");
   };
 
