@@ -546,7 +546,7 @@ export default function AdminLayout() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 transition"
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 transition z-100"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
                     <User size={20} className="text-red-600" />
