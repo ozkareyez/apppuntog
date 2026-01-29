@@ -49,6 +49,19 @@ export default function PedidosAdmin() {
 
   const audioRef = useRef(null);
 
+  // Función para detectar si es Cali (solo Cali puede editar envío)
+  const esCali = (ciudadNombre) => {
+    if (!ciudadNombre) return false;
+    const ciudadLower = ciudadNombre.toLowerCase();
+    return (
+      ciudadLower.includes("cali") ||
+      ciudadLower.includes("valle") ||
+      ciudadLower.includes("yumbo") ||
+      ciudadLower.includes("palmira") ||
+      ciudadLower.includes("jamundí")
+    );
+  };
+
   // Inicializar audio
   useEffect(() => {
     try {
@@ -143,8 +156,14 @@ export default function PedidosAdmin() {
     }
   };
 
-  // FUNCIÓN CORREGIDA: Abrir modal para asignar costo de envío
+  // FUNCIÓN CORREGIDA: Abrir modal para asignar costo de envío SOLO PARA CALI
   const abrirModalAsignarEnvio = (pedido) => {
+    // SOLO permitir para Cali
+    if (!esCali(pedido.ciudad_nombre)) {
+      alert("⚠️ Solo se puede asignar costo de envío para pedidos de Cali");
+      return;
+    }
+
     console.log("🔄 Abriendo modal para asignar envío a pedido:", pedido.id);
     setPedidoSeleccionado(pedido);
 
@@ -237,13 +256,11 @@ export default function PedidosAdmin() {
       );
 
       // Si el pedido es de Cali y el subtotal es menor a 200,000, preguntar si enviar WhatsApp
-      const esCali = pedidoSeleccionado.ciudad_nombre
-        ?.toLowerCase()
-        .includes("cali");
+      const esCaliPedido = esCali(pedidoSeleccionado.ciudad_nombre);
       const subtotalBajo =
         (pedidoSeleccionado.subtotal || pedidoSeleccionado.total) < 200000;
 
-      if (esCali && subtotalBajo) {
+      if (esCaliPedido && subtotalBajo) {
         const confirmar = window.confirm(
           `¿Deseas enviar un WhatsApp a ${pedidoSeleccionado.nombre} confirmando el costo de envío de $${costo.toLocaleString()}?`,
         );
@@ -572,7 +589,7 @@ Gracias por tu compra 💖
 
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-4 relative">
-      {/* MODAL PARA ASIGNAR COSTO DE ENVÍO */}
+      {/* MODAL PARA ASIGNAR COSTO DE ENVÍO (SOLO CALI) */}
       {mostrarModalEnvio && pedidoSeleccionado && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-slide-in">
@@ -585,7 +602,7 @@ Gracias por tu compra 💖
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">
-                      Asignar Costo de Envío
+                      Asignar Costo de Envío (Cali)
                     </h3>
                     <p className="text-white/90 text-sm">
                       Pedido #{pedidoSeleccionado.id}
@@ -662,7 +679,7 @@ Gracias por tu compra 💖
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nuevo costo de envío
+                    Nuevo costo de envío para Cali
                   </label>
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -680,9 +697,7 @@ Gracias por tu compra 💖
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Ingresa el costo del envío a{" "}
-                    {pedidoSeleccionado.ciudad_nombre}. Se sumará
-                    automáticamente al total.
+                    Solo para pedidos de Cali. Otros destinos tienen envío fijo.
                   </p>
                 </div>
               </div>
@@ -973,8 +988,9 @@ Gracias por tu compra 💖
         ) : pedidos.length > 0 ? (
           pedidos.map((p) => {
             const esNuevo = nuevosPedidos.some((np) => np.id === p.id);
-            const esCali = p.ciudad_nombre?.toLowerCase().includes("cali");
-            const necesitaEnvio = esCali && (p.subtotal || p.total) < 200000;
+            const esCaliPedido = esCali(p.ciudad_nombre);
+            const necesitaEnvio =
+              esCaliPedido && (p.subtotal || p.total) < 200000;
 
             return (
               <div
@@ -995,12 +1011,12 @@ Gracias por tu compra 💖
                   </div>
                 )}
 
-                {/* Indicador especial para Cali */}
-                {esCali && !p.costo_envio && (
+                {/* Indicador especial para Cali (SOLO CALI) */}
+                {esCaliPedido && !p.costo_envio && (
                   <div className="absolute -top-2 left-2 z-10">
                     <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      <span>CALI - Sin envío</span>
+                      <span>CALI - Asignar envío</span>
                     </span>
                   </div>
                 )}
@@ -1045,10 +1061,10 @@ Gracias por tu compra 💖
                       <span>{p.telefono}</span>
                       <span>•</span>
                       <span
-                        className={`truncate ${esCali ? "font-bold text-amber-600" : ""}`}
+                        className={`truncate ${esCaliPedido ? "font-bold text-amber-600" : ""}`}
                       >
                         {p.ciudad_nombre}
-                        {esCali && " 🏙️"}
+                        {esCaliPedido && " 🏙️"}
                       </span>
                     </div>
                   </div>
@@ -1103,55 +1119,51 @@ Gracias por tu compra 💖
                       )}
                     </button>
 
-                    {/* BOTÓN PARA ASIGNAR ENVÍO A CALI */}
-                    {necesitaEnvio && !p.costo_envio && (
+                    {/* SOLO PARA CALI: Botón para asignar/editar envío */}
+                    {esCaliPedido && (
                       <button
                         onClick={() => abrirModalAsignarEnvio(p)}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 bg-amber-500 hover:bg-amber-600 text-white"
-                        title="Asignar costo de envío a Cali"
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
+                          p.costo_envio > 0
+                            ? "bg-blue-500 hover:bg-blue-600" // Si ya tiene costo, azul (editar)
+                            : "bg-amber-500 hover:bg-amber-600" // Si no tiene, ámbar (asignar)
+                        } text-white`}
+                        title={
+                          p.costo_envio > 0
+                            ? "Editar costo de envío"
+                            : "Asignar costo de envío a Cali"
+                        }
                       >
                         <Truck className="w-4 h-4" />
-                        <span className="hidden xs:inline">Asignar Envío</span>
+                        <span className="hidden xs:inline">
+                          {p.costo_envio > 0 ? "Editar Envío" : "Asignar Envío"}
+                        </span>
                       </button>
                     )}
 
-                    {/* BOTÓN EDITAR ENVÍO EXISTENTE */}
-                    {p.costo_envio > 0 && (
-                      <button
-                        onClick={() => abrirModalAsignarEnvio(p)}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 bg-blue-500 hover:bg-blue-600 text-white"
-                        title="Editar costo de envío"
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        <span className="hidden xs:inline">Editar Envío</span>
-                      </button>
-                    )}
-
-                    {/* Botón normal para cambiar estado */}
-                    {(!necesitaEnvio || p.costo_envio) && (
-                      <button
-                        onClick={() => cambiarEstado(p.id, p.estado)}
-                        disabled={actualizandoEstados[p.id]}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
-                          p.estado === "pendiente"
-                            ? "bg-red-500 hover:bg-red-600 text-white"
-                            : "bg-gray-500 hover:bg-gray-600 text-white"
-                        } ${actualizandoEstados[p.id] ? "opacity-70" : ""}`}
-                      >
-                        {actualizandoEstados[p.id] ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <Truck className="w-4 h-4" />
-                            <span className="hidden xs:inline">
-                              {p.estado === "pendiente"
-                                ? "Marcar Entregado"
-                                : "Marcar Pendiente"}
-                            </span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                    {/* Botón para cambiar estado (para todos) */}
+                    <button
+                      onClick={() => cambiarEstado(p.id, p.estado)}
+                      disabled={actualizandoEstados[p.id]}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
+                        p.estado === "pendiente"
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-gray-500 hover:bg-gray-600 text-white"
+                      } ${actualizandoEstados[p.id] ? "opacity-70" : ""}`}
+                    >
+                      {actualizandoEstados[p.id] ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Truck className="w-4 h-4" />
+                          <span className="hidden xs:inline">
+                            {p.estado === "pendiente"
+                              ? "Marcar Entregado"
+                              : "Marcar Pendiente"}
+                          </span>
+                        </>
+                      )}
+                    </button>
 
                     <Link
                       to={`/admin/orden-servicio/${p.id}`}
@@ -1282,6 +1294,7 @@ Gracias por tu compra 💖
     </div>
   );
 }
+
 // import { useEffect, useState, useRef } from "react";
 // import { Link } from "react-router-dom";
 // import {
@@ -1320,17 +1333,14 @@ Gracias por tu compra 💖
 //   const [pedidosConfirmados, setPedidosConfirmados] = useState([]);
 //   const [actualizandoEstados, setActualizandoEstados] = useState({});
 
-//   // NUEVOS ESTADOS PARA COSTO DE ENVÍO
 //   const [mostrarModalEnvio, setMostrarModalEnvio] = useState(false);
 //   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 //   const [costoEnvio, setCostoEnvio] = useState("");
 //   const [actualizandoEnvio, setActualizandoEnvio] = useState(false);
 
-//   // Estados para notificación
 //   const [notificacionVisible, setNotificacionVisible] = useState(false);
 //   const [notificacionPulsando, setNotificacionPulsando] = useState(false);
 //   const [notificacionMostrada, setNotificacionMostrada] = useState(false);
-//   const [mostrarDebug, setMostrarDebug] = useState(false);
 //   const notificationAudioRef = useRef(null);
 //   const pulseIntervalRef = useRef(null);
 
@@ -1430,12 +1440,11 @@ Gracias por tu compra 💖
 //     }
 //   };
 
-//   // NUEVA FUNCIÓN: Abrir modal para asignar costo de envío
+//   // FUNCIÓN CORREGIDA: Abrir modal para asignar costo de envío
 //   const abrirModalAsignarEnvio = (pedido) => {
 //     console.log("🔄 Abriendo modal para asignar envío a pedido:", pedido.id);
 //     setPedidoSeleccionado(pedido);
 
-//     // Si ya tiene un costo de envío, cargarlo
 //     if (pedido.costo_envio && pedido.costo_envio > 0) {
 //       setCostoEnvio(pedido.costo_envio.toString());
 //     } else {
@@ -1445,7 +1454,7 @@ Gracias por tu compra 💖
 //     setMostrarModalEnvio(true);
 //   };
 
-//   // NUEVA FUNCIÓN: Guardar costo de envío
+//   // FUNCIÓN CRÍTICAMENTE CORREGIDA: Guardar costo de envío (sin errores de async/await)
 //   const guardarCostoEnvio = async () => {
 //     if (!pedidoSeleccionado || !costoEnvio.trim()) {
 //       alert("Por favor ingresa un costo de envío válido");
@@ -1473,11 +1482,7 @@ Gracias por tu compra 💖
 //             "Content-Type": "application/json",
 //             Accept: "application/json",
 //           },
-//           body: JSON.stringify({
-//             costo_envio: costo,
-//             // También podemos actualizar el total si es necesario
-//             total: (pedidoSeleccionado.total || 0) + costo,
-//           }),
+//           body: JSON.stringify({ costo_envio: costo }),
 //         },
 //       );
 
@@ -1490,34 +1495,36 @@ Gracias por tu compra 💖
 //       console.log(`✅ Costo de envío actualizado:`, data);
 
 //       // Actualizar el pedido en el estado local
+//       const nuevoCostoEnvio = data.pedido.costo_envio;
+//       const nuevoTotal = data.pedido.total;
+
 //       setPedidos((prev) =>
 //         prev.map((p) =>
 //           p.id === pedidoSeleccionado.id
 //             ? {
 //                 ...p,
-//                 costo_envio: costo,
-//                 total: (p.total || 0) + costo,
+//                 costo_envio: nuevoCostoEnvio,
+//                 total: nuevoTotal,
 //                 tiene_envio_asignado: true,
 //               }
 //             : p,
 //         ),
 //       );
 
-//       // También actualizar en nuevosPedidos si está allí
 //       setNuevosPedidos((prev) =>
 //         prev.map((p) =>
 //           p.id === pedidoSeleccionado.id
 //             ? {
 //                 ...p,
-//                 costo_envio: costo,
-//                 total: (p.total || 0) + costo,
+//                 costo_envio: nuevoCostoEnvio,
+//                 total: nuevoTotal,
 //                 tiene_envio_asignado: true,
 //               }
 //             : p,
 //         ),
 //       );
 
-//       // Cerrar modal y mostrar confirmación
+//       // Cerrar modal
 //       setMostrarModalEnvio(false);
 //       setPedidoSeleccionado(null);
 //       setCostoEnvio("");
@@ -1526,12 +1533,25 @@ Gracias por tu compra 💖
 //         `✅ Costo de envío de $${costo.toLocaleString()} asignado al pedido #${pedidoSeleccionado.id}`,
 //       );
 
-//       // Si el pedido es de Cali y el subtotal es menor a 200,000, enviar WhatsApp al cliente
-//       if (
-//         pedidoSeleccionado.ciudad_nombre?.toLowerCase().includes("cali") &&
-//         (pedidoSeleccionado.subtotal || pedidoSeleccionado.total) < 200000
-//       ) {
-//         enviarWhatsAppConfirmacionEnvio(pedidoSeleccionado, costo);
+//       // Si el pedido es de Cali y el subtotal es menor a 200,000, preguntar si enviar WhatsApp
+//       const esCali = pedidoSeleccionado.ciudad_nombre
+//         ?.toLowerCase()
+//         .includes("cali");
+//       const subtotalBajo =
+//         (pedidoSeleccionado.subtotal || pedidoSeleccionado.total) < 200000;
+
+//       if (esCali && subtotalBajo) {
+//         const confirmar = window.confirm(
+//           `¿Deseas enviar un WhatsApp a ${pedidoSeleccionado.nombre} confirmando el costo de envío de $${costo.toLocaleString()}?`,
+//         );
+
+//         if (confirmar) {
+//           enviarWhatsAppConfirmacionEnvio(
+//             pedidoSeleccionado,
+//             costo,
+//             nuevoTotal,
+//           );
+//         }
 //       }
 //     } catch (error) {
 //       console.error("Error actualizando costo de envío:", error);
@@ -1541,18 +1561,22 @@ Gracias por tu compra 💖
 //     }
 //   };
 
-//   // NUEVA FUNCIÓN: Enviar WhatsApp confirmando costo de envío
-//   const enviarWhatsAppConfirmacionEnvio = async (pedido, costoEnvio) => {
+//   // Función para enviar WhatsApp confirmando costo de envío
+//   const enviarWhatsAppConfirmacionEnvio = async (
+//     pedido,
+//     costoEnvio,
+//     nuevoTotal,
+//   ) => {
 //     try {
 //       const mensaje = `¡Hola ${pedido.nombre}! 😊
 
-// 📦 **Actualización de tu pedido #${pedido.id}**
+// 📦 **Actualización de tu pedido**
 
 // Hemos confirmado el costo de envío a ${pedido.ciudad_nombre}:
 
 // 💰 *Costo de envío:* $${costoEnvio.toLocaleString()}
-// 💰 *Subtotal de productos:* $${(pedido.total - costoEnvio).toLocaleString()}
-// 💰 **Total actualizado:** $${(pedido.total + costoEnvio).toLocaleString()}
+// 💰 *Subtotal de productos:* $${(nuevoTotal - costoEnvio).toLocaleString()}
+// 💰 **Total actualizado:** $${nuevoTotal.toLocaleString()}
 
 // 📍 *Dirección de envío:* ${pedido.direccion}
 
@@ -1575,14 +1599,7 @@ Gracias por tu compra 💖
 //         : `57${telefonoLimpio}`;
 //       const urlWhatsApp = `https://wa.me/${telefonoWhatsApp}?text=${mensajeCodificado}`;
 
-//       // Preguntar si quiere enviar el WhatsApp
-//       const confirmarEnvio = window.confirm(
-//         `¿Deseas enviar un WhatsApp a ${pedido.nombre} confirmando el costo de envío de $${costoEnvio.toLocaleString()}?`,
-//       );
-
-//       if (confirmarEnvio) {
-//         window.open(urlWhatsApp, "_blank");
-//       }
+//       window.open(urlWhatsApp, "_blank");
 //     } catch (error) {
 //       console.error("Error preparando WhatsApp de confirmación:", error);
 //     }
@@ -1630,7 +1647,7 @@ Gracias por tu compra 💖
 //     cargarPedidos(1);
 //   };
 
-//   // Cargar pedidos
+//   // FUNCIÓN CORREGIDA: Cargar pedidos
 //   const cargarPedidos = async (page = 1) => {
 //     setLoading(true);
 //     try {
@@ -1672,7 +1689,7 @@ Gracias por tu compra 💖
 //     }
 //   };
 
-//   // WhatsApp original
+//   // FUNCIÓN CORREGIDA: WhatsApp
 //   const enviarMensajeWhatsApp = async (pedido) => {
 //     try {
 //       setEnviandoWhatsApp(true);
@@ -1696,7 +1713,6 @@ Gracias por tu compra 💖
 //         console.log("Error obteniendo productos:", error);
 //       }
 
-//       // Incluir costo de envío si existe
 //       const costoEnvioTexto = pedido.costo_envio
 //         ? `🚚 *Costo de envío:* $${Number(pedido.costo_envio).toLocaleString()}\n`
 //         : "";
@@ -1738,7 +1754,7 @@ Gracias por tu compra 💖
 //     }
 //   };
 
-//   // Cambiar estado de pedido
+//   // FUNCIÓN CORREGIDA: Cambiar estado de pedido
 //   const cambiarEstado = async (id, estadoActual) => {
 //     try {
 //       setActualizandoEstados((prev) => ({ ...prev, [id]: true }));
@@ -1782,7 +1798,7 @@ Gracias por tu compra 💖
 //     }
 //   };
 
-//   // Verificar nuevos pedidos
+//   // FUNCIÓN CORREGIDA: Verificar nuevos pedidos
 //   const verificarNuevosPedidos = async () => {
 //     console.log("🔄 Verificando nuevos pedidos...");
 //     try {
@@ -2006,10 +2022,142 @@ Gracias por tu compra 💖
 //           className={`fixed top-4 right-4 z-50 animate-slide-in ${notificacionPulsando ? "animate-pulse" : ""}`}
 //         >
 //           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-2xl border border-emerald-400 overflow-hidden max-w-sm">
-//             {/* ... (código de notificación anterior se mantiene igual) */}
+//             <div className="px-4 py-3 bg-emerald-700/30">
+//               <div className="flex items-center justify-between">
+//                 <div className="flex items-center gap-2">
+//                   <div className="relative">
+//                     <Bell className="w-5 h-5 text-white animate-bounce" />
+//                     {notificacionPulsando && (
+//                       <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-20"></div>
+//                     )}
+//                   </div>
+//                   <p className="text-white font-bold text-sm">
+//                     ¡NUEVO{nuevosPedidos.length > 1 ? "S" : ""} PEDIDO
+//                     {nuevosPedidos.length > 1 ? "S" : ""}!
+//                   </p>
+//                 </div>
+//                 <button
+//                   onClick={aceptarNotificacion}
+//                   className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1"
+//                   title="Aceptar y actualizar lista"
+//                 >
+//                   <CheckCircle className="w-4 h-4" />
+//                 </button>
+//               </div>
+//             </div>
+
+//             <div className="p-4 bg-white">
+//               <div className="mb-3">
+//                 <div className="flex items-center justify-between mb-2">
+//                   <p className="font-bold text-gray-800">
+//                     Detalles del pedido:
+//                   </p>
+//                   <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">
+//                     {nuevosPedidos.length}{" "}
+//                     {nuevosPedidos.length === 1 ? "nuevo" : "nuevos"}
+//                   </span>
+//                 </div>
+
+//                 {nuevosPedidos.slice(0, 3).map((pedido, index) => (
+//                   <div
+//                     key={pedido.id}
+//                     className={`mb-2 p-2 rounded-lg ${index % 2 === 0 ? "bg-emerald-50" : "bg-gray-50"}`}
+//                   >
+//                     <div className="flex justify-between items-center">
+//                       <div>
+//                         <p className="font-semibold text-sm">
+//                           #{pedido.id} - {pedido.nombre}
+//                         </p>
+//                         <p className="text-xs text-gray-600">
+//                           {pedido.ciudad_nombre || "Sin ciudad"}
+//                         </p>
+//                       </div>
+//                       <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">
+//                         ${Number(pedido.total || 0).toLocaleString()}
+//                       </span>
+//                     </div>
+//                   </div>
+//                 ))}
+
+//                 {nuevosPedidos.length > 3 && (
+//                   <p className="text-xs text-gray-500 text-center mt-2">
+//                     +{nuevosPedidos.length - 3} más...
+//                   </p>
+//                 )}
+//               </div>
+
+//               <div className="flex gap-2">
+//                 <button
+//                   onClick={aceptarNotificacion}
+//                   className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+//                 >
+//                   <CheckCircle className="w-4 h-4" />
+//                   Aceptar y Actualizar
+//                 </button>
+//                 <button
+//                   onClick={() => {
+//                     setNotificacionPulsando(false);
+//                     setNotificacionVisible(false);
+//                     if (pulseIntervalRef.current) {
+//                       clearInterval(pulseIntervalRef.current);
+//                     }
+//                   }}
+//                   className="px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors"
+//                   title="Cerrar notificación"
+//                 >
+//                   <X className="w-4 h-4" />
+//                 </button>
+//               </div>
+
+//               <p className="text-xs text-gray-500 mt-3 text-center">
+//                 La lista se actualizará automáticamente al aceptar
+//               </p>
+//             </div>
+
+//             <div className="h-1 bg-gradient-to-r from-emerald-400 to-green-400"></div>
 //           </div>
 //         </div>
 //       )}
+
+//       {/* Botón de notificaciones móvil */}
+//       <div className="fixed bottom-4 right-4 z-40">
+//         <div className="flex flex-col items-end gap-2">
+//           {contadorNuevos > 0 && !notificacionVisible && (
+//             <div className="animate-bounce">
+//               <div className="bg-red-500 text-white text-xs font-bold rounded-full px-3 py-1 shadow-lg">
+//                 {contadorNuevos} nuevo{contadorNuevos !== 1 ? "s" : ""}
+//               </div>
+//             </div>
+//           )}
+
+//           <div className="flex items-center gap-2 bg-white rounded-full shadow-lg p-2">
+//             <button
+//               onClick={() => setSonidoActivo(!sonidoActivo)}
+//               className={`p-2 rounded-full ${sonidoActivo ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}
+//               title={sonidoActivo ? "Sonido activado" : "Sonido desactivado"}
+//             >
+//               {sonidoActivo ? (
+//                 <Volume2 className="w-5 h-5" />
+//               ) : (
+//                 <VolumeX className="w-5 h-5" />
+//               )}
+//             </button>
+
+//             <button
+//               onClick={verificarNuevosPedidos}
+//               className="relative p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all"
+//               title="Verificar nuevos pedidos"
+//             >
+//               <Bell className="w-5 h-5" />
+//               {contadorNuevos > 0 && (
+//                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-red-500 text-xs font-bold rounded-full flex items-center justify-center border border-red-200 animate-pulse">
+//                   {contadorNuevos}
+//                 </span>
+//               )}
+//             </button>
+//           </div>
+//         </div>
+//       </div>
 
 //       {/* Header */}
 //       <div className="mb-4">
@@ -2325,7 +2473,109 @@ Gracias por tu compra 💖
 //         )}
 //       </div>
 
-//       {/* ... (paginación y estilos se mantienen igual) */}
+//       {/* Paginación */}
+//       {totalPaginas > 1 && pedidos.length > 0 && (
+//         <div className="mt-4 bg-white rounded-lg p-3">
+//           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+//             <div className="text-sm text-gray-600">
+//               Página {paginaActual} de {totalPaginas}
+//             </div>
+
+//             <div className="flex items-center gap-2">
+//               <button
+//                 disabled={paginaActual === 1}
+//                 onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+//                 className={`px-3 py-1.5 border border-gray-300 rounded text-sm ${
+//                   paginaActual === 1
+//                     ? "text-gray-400 cursor-not-allowed"
+//                     : "text-gray-700 hover:bg-gray-50"
+//                 }`}
+//               >
+//                 ← Anterior
+//               </button>
+
+//               <div className="flex items-center gap-1">
+//                 {Array.from({ length: Math.min(3, totalPaginas) }, (_, i) => {
+//                   const page = i + 1;
+//                   return (
+//                     <button
+//                       key={page}
+//                       onClick={() => setPaginaActual(page)}
+//                       className={`w-8 h-8 rounded text-sm ${
+//                         paginaActual === page
+//                           ? "bg-red-500 text-white"
+//                           : "text-gray-700 hover:bg-gray-100"
+//                       }`}
+//                     >
+//                       {page}
+//                     </button>
+//                   );
+//                 })}
+//                 {totalPaginas > 3 && (
+//                   <>
+//                     <span className="text-gray-400">...</span>
+//                     <button
+//                       onClick={() => setPaginaActual(totalPaginas)}
+//                       className={`w-8 h-8 rounded text-sm ${
+//                         paginaActual === totalPaginas
+//                           ? "bg-red-500 text-white"
+//                           : "text-gray-700 hover:bg-gray-100"
+//                       }`}
+//                     >
+//                       {totalPaginas}
+//                     </button>
+//                   </>
+//                 )}
+//               </div>
+
+//               <button
+//                 disabled={paginaActual === totalPaginas}
+//                 onClick={() =>
+//                   setPaginaActual((p) => Math.min(totalPaginas, p + 1))
+//                 }
+//                 className={`px-3 py-1.5 border border-gray-300 rounded text-sm ${
+//                   paginaActual === totalPaginas
+//                     ? "text-gray-400 cursor-not-allowed"
+//                     : "text-gray-700 hover:bg-gray-50"
+//                 }`}
+//               >
+//                 Siguiente →
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       <style>{`
+//         @keyframes fade-in {
+//           from { opacity: 0; transform: translateY(-10px); }
+//           to { opacity: 1; transform: translateY(0); }
+//         }
+//         @keyframes slide-in {
+//           from { opacity: 0; transform: translateX(100px) scale(0.9); }
+//           to { opacity: 1; transform: translateX(0) scale(1); }
+//         }
+//         @keyframes pulse {
+//           0%, 100% { transform: scale(1); }
+//           50% { transform: scale(1.05); }
+//         }
+//         @keyframes bounce {
+//           0%, 100% { transform: translateY(0); }
+//           50% { transform: translateY(-5px); }
+//         }
+//         .animate-fade-in { animation: fade-in 0.3s ease-out; }
+//         .animate-slide-in { animation: slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+//         .animate-pulse { animation: pulse 1s infinite; }
+//         .animate-bounce { animation: bounce 1s infinite; }
+//         .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+//         @keyframes ping {
+//           75%, 100% {
+//             transform: scale(1.5);
+//             opacity: 0;
+//           }
+//         }
+//       `}</style>
 //     </div>
 //   );
 // }
