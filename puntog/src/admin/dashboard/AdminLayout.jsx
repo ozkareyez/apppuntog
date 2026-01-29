@@ -199,14 +199,14 @@ export default function AdminLayout() {
             trend: "up",
             loading: false,
           },
-          {
-            label: "Tasa Conversión",
-            value: `${tasaConversion}%`,
-            icon: <TrendingUp size={16} />,
-            change: tasaConversion > 2.5 ? "+0.4%" : "-0.2%",
-            trend: tasaConversion > 2.5 ? "up" : "down",
-            loading: false,
-          },
+          // {
+          //   label: "Tasa Conversión",
+          //   value: `${tasaConversion}%`,
+          //   icon: <TrendingUp size={16} />,
+          //   change: tasaConversion > 2.5 ? "+0.4%" : "-0.2%",
+          //   trend: tasaConversion > 2.5 ? "up" : "down",
+          //   loading: false,
+          // },
         ]);
 
         setPedidosPendientes(pendientes);
