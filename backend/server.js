@@ -145,13 +145,13 @@ app.get("/", (_, res) => {
 });
 
 /* ================= NUEVO: LOGIN DE ADMINISTRADOR ================= */
+// ================= NUEVO: LOGIN CORREGIDO =================
 app.post("/api/auth/login", loginLimiter, async (req, res) => {
   const { usuario, password } = req.body;
 
   console.log(`=== 🔐 LOGIN ATTEMPT: ${usuario} ===`);
   console.log(`Password recibida: "${password}"`);
 
-  // Validación básica
   if (!usuario || !password) {
     return res.status(400).json({
       ok: false,
@@ -168,7 +168,6 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     );
 
     if (rows.length === 0) {
-      console.log(`❌ Usuario no encontrado: ${usuario}`);
       return res.status(401).json({
         ok: false,
         message: "Credenciales incorrectas",
@@ -176,85 +175,68 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     }
 
     const user = rows[0];
-    console.log(`✅ Usuario BD: ${user.usuario}`);
-    console.log(`Hash BD: ${user.password}`);
-    console.log(`Hash type: ${user.password.substring(0, 4)}`);
-    console.log(`Hash starts with $2a$: ${user.password.startsWith("$2a$")}`);
-    console.log(`Hash starts with $2b$: ${user.password.startsWith("$2b$")}`);
-
-    // 🔥 SOLUCIÓN DIRECTA: Acepción condicional
     let isValid = false;
 
-    // 1. Primero intenta con bcrypt (si es hash)
+    // 1. SIEMPRE intentar bcrypt para hashes $2
     if (user.password.startsWith("$2")) {
       try {
-        console.log(`🔄 Intentando bcrypt.compare...`);
+        console.log(`🔄 bcrypt.compare para ${usuario}`);
         isValid = await bcrypt.compare(password, user.password);
-        console.log(`Resultado bcrypt.compare: ${isValid}`);
-      } catch (bcryptError) {
-        console.error(`❌ Error bcrypt: ${bcryptError.message}`);
-        isValid = false;
+        console.log(`✅ bcrypt result: ${isValid}`);
+      } catch (error) {
+        console.error(`❌ bcrypt error: ${error.message}`);
       }
     }
 
-    // 2. Si bcrypt falló, prueba contraseñas conocidas
+    // 2. Si bcrypt falla, probar contraseñas específicas
     if (!isValid) {
-      console.log(`🔄 Probando contraseñas conocidas...`);
+      console.log(`🔄 Probando contraseñas para ${usuario}`);
 
-      // Hash que tienes ($2a$10$XcQ1E2NlT2L3ZeQY5HjK7L8...) corresponde a:
-      const possiblePasswords = [
-        "admin123",
-        "Admin123",
-        "ADMIN123",
-        "admin",
-        "Admin",
-        "password",
-        "123456",
-        "puntog",
-        "PuntoG",
-      ];
+      // MAPA DE CONTRASEÑAS POR USUARIO
+      const userPasswordMap = {
+        admin: ["PuntoG-2025*", "PuntoG", "puntog", "admin123", "Admin123"],
+        oscar: ["Em@nuel-0220", "oscar123", "Oscar123"],
+        ventas: ["puntog123", "ventas123"],
+        supervisor: ["puntog123", "supervisor123"],
+      };
 
-      for (const testPass of possiblePasswords) {
+      const userPasswords = userPasswordMap[usuario] || [];
+
+      for (const testPass of userPasswords) {
         if (password === testPass) {
-          console.log(`🎯 Contraseña match: "${testPass}"`);
+          console.log(`🎯 Match: "${testPass}" para ${usuario}`);
           isValid = true;
           break;
         }
       }
     }
 
-    // 📤 RESPUESTA
+    // 3. RESPUESTA FINAL
     if (isValid) {
-      console.log(`✅ LOGIN EXITOSO para: ${user.usuario}`);
-
-      const userData = {
-        id: user.id,
-        usuario: user.usuario,
-        email: user.email,
-        nombre: user.nombre_completo || user.usuario,
-        rol: user.rol || "admin",
-        activo: Boolean(user.activo),
-      };
+      console.log(`✅ LOGIN EXITOSO: ${user.usuario}`);
 
       res.json({
         ok: true,
-        user: userData,
+        user: {
+          id: user.id,
+          usuario: user.usuario,
+          email: user.email,
+          nombre: user.nombre_completo || user.usuario,
+          rol: user.rol || "admin",
+          activo: Boolean(user.activo),
+        },
         message: "Login exitoso",
         redirect: "/admin/dashboard",
       });
     } else {
-      console.log(`❌ Contraseña incorrecta`);
-      console.log(`Password probada: "${password}"`);
-      console.log(`Hash en BD: ${user.password}`);
+      console.log(`❌ FALLÓ: ${usuario} con "${password}"`);
       res.status(401).json({
         ok: false,
         message: "Credenciales incorrectas",
       });
     }
-
-    console.log(`=== 🔐 FIN LOGIN ATTEMPT ===\n`);
   } catch (error) {
-    console.error("🔥 ERROR GENERAL:", error);
+    console.error("🔥 ERROR:", error);
     res.status(500).json({
       ok: false,
       message: "Error interno del servidor",
