@@ -97,7 +97,7 @@ export default function FormularioEnvioModal() {
 
     const mensaje =
       `🛒 **NUEVO PEDIDO - Punto G Sexshop**\n\n` +
-      `📋 **Pedido #:** ${pedidoId}\n` +
+      `📋 **Pedido #:**-**** \n` +
       `📅 **Fecha:** ${new Date().toLocaleDateString("es-CO")}\n\n` +
       `👤 **Datos del Cliente:**\n` +
       `• Nombre: ${form.nombre}\n` +
@@ -119,7 +119,7 @@ export default function FormularioEnvioModal() {
 
   const abrirWhatsApp = (pedidoId) => {
     const mensaje = construirMensajeWhatsApp(pedidoId);
-    const url = `https://wa.me/573117687596?text=${mensaje}`;
+    const url = `https://wa.me/573183704240?text=${mensaje}`;
     window.open(url, "_blank");
   };
 
