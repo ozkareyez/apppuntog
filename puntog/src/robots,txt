@@ -1,0 +1,84 @@
+# robots.txt para puntogsexshop.com
+
+User-agent: *
+
+# Permitir rastreo de contenido importante
+Allow: /
+Allow: /productos/
+Allow: /categorias/
+Allow: /blog/
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+
+# Bloquear áreas administrativas y privadas
+Disallow: /admin/
+Disallow: /panel/
+Disallow: /dashboard/
+Disallow: /api/
+
+# Bloquear procesos de usuario
+Disallow: /carrito/
+Disallow: /checkout/
+Disallow: /pago/
+Disallow: /mi-cuenta/
+Disallow: /login/
+Disallow: /registro/
+Disallow: /perfil/
+Disallow: /pedidos/
+
+# Bloquear búsquedas y filtros dinámicos
+Disallow: /busqueda?
+Disallow: /*?q=
+Disallow: /*?search=
+Disallow: /*?filter=
+Disallow: /*?sort=
+Disallow: /*?page=
+
+# Bloquear archivos técnicos
+Disallow: /*.json$
+Disallow: /*.xml$ 
+Disallow: /node_modules/
+Disallow: /package.json
+
+# Permitir solo a bots legítimos acceder a ciertos recursos
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Bloquear bots maliciosos conocidos
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# Sitemap (IMPORTANTE para SEO)
+Sitemap: https://puntogsexshop.com/sitemap.xml
+Sitemap: https://puntogsexshop.com/sitemap-productos.xml
+Sitemap: https://puntogsexshop.com/sitemap-blog.xml
+
+# Crawl-delay (opcional, solo si tienes problemas de rendimiento)
+# User-agent: *
+# Crawl-delay: 1
+```
+
+## 📝 Checklist de implementación:
+
+1. ✅ Crear el archivo en `frontend/public/robots.txt`
+2. ✅ Verificar que sea accesible en `https://puntogsexshop.com/robots.txt`
+3. ✅ Probar con Google Search Console → Herramienta de prueba de robots.txt
+4. ✅ Crear tu sitemap.xml (también va en `/public/`)
+5. ✅ Enviar sitemap a Google Search Console
+
+## 🔍 Cómo verificar que funciona:
+
+Después de subir a producción, visita:
+```
+https://puntogsexshop.com/robots.txt
