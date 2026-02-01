@@ -1,24 +1,20 @@
 # robots.txt para puntogsexshop.com
+# Última actualización: Enero 2026
 
 User-agent: *
 
-# Permitir rastreo de contenido importante
+# Permitir rastreo de todo el sitio
 Allow: /
-Allow: /productos/
-Allow: /categorias/
-Allow: /blog/
-Allow: /*.jpg$
-Allow: /*.jpeg$
-Allow: /*.png$
-Allow: /*.webp$
 
 # Bloquear áreas administrativas y privadas
 Disallow: /admin/
 Disallow: /panel/
 Disallow: /dashboard/
 Disallow: /api/
+Disallow: /wp-admin/
+Disallow: /wp-login.php
 
-# Bloquear procesos de usuario
+# Bloquear procesos de usuario y sesiones
 Disallow: /carrito/
 Disallow: /checkout/
 Disallow: /pago/
@@ -27,28 +23,34 @@ Disallow: /login/
 Disallow: /registro/
 Disallow: /perfil/
 Disallow: /pedidos/
+Disallow: /orden/
+Disallow: /checkout/
+Disallow: /cart/
 
-# Bloquear búsquedas y filtros dinámicos
-Disallow: /busqueda?
+# Bloquear parámetros de búsqueda y filtros
 Disallow: /*?q=
 Disallow: /*?search=
 Disallow: /*?filter=
 Disallow: /*?sort=
+Disallow: /*?order=
 Disallow: /*?page=
+Disallow: /*?s=
+Disallow: /*?product=
 
-# Bloquear archivos técnicos
-Disallow: /*.json$
-Disallow: /node_modules/
-Disallow: /package.json
-
-# Permitir solo a bots legítimos acceder a ciertos recursos
+# Permitir bots legítimos
 User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-# Bloquear bots maliciosos conocidos
+User-agent: Applebot
+Allow: /
+
+# Bloquear bots de scraping
 User-agent: AhrefsBot
 Disallow: /
 
@@ -58,10 +60,14 @@ Disallow: /
 User-agent: MJ12bot
 Disallow: /
 
-# Sitemap (IMPORTANTE para SEO)
-# SOLO AÑADIR CUANDO TENGAS UN SITEMAP QUE FUNCIONE
-# Por ahora déjalo comentado o usa el nuevo nombre
+User-agent: DotBot
+Disallow: /
 
-# Crawl-delay (opcional, solo si tienes problemas de rendimiento)
-# User-agent: *
+User-agent: YandexBot
+Disallow: /
+
+# Sitemap - USAR EL NUEVO FORMATO .TXT
+Sitemap: https://puntogsexshop.com/sitemap-2026.txt
+
+# Instrucciones para crawl (opcional)
 # Crawl-delay: 1
