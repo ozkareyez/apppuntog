@@ -36,9 +36,8 @@ Disallow: /*?filter=
 Disallow: /*?sort=
 Disallow: /*?page=
 
-# Bloquear archivos técnicos (PERMITE XML)
+# Bloquear archivos técnicos
 Disallow: /*.json$
-# Disallow: /*.xml$  <-- ¡ELIMINAR ESTA LÍNEA!
 Disallow: /node_modules/
 Disallow: /package.json
 
@@ -60,7 +59,8 @@ User-agent: MJ12bot
 Disallow: /
 
 # Sitemap (IMPORTANTE para SEO)
-Sitemap: https://puntogsexshop.com/sitemap.xml
+# SOLO AÑADIR CUANDO TENGAS UN SITEMAP QUE FUNCIONE
+# Por ahora déjalo comentado o usa el nuevo nombre
 
 # Crawl-delay (opcional, solo si tienes problemas de rendimiento)
 # User-agent: *
