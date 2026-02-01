@@ -36,9 +36,9 @@ Disallow: /*?filter=
 Disallow: /*?sort=
 Disallow: /*?page=
 
-# Bloquear archivos técnicos
+# Bloquear archivos técnicos (PERMITE XML)
 Disallow: /*.json$
-Disallow: /*.xml$ 
+# Disallow: /*.xml$  <-- ¡ELIMINAR ESTA LÍNEA!
 Disallow: /node_modules/
 Disallow: /package.json
 
@@ -61,24 +61,7 @@ Disallow: /
 
 # Sitemap (IMPORTANTE para SEO)
 Sitemap: https://puntogsexshop.com/sitemap.xml
-Sitemap: https://puntogsexshop.com/sitemap-productos.xml
-Sitemap: https://puntogsexshop.com/sitemap-blog.xml
 
 # Crawl-delay (opcional, solo si tienes problemas de rendimiento)
 # User-agent: *
 # Crawl-delay: 1
-```
-
-## 📝 Checklist de implementación:
-
-1. ✅ Crear el archivo en `frontend/public/robots.txt`
-2. ✅ Verificar que sea accesible en `https://puntogsexshop.com/robots.txt`
-3. ✅ Probar con Google Search Console → Herramienta de prueba de robots.txt
-4. ✅ Crear tu sitemap.xml (también va en `/public/`)
-5. ✅ Enviar sitemap a Google Search Console
-
-## 🔍 Cómo verificar que funciona:
-
-Después de subir a producción, visita:
-```
-https://puntogsexshop.com/robots.txt
