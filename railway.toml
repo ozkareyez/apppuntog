@@ -1,11 +1,10 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd puntog && npm install && npm run build"
-startCommand = "cd puntog && npm run preview"
+buildCommand = "npm run build"
 
 [deploy]
-startCommand = "cd puntog && npm run preview"
+startCommand = "npm run preview"
 
 [[processes]]
 name = "web"
-command = "cd puntog && npm run preview"
+command = "npm run preview"
