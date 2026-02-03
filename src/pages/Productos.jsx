@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -24,6 +24,9 @@ const Productos = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Agrega una referencia para el contenedor de productos
+  const productosContainerRef = useRef(null);
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -171,6 +174,18 @@ const Productos = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
+
+  // Efecto para manejar el scroll cuando cambia la página
+  useEffect(() => {
+    // Solo hacer scroll si el contenedor existe y no es la primera carga
+    if (productosContainerRef.current && currentPage > 1) {
+      // Hacer scroll suave al contenedor de productos
+      productosContainerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [currentPage]); // Solo se ejecuta cuando cambia currentPage
 
   // Funciones auxiliares
   const getNombreCategoria = (slug) => {
@@ -334,10 +349,10 @@ const Productos = () => {
     Math.min(indexOfLastItem, filteredProductos.length),
   );
 
+  // Función para cambiar de página SIN scroll al inicio
   const paginate = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const getPageNumbers = () => {
@@ -455,7 +470,8 @@ const Productos = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4">
+      {/* Agrega el ref aquí, justo antes de la sección de productos */}
+      <div ref={productosContainerRef} className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="w-full md:w-auto">
             <div className="flex overflow-x-auto pb-2 md:pb-0 md:flex-wrap gap-2 scrollbar-hide">
@@ -1430,7 +1446,6 @@ export default Productos;
 
 //   return (
 //     <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12">
-//       {/* CAMBIO 1: bg-linear-to-b → bg-gradient-to-b */}
 //       <div className="max-w-7xl mx-auto px-4 mb-8">
 //         <div className="text-center mb-6 pt-15">
 //           <motion.h1
@@ -1649,7 +1664,7 @@ export default Productos;
 //                   initial={{ opacity: 0, y: 20 }}
 //                   animate={{ opacity: 1, y: 0 }}
 //                   className={`group relative bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-red-200 transition-all duration-300 hover:shadow-lg ${
-//                     !estaDisponible ? "opacity-80" : ""
+//                     !estaDisponible ? "opacity-80 cursor-not-allowed" : ""
 //                   }`}
 //                 >
 //                   <button
@@ -1691,11 +1706,15 @@ export default Productos;
 //                     </span>
 //                   </div>
 
-//                   {/* CAMBIO 2: navigateToProductDetails en lugar de navigate */}
+//                   {/* IMAGEN - Deshabilitada si está agotado */}
 //                   <div
-//                     onClick={() => navigateToProductDetails(producto.id)}
-//                     className={`relative h-36 md:h-40 bg-gradient-to-br from-gray-50 to-white overflow-hidden cursor-pointer ${
-//                       !estaDisponible ? "grayscale" : ""
+//                     onClick={() =>
+//                       estaDisponible && navigateToProductDetails(producto.id)
+//                     }
+//                     className={`relative h-36 md:h-40 bg-gradient-to-br from-gray-50 to-white overflow-hidden ${
+//                       estaDisponible
+//                         ? "cursor-pointer"
+//                         : "cursor-not-allowed grayscale"
 //                     }`}
 //                   >
 //                     <img
@@ -1705,26 +1724,33 @@ export default Productos;
 //                       onError={(e) => (e.target.src = "/imagenes/no-image.png")}
 //                     />
 
-//                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity duration-300">
-//                       <button
-//                         onClick={(e) => {
-//                           e.stopPropagation();
-//                           setQuickView(producto);
-//                         }}
-//                         className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full font-medium flex items-center gap-1 hover:scale-105 transition-transform text-xs"
-//                       >
-//                         <Eye size={12} />
-//                         Vista rápida
-//                       </button>
-//                     </div>
+//                     {/* Solo mostrar botón de vista rápida si está disponible */}
+//                     {estaDisponible && (
+//                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity duration-300">
+//                         <button
+//                           onClick={(e) => {
+//                             e.stopPropagation();
+//                             setQuickView(producto);
+//                           }}
+//                           className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full font-medium flex items-center gap-1 hover:scale-105 transition-transform text-xs"
+//                         >
+//                           <Eye size={12} />
+//                           Vista rápida
+//                         </button>
+//                       </div>
+//                     )}
 //                   </div>
 
 //                   <div className="p-2.5 md:p-3">
-//                     {/* CAMBIO 2: navigateToProductDetails en lugar de navigate */}
+//                     {/* TÍTULO - Deshabilitado si está agotado */}
 //                     <h3
-//                       onClick={() => navigateToProductDetails(producto.id)}
-//                       className={`font-semibold text-gray-900 mb-2 line-clamp-2 h-10 text-sm cursor-pointer hover:text-red-600 transition ${
-//                         !estaDisponible ? "text-gray-500" : ""
+//                       onClick={() =>
+//                         estaDisponible && navigateToProductDetails(producto.id)
+//                       }
+//                       className={`font-semibold mb-2 line-clamp-2 h-10 text-sm ${
+//                         estaDisponible
+//                           ? "text-gray-900 cursor-pointer hover:text-red-600 transition"
+//                           : "text-gray-400 cursor-not-allowed"
 //                       }`}
 //                     >
 //                       {producto.nombre}
@@ -1755,6 +1781,7 @@ export default Productos;
 //                     </div>
 
 //                     <div className="flex gap-1.5">
+//                       {/* BOTÓN AGREGAR - Deshabilitado si está agotado */}
 //                       <button
 //                         onClick={(e) => {
 //                           e.stopPropagation();
@@ -1766,7 +1793,7 @@ export default Productos;
 //                         className={`flex-1 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition-all shadow-md text-xs md:text-sm px-1 md:px-2 ${
 //                           estaDisponible
 //                             ? "bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800"
-//                             : "bg-gray-300 text-gray-500 cursor-not-allowed"
+//                             : "bg-gray-200 text-gray-400 cursor-not-allowed"
 //                         }`}
 //                       >
 //                         <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
@@ -1774,13 +1801,21 @@ export default Productos;
 //                           {estaDisponible ? "Agregar" : "Agotado"}
 //                         </span>
 //                       </button>
-//                       {/* CAMBIO 2: navigateToProductDetails en lugar de navigate */}
+
+//                       {/* BOTÓN VER - Solo funciona si está disponible */}
 //                       <button
 //                         onClick={(e) => {
 //                           e.stopPropagation();
-//                           navigateToProductDetails(producto.id);
+//                           if (estaDisponible) {
+//                             navigateToProductDetails(producto.id);
+//                           }
 //                         }}
-//                         className="px-2 py-2 rounded-lg font-medium border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 transition text-xs"
+//                         disabled={!estaDisponible}
+//                         className={`px-2 py-2 rounded-lg font-medium border transition text-xs ${
+//                           estaDisponible
+//                             ? "border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600"
+//                             : "border-gray-200 text-gray-400 cursor-not-allowed"
+//                         }`}
 //                       >
 //                         Ver
 //                       </button>
@@ -2006,7 +2041,6 @@ export default Productos;
 //                           ? "Agregar al carrito"
 //                           : "Producto agotado"}
 //                       </button>
-//                       {/* CAMBIO 2: navigateToProductDetails en lugar de navigate */}
 //                       <button
 //                         onClick={() => {
 //                           navigateToProductDetails(quickView.id);
