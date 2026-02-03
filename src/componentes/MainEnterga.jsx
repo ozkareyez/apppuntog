@@ -61,7 +61,7 @@ const MainEntrega = () => {
       text: "Productos certificados y testados",
       gradient: "from-red-600 to-rose-600",
       badge: "⭐",
-      stats: "30 días",
+
       features: ["Calidad premium", "Devolución fácil", "Soporte 24/7"],
     },
     {
