@@ -1,28 +1,30 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { fileURLToPath, URL } from "node:url";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  base: "/", // 🔥 CLAVE PARA RAILWAY + ROUTER
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
+  css: {
+    postcss: './postcss.config.cjs'
+  },
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    port: 3000,
+    host: true,
+  },
+  build: {
+    outDir: "dist",
+  },
+  preview: {
+    port: process.env.PORT || 3000,
+    host: true,
+  },
 });
-
-// import { defineConfig } from "vite";
-// import react from "@vitejs/plugin-react";
-// import tailwindcss from "@tailwindcss/vite";
-// import { fileURLToPath, URL } from "node:url";
-
-// export default defineConfig({
-//   plugins: [react(), tailwindcss()],
-//   resolve: {
-//     alias: {
-//       "@": fileURLToPath(new URL("./src", import.meta.url)),
-//     },
-//   },
-// });
