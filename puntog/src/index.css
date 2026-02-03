@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* =======================
    CONFIGURACIÓN GLOBAL
@@ -48,120 +50,165 @@ main, section, .container {
    UTILIDADES GENERALES
 ======================= */
 .container-max {
-  @apply max-w-7xl mx-auto px-5;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .card {
-  @apply rounded-2xl shadow-xl bg-[#1f1f1f] border border-white/10;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background: #1f1f1f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* =======================
    INPUTS / FORMULARIOS
 ======================= */
 .input-admin {
-  @apply w-full border border-gray-300 rounded-lg px-3 py-2
-         focus:outline-none focus:ring-2 focus:ring-black
-         text-gray-800 placeholder-gray-400;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  color: #1f2937;
 }
 
+.input-admin:focus {
+  outline: 2px solid #000000;
+  ring: 2px solid #000000;
+}
 
 .Select {
-  @apply w-full bg-neutral-800 text-gray-500 px-4 py-3 rounded-xl
-    outline-none border border-white/10
-    focus:border-red-600 focus:ring-2 focus:ring-red-600/30
-    transition;
+  width: 100%;
+  background-color: #262626;
+  color: #6b7280;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s;
+}
+
+.Select:focus {
+  border-color: #dc2626;
+  ring: 2px solid rgba(220, 38, 38, 0.3);
 }
 
 .btn-primary {
-  @apply w-full py-3 rounded-xl font-semibold text-white
-    bg-gradient-to-r from-red-600 to-red-700
-    hover:from-red-600 hover:to-red-700
-    transition shadow-lg shadow-pink-500/40;
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to right, #dc2626, #b91c1c);
+  transition: background 0.2s;
+  box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.4);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #dc2626, #b91c1c);
 }
 
 .btn-outline {
-  @apply w-full py-3 rounded-xl font-semibold text-white
-    border border-white/20
-    hover:bg-white hover:text-black transition;
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: background 0.2s;
 }
 
-/* =======================
-   BENEFICIOS / FEATURES
-======================= */
-.beneficio-card {
-  @apply
-    bg-white/5
-    backdrop-blur-lg
-    border border-white/10
-    rounded-2xl
-    p-6
-    text-center
-    text-white
-    flex flex-col items-center gap-3
-    shadow-xl
-    transition-all duration-300
-    hover:-translate-y-1 hover:shadow-red-600/30;
-}
-
-.beneficio-card h3 {
-  @apply text-lg font-semibold;
-}
-
-.beneficio-card p {
-  @apply text-sm text-gray-300 leading-relaxed;
-}
-
-.beneficio-card svg {
-  @apply text-red-600 drop-shadow;
-}
-
-/* =======================
-   BADGES / LABELS
-======================= */
-.badge-pink {
-  @apply inline-flex items-center gap-1 px-3 py-1
-    rounded-full text-xs font-bold
-    bg-red-500/20 text-red-600 border border-red-500/30;
+.btn-outline:hover {
+  background: white;
+  color: black;
 }
 
 /* =======================
    MODALES / DRAWERS
 ======================= */
 .overlay {
-  @apply fixed inset-0 bg-white backdrop-blur-sm z-40;
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 40;
 }
 
 .drawer {
-  @apply fixed top-0 right-0 h-full w-full sm:w-[420px]
-    bg-black z-50 flex flex-col shadow-2xl;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  background: black;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 640px) {
+  .drawer {
+    width: 420px;
+  }
 }
 
 .modal {
-  @apply relative w-full max-w-md rounded-2xl bg-white
-    p-6 shadow-2xl;
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 1rem;
+  background: white;
+  padding: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 /* =======================
    TABLAS ADMIN
 ======================= */
 .table-wrapper {
-  @apply overflow-x-auto rounded-xl border border-white/10 bg-white;
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: white;
 }
 
 .table {
-  @apply w-full text-sm text-gray-700;
+  width: 100%;
+  font-size: 0.875rem;
+  color: #374151;
 }
 
 .table th {
-  @apply p-3 text-left bg-white/30 text-gray-500;
+  padding: 0.75rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.3);
+  color: #6b7280;
 }
 
 .table td {
-  @apply p-3 border-t border-white/10;
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* =======================
@@ -218,7 +265,6 @@ main, section, .container {
     background: transparent !important;
   }
 }
-
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
