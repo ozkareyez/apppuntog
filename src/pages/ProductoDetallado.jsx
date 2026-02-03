@@ -877,8 +877,6 @@ const ProductoDetallado = () => {
                           value: producto.talla || "Única",
                         },
                         { label: "País de origen", value: "Colombia" },
-                        { label: "Cuidados", value: "Lavable a mano" },
-                        { label: "Garantía", value: "30 días" },
                       ].map((spec, i) => (
                         <div key={i} className="border-b border-gray-200 pb-3">
                           <span className="text-gray-600">{spec.label}:</span>
