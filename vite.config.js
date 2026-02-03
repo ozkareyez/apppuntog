@@ -26,5 +26,10 @@ export default defineConfig({
   preview: {
     port: process.env.PORT || 3000,
     host: true,
+    allowedHosts: [
+      "puntogsexshop.com",
+      "localhost",
+      "127.0.0.1"
+    ]
   },
 });
