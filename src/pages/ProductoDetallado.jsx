@@ -811,8 +811,7 @@ const ProductoDetallado = () => {
                     >
                       {tab === "descripcion" && "Descripción"}
                       {tab === "especificaciones" && "Especificaciones"}
-                      {tab === "envios" && "Envíos y Devoluciones"}
-                      {tab === "resenas" && "Reseñas"}
+
                       {activeTab === tab && (
                         <motion.div
                           layoutId="activeTab"
@@ -1041,7 +1040,7 @@ const ProductoDetallado = () => {
               </p>
             </div>
             <a
-              href={`https://wa.me/573147041149?text=Hola,%20estoy%20interesado%20en%20el%20producto:%20${encodeURIComponent(producto.nombre)}%20(ID:%20${producto.id})`}
+              href={`https://wa.me/573183704240?text=Hola,%20estoy%20interesado%20en%20el%20producto:%20${encodeURIComponent(producto.nombre)}%20(ID:%20${producto.id})`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-3 bg-white text-red-600 font-semibold rounded-xl hover:bg-gray-100 transition whitespace-nowrap inline-block text-center"
