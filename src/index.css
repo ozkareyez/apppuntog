@@ -31,7 +31,7 @@ main, section, .container {
 }
 
 /* =======================
-   SCROLLBAR (WEBKIT)
+   SCROLLBAR (CORREGIDO)
 ======================= */
 ::-webkit-scrollbar {
   width: 8px;
@@ -42,7 +42,7 @@ main, section, .container {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #ee0505, #efff);
+  background: #dc2626; /* Rojo sólido - CORREGIDO */
   border-radius: 999px;
 }
 
@@ -111,6 +111,9 @@ main, section, .container {
   ring: 2px solid rgba(220, 38, 38, 0.3);
 }
 
+/* =======================
+   BOTONES (CORREGIDO)
+======================= */
 .btn-primary {
   width: 100%;
   padding-top: 0.75rem;
@@ -119,12 +122,14 @@ main, section, .container {
   font-weight: 600;
   color: white;
   background: linear-gradient(to right, #dc2626, #b91c1c);
-  transition: background 0.2s;
-  box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.4);
+  transition: all 0.2s;
+  /* CORREGIDO: Sombra negra en lugar de rosada */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .btn-primary:hover {
   background: linear-gradient(to right, #dc2626, #b91c1c);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
 .btn-outline {
