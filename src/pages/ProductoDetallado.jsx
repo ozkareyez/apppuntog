@@ -1,7 +1,7 @@
 // src/pages/ProductoDetallado.jsx
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async"; // 👈 NUEVO
+import { Helmet } from "react-helmet-async";
 import {
   ShoppingCart,
   ArrowLeft,
@@ -27,7 +27,8 @@ import { API_URL } from "@/config";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ProductoDetallado = () => {
-  const { id } = useParams();
+  // 🔴 CAMBIO 1: Usar 'slug' en lugar de 'id'
+  const { slug } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
@@ -149,20 +150,23 @@ const ProductoDetallado = () => {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isFullscreen]);
 
-  /* ================= FETCH PRODUCTO ================= */
+  /* ================= FETCH PRODUCTO POR SLUG ================= */
   useEffect(() => {
     const fetchProducto = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const res = await fetch(`${API_URL}/api/productos/${id}`);
+        // 🔴 CAMBIO 2: Buscar por slug en lugar de ID
+        const res = await fetch(`${API_URL}/api/productos/slug/${slug}`);
 
         if (!res.ok) {
+          // Si no funciona por slug, intentar con todos los productos
           if (res.status === 404) {
             const todosRes = await fetch(`${API_URL}/api/productos`);
             const todos = await todosRes.json();
-            const productoEncontrado = todos.find((p) => p.id === parseInt(id));
+            // Buscar por slug en la lista
+            const productoEncontrado = todos.find((p) => p.slug === slug);
             if (productoEncontrado) {
               setProducto(productoEncontrado);
               setLoading(false);
@@ -186,16 +190,19 @@ const ProductoDetallado = () => {
       }
     };
 
-    if (id) fetchProducto();
-  }, [id]);
+    if (slug) fetchProducto();
+  }, [slug]); // 🔴 CAMBIO 3: Dependencia cambia de 'id' a 'slug'
 
   /* ================= FETCH RECOMENDADOS ================= */
   useEffect(() => {
-    if (!id || !producto) return;
+    if (!slug || !producto) return; // 🔴 CAMBIO 4: Verificar slug en lugar de id
 
     const fetchRecomendados = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/productos-recomendados/${id}`);
+        // 🔴 CAMBIO 5: Usar slug para recomendar (o el ID del producto)
+        const res = await fetch(
+          `${API_URL}/api/productos-recomendados/${producto.id}`,
+        );
 
         if (!res.ok) {
           const todosRes = await fetch(`${API_URL}/api/productos`);
@@ -203,7 +210,7 @@ const ProductoDetallado = () => {
           const productosMismaCategoria = todos
             .filter(
               (p) =>
-                p.id !== parseInt(id) &&
+                p.slug !== slug && // 🔴 CAMBIO 6: Comparar por slug
                 p.categoria_id === producto.categoria_id,
             )
             .slice(0, 6);
@@ -219,13 +226,12 @@ const ProductoDetallado = () => {
     };
 
     fetchRecomendados();
-  }, [id, producto?.categoria_id]);
+  }, [slug, producto?.categoria_id]); // 🔴 CAMBIO 7: Dependencia slug
 
   /* ================= LOADING STATE ================= */
   if (loading) {
     return (
       <>
-        {/* SEO mínimo mientras carga */}
         <Helmet>
           <title>Cargando producto... | Punto G Sex Shop</title>
           <meta name="robots" content="noindex" />
@@ -278,13 +284,14 @@ const ProductoDetallado = () => {
   const images = getImages();
 
   // =====================================================
-  // SEO: preparar datos para Helmet
+  // SEO: usar SLUG en lugar de ID para la URL canónica
   // =====================================================
   const seoTitle = `${producto.nombre} | Punto G Sex Shop Colombia`;
   const seoDescription = producto.descripcion
     ? producto.descripcion.substring(0, 155) + "..."
     : `Compra ${producto.nombre} en Punto G Sex Shop. Envío discreto en Colombia. Precio: $${precio.toLocaleString()} COP.`;
-  const seoCanonical = `https://puntogsexshop.com/productos/${producto.id}`;
+  // 🔴 CAMBIO 8: URL canónica usa slug
+  const seoCanonical = `https://puntogsexshop.com/productos/${producto.slug}`;
   const seoImage =
     producto.imagen_cloud1 || producto.imagen_cloud2 || producto.imagen || "";
 
@@ -319,22 +326,13 @@ const ProductoDetallado = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* =====================================================
-          👇 HELMET SEO — SE INYECTA EN EL <head> AUTOMÁTICAMENTE
+          HELMET SEO
           ===================================================== */}
       <Helmet>
-        {/* Título único */}
         <title>{seoTitle}</title>
-
-        {/* Descripción */}
         <meta name="description" content={seoDescription} />
-
-        {/* Canonical — resuelve el error "página con canónica adecuada" */}
         <link rel="canonical" href={seoCanonical} />
-
-        {/* Robots */}
         <meta name="robots" content="index, follow, max-image-preview:large" />
-
-        {/* Open Graph (WhatsApp, Facebook) */}
         <meta property="og:type" content="product" />
         <meta
           property="og:title"
@@ -349,15 +347,10 @@ const ProductoDetallado = () => {
         <meta property="og:locale" content="es_CO" />
         <meta property="product:price:amount" content={precio} />
         <meta property="product:price:currency" content="COP" />
-
-        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={producto.nombre} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={seoImage} />
-        <meta name="twitter:site" content="@puntogsexshop" />
-
-        {/* Schema.org JSON-LD — rich results en Google */}
         <script type="application/ld+json">
           {JSON.stringify(productSchema)}
         </script>
@@ -860,7 +853,7 @@ const ProductoDetallado = () => {
                       {[
                         {
                           label: "Material",
-                          value: producto.color || "Variado",
+                          value: producto.material || "Variado",
                         },
                         { label: "Color", value: producto.color || "Variado" },
                         {
@@ -953,7 +946,8 @@ const ProductoDetallado = () => {
                     key={p.id}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    onClick={() => navigate(`/productos/${p.id}`)}
+                    // 🔴 CAMBIO 9: Usar slug en lugar de ID para navegar
+                    onClick={() => navigate(`/productos/${p.slug}`)}
                     className="snap-start min-w-[280px] max-w-[280px] bg-white rounded-2xl border border-gray-200 cursor-pointer overflow-hidden hover:shadow-2xl hover:shadow-red-900/10 transition-all duration-300 group"
                   >
                     <div className="relative h-64 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
@@ -1017,7 +1011,7 @@ const ProductoDetallado = () => {
               </p>
             </div>
             <a
-              href={`https://wa.me/573183704240?text=Hola,%20estoy%20interesado%20en%20el%20producto:%20${encodeURIComponent(producto.nombre)}%20(ID:%20${producto.id})`}
+              href={`https://wa.me/573183704240?text=Hola,%20estoy%20interesado%20en%20el%20producto:%20${encodeURIComponent(producto.nombre)}%20(Slug:%20${producto.slug})`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-3 bg-white text-red-600 font-semibold rounded-xl hover:bg-gray-100 transition whitespace-nowrap inline-block text-center"
@@ -1033,8 +1027,10 @@ const ProductoDetallado = () => {
 
 export default ProductoDetallado;
 
+// // src/pages/ProductoDetallado.jsx
 // import { useEffect, useState, useRef } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
+// import { Helmet } from "react-helmet-async"; // 👈 NUEVO
 // import {
 //   ShoppingCart,
 //   ArrowLeft,
@@ -1082,81 +1078,46 @@ export default ProductoDetallado;
 //   /* ================= FUNCIÓN MEJORADA PARA OBTENER IMÁGENES ================= */
 //   const getImages = () => {
 //     if (!producto) {
-//       console.log("❌ No hay producto disponible");
 //       return ["/imagenes/no-image.png"];
 //     }
 
-//     console.log("🔍 PRODUCTO RECIBIDO:", producto);
-//     console.log("🔍 Campos de imágenes del producto:", {
-//       imagenes: producto.imagenes,
-//       imagen_cloud1: producto.imagen_cloud1,
-//       imagen_cloud2: producto.imagen_cloud2,
-//       imagen_cloud3: producto.imagen_cloud3,
-//       imagen: producto.imagen,
-//     });
-
 //     const images = [];
 
-//     // 1. PRIMERO: Buscar en el array 'imagenes' si existe y tiene elementos
 //     if (producto.imagenes && Array.isArray(producto.imagenes)) {
-//       console.log("📦 Array 'imagenes' encontrado:", producto.imagenes);
-
-//       producto.imagenes.forEach((img, index) => {
+//       producto.imagenes.forEach((img) => {
 //         if (img) {
 //           if (typeof img === "object" && img !== null) {
-//             // Si es objeto, extraer la URL
 //             const url = img.url || img;
-//             if (url && url.trim() !== "") {
-//               images.push(url);
-//               console.log(`✅ Imagen ${index + 1} del array: ${url}`);
-//             }
+//             if (url && url.trim() !== "") images.push(url);
 //           } else if (typeof img === "string" && img.trim() !== "") {
-//             // Si es string directo
 //             images.push(img);
-//             console.log(`✅ Imagen ${index + 1} del array (string): ${img}`);
 //           }
 //         }
 //       });
 //     }
 
-//     // 2. SEGUNDO: Si no hay imágenes en el array, buscar en campos individuales de Cloudinary
 //     if (images.length === 0) {
-//       console.log("🔍 Buscando en campos Cloudinary individuales...");
-
-//       // Campos Cloudinary a verificar
 //       const cloudFields = [
-//         { field: "imagen_cloud1", value: producto.imagen_cloud1 },
-//         { field: "imagen_cloud2", value: producto.imagen_cloud2 },
-//         { field: "imagen_cloud3", value: producto.imagen_cloud3 },
+//         producto.imagen_cloud1,
+//         producto.imagen_cloud2,
+//         producto.imagen_cloud3,
 //       ];
-
-//       cloudFields.forEach(({ field, value }, index) => {
+//       cloudFields.forEach((value) => {
 //         if (value && typeof value === "string" && value.trim() !== "") {
 //           images.push(value);
-//           console.log(`✅ ${field}: ${value}`);
 //         }
 //       });
 //     }
 
-//     // 3. TERCERO: Si aún no hay imágenes, usar imagen principal
 //     if (
 //       images.length === 0 &&
 //       producto.imagen &&
 //       producto.imagen.trim() !== ""
 //     ) {
-//       console.log("✅ Usando imagen principal:", producto.imagen);
 //       images.push(producto.imagen);
 //     }
 
-//     // 4. Si no hay ninguna imagen, usar placeholder
-//     if (images.length === 0) {
-//       console.log("⚠️ No se encontraron imágenes, usando placeholder");
-//       return ["/imagenes/no-image.png"];
-//     }
-
-//     console.log(`🎉 Total de imágenes encontradas: ${images.length}`);
-//     console.log("📸 URLs finales:", images);
-//     return images;
+//     return images.length === 0 ? ["/imagenes/no-image.png"] : images;
 //   };
 
 //   const scrollCarrusel = (direccion) => {
@@ -1170,12 +1131,9 @@ export default ProductoDetallado;
 
 //   const handleAddToCart = () => {
 //     if (!producto) return;
-
-//     // Agregar la cantidad especificada
 //     for (let i = 0; i < cantidad; i++) {
 //       addToCart(producto);
 //     }
-
 //     setAddedToCart(true);
 //     setTimeout(() => setAddedToCart(false), 3000);
 //   };
@@ -1190,7 +1148,6 @@ export default ProductoDetallado;
 //     setSelectedImage((prev) => (prev === 0 ? images.length - 1 : prev - 1));
 //   };
 
-//   // Función para abrir imagen en pantalla completa
 //   const openFullscreen = (index) => {
 //     setSelectedImage(index);
 //     setIsFullscreen(true);
@@ -1202,7 +1159,6 @@ export default ProductoDetallado;
 //     document.body.style.overflow = "auto";
 //   };
 
-//   // Auto-play de imágenes
 //   useEffect(() => {
 //     if (autoPlay) {
 //       autoPlayRef.current = setInterval(() => {
@@ -1211,24 +1167,16 @@ export default ProductoDetallado;
 //     } else {
 //       clearInterval(autoPlayRef.current);
 //     }
-
 //     return () => clearInterval(autoPlayRef.current);
 //   }, [autoPlay]);
 
-//   // Manejar tecla ESC para salir de pantalla completa
 //   useEffect(() => {
 //     const handleEsc = (e) => {
-//       if (e.key === "Escape" && isFullscreen) {
-//         closeFullscreen();
-//       }
+//       if (e.key === "Escape" && isFullscreen) closeFullscreen();
 //     };
-
 //     document.addEventListener("keydown", handleEsc);
 //     return () => document.removeEventListener("keydown", handleEsc);
 //   }, [isFullscreen]);
-
-//   /* ================= FETCH PRODUCTO ================= */
-//   // Reemplaza las funciones de fetch con estas versiones mejoradas:
 
 //   /* ================= FETCH PRODUCTO ================= */
 //   useEffect(() => {
@@ -1237,21 +1185,13 @@ export default ProductoDetallado;
 //       setError(null);
 
 //       try {
-//         console.log(`🔍 Fetching producto ID: ${id}`);
 //         const res = await fetch(`${API_URL}/api/productos/${id}`);
 
 //         if (!res.ok) {
-//           // Si el endpoint no existe, intentar otra estrategia
 //           if (res.status === 404) {
-//             console.log(
-//               "⚠️ Endpoint /api/productos/:id no encontrado, intentando filtro...",
-//             );
-
-//             // Traer todos los productos y filtrar localmente
 //             const todosRes = await fetch(`${API_URL}/api/productos`);
 //             const todos = await todosRes.json();
 //             const productoEncontrado = todos.find((p) => p.id === parseInt(id));
-
 //             if (productoEncontrado) {
 //               setProducto(productoEncontrado);
 //               setLoading(false);
@@ -1265,25 +1205,17 @@ export default ProductoDetallado;
 //         }
 
 //         const data = await res.json();
+//         if (data.error) throw new Error(data.error);
 
-//         // Si la API devuelve {error: "..."}
-//         if (data.error) {
-//           throw new Error(data.error);
-//         }
-
-//         console.log("✅ Producto recibido:", data.nombre);
 //         setProducto(data);
 //         setLoading(false);
 //       } catch (err) {
-//         console.error("❌ Error al cargar producto:", err);
 //         setError(err.message);
 //         setLoading(false);
 //       }
 //     };
 
-//     if (id) {
-//       fetchProducto();
-//     }
+//     if (id) fetchProducto();
 //   }, [id]);
 
 //   /* ================= FETCH RECOMENDADOS ================= */
@@ -1295,10 +1227,6 @@ export default ProductoDetallado;
 //         const res = await fetch(`${API_URL}/api/productos-recomendados/${id}`);
 
 //         if (!res.ok) {
-//           console.log(
-//             "⚠️ No hay endpoint de recomendados, usando filtrado local",
-//           );
-//           // Si no hay endpoint, filtrar productos de la misma categoría
 //           const todosRes = await fetch(`${API_URL}/api/productos`);
 //           const todos = await todosRes.json();
 //           const productosMismaCategoria = todos
@@ -1315,7 +1243,6 @@ export default ProductoDetallado;
 //         const data = await res.json();
 //         setRecomendados(Array.isArray(data) ? data : []);
 //       } catch (err) {
-//         console.error("❌ Error al cargar recomendados:", err);
 //         setRecomendados([]);
 //       }
 //     };
@@ -1326,37 +1253,50 @@ export default ProductoDetallado;
 //   /* ================= LOADING STATE ================= */
 //   if (loading) {
 //     return (
-//       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
-//         <div className="text-center">
-//           <div className="h-20 w-20 animate-spin rounded-full border-4 border-red-600 border-t-transparent mx-auto mb-6" />
-//           <p className="text-gray-600">Cargando detalles del producto...</p>
+//       <>
+//         {/* SEO mínimo mientras carga */}
+//         <Helmet>
+//           <title>Cargando producto... | Punto G Sex Shop</title>
+//           <meta name="robots" content="noindex" />
+//         </Helmet>
+//         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+//           <div className="text-center">
+//             <div className="h-20 w-20 animate-spin rounded-full border-4 border-red-600 border-t-transparent mx-auto mb-6" />
+//             <p className="text-gray-600">Cargando detalles del producto...</p>
+//           </div>
 //         </div>
-//       </div>
+//       </>
 //     );
 //   }
 
 //   /* ================= ERROR STATE ================= */
 //   if (error || !producto) {
 //     return (
-//       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
-//         <div className="text-center p-8 max-w-md">
-//           <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-//             <Tag className="w-12 h-12 text-red-400" />
+//       <>
+//         <Helmet>
+//           <title>Producto no encontrado | Punto G Sex Shop</title>
+//           <meta name="robots" content="noindex" />
+//         </Helmet>
+//         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+//           <div className="text-center p-8 max-w-md">
+//             <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+//               <Tag className="w-12 h-12 text-red-400" />
+//             </div>
+//             <h2 className="text-3xl font-bold text-gray-900 mb-4">
+//               Producto no encontrado
+//             </h2>
+//             <p className="text-gray-600 mb-8">
+//               El producto que buscas no está disponible o ha sido movido.
+//             </p>
+//             <button
+//               onClick={() => navigate("/productos")}
+//               className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-red-600/30 transition"
+//             >
+//               Ver todos los productos
+//             </button>
 //           </div>
-//           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-//             Producto no encontrado
-//           </h2>
-//           <p className="text-gray-600 mb-8">
-//             El producto que buscas no está disponible o ha sido movido.
-//           </p>
-//           <button
-//             onClick={() => navigate("/productos")}
-//             className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-red-600/30 transition"
-//           >
-//             Ver todos los productos
-//           </button>
 //         </div>
-//       </div>
+//       </>
 //     );
 //   }
 
@@ -1364,13 +1304,94 @@ export default ProductoDetallado;
 //   const precioAntes = Number(producto.precio_antes ?? 0);
 //   const esOferta = producto.es_oferta && precioAntes > precio;
 //   const descuento = esOferta ? Math.round((1 - precio / precioAntes) * 100) : 0;
-
 //   const images = getImages();
-//   console.log("🖼️ Imágenes finales para mostrar:", images);
+
+//   // =====================================================
+//   // SEO: preparar datos para Helmet
+//   // =====================================================
+//   const seoTitle = `${producto.nombre} | Punto G Sex Shop Colombia`;
+//   const seoDescription = producto.descripcion
+//     ? producto.descripcion.substring(0, 155) + "..."
+//     : `Compra ${producto.nombre} en Punto G Sex Shop. Envío discreto en Colombia. Precio: $${precio.toLocaleString()} COP.`;
+//   const seoCanonical = `https://puntogsexshop.com/productos/${producto.id}`;
+//   const seoImage =
+//     producto.imagen_cloud1 || producto.imagen_cloud2 || producto.imagen || "";
+
+//   const productSchema = {
+//     "@context": "https://schema.org",
+//     "@type": "Product",
+//     name: producto.nombre,
+//     description: producto.descripcion || producto.nombre,
+//     image: [
+//       producto.imagen_cloud1,
+//       producto.imagen_cloud2,
+//       producto.imagen_cloud3,
+//     ].filter(Boolean),
+//     brand: {
+//       "@type": "Brand",
+//       name: "Punto G Sex Shop",
+//     },
+//     offers: {
+//       "@type": "Offer",
+//       price: precio,
+//       priceCurrency: "COP",
+//       availability: "https://schema.org/InStock",
+//       url: seoCanonical,
+//       seller: {
+//         "@type": "Organization",
+//         name: "Punto G Sex Shop",
+//       },
+//     },
+//   };
 
 //   /* ================= RENDER ================= */
 //   return (
 //     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+//       {/* =====================================================
+//           👇 HELMET SEO — SE INYECTA EN EL <head> AUTOMÁTICAMENTE
+//           ===================================================== */}
+//       <Helmet>
+//         {/* Título único */}
+//         <title>{seoTitle}</title>
+
+//         {/* Descripción */}
+//         <meta name="description" content={seoDescription} />
+
+//         {/* Canonical — resuelve el error "página con canónica adecuada" */}
+//         <link rel="canonical" href={seoCanonical} />
+
+//         {/* Robots */}
+//         <meta name="robots" content="index, follow, max-image-preview:large" />
+
+//         {/* Open Graph (WhatsApp, Facebook) */}
+//         <meta property="og:type" content="product" />
+//         <meta
+//           property="og:title"
+//           content={`${producto.nombre} | Punto G Sex Shop`}
+//         />
+//         <meta property="og:description" content={seoDescription} />
+//         <meta property="og:image" content={seoImage} />
+//         <meta property="og:image:width" content="600" />
+//         <meta property="og:image:height" content="600" />
+//         <meta property="og:url" content={seoCanonical} />
+//         <meta property="og:site_name" content="Punto G Sex Shop" />
+//         <meta property="og:locale" content="es_CO" />
+//         <meta property="product:price:amount" content={precio} />
+//         <meta property="product:price:currency" content="COP" />
+
+//         {/* Twitter Card */}
+//         <meta name="twitter:card" content="summary_large_image" />
+//         <meta name="twitter:title" content={producto.nombre} />
+//         <meta name="twitter:description" content={seoDescription} />
+//         <meta name="twitter:image" content={seoImage} />
+//         <meta name="twitter:site" content="@puntogsexshop" />
+
+//         {/* Schema.org JSON-LD — rich results en Google */}
+//         <script type="application/ld+json">
+//           {JSON.stringify(productSchema)}
+//         </script>
+//       </Helmet>
+
 //       {/* MODAL DE IMAGEN A PANTALLA COMPLETA */}
 //       <AnimatePresence>
 //         {isFullscreen && (
@@ -1471,22 +1492,6 @@ export default ProductoDetallado;
 //           <div className="grid lg:grid-cols-2 gap-12">
 //             {/* IMAGE GALLERY */}
 //             <div className="space-y-4">
-//               {/* DEBUG INFO - Temporal para verificar */}
-//               {/* <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-//                 <div className="flex items-center gap-2">
-//                   <span className="text-yellow-800 font-medium">
-//                     Debug Info:
-//                   </span>
-//                   <span className="text-yellow-700 text-sm">
-//                     Imágenes encontradas: {images.length} | Array:{" "}
-//                     {producto.imagenes?.length || 0} | Cloud1:{" "}
-//                     {producto.imagen_cloud1 ? "✓" : "✗"} | Cloud2:{" "}
-//                     {producto.imagen_cloud2 ? "✓" : "✗"} | Cloud3:{" "}
-//                     {producto.imagen_cloud3 ? "✓" : "✗"}
-//                   </span>
-//                 </div>
-//               </div> */}
-
 //               {/* MAIN IMAGE */}
 //               <div className="relative bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 overflow-hidden h-[500px] group">
 //                 {esOferta && (
@@ -1517,7 +1522,6 @@ export default ProductoDetallado;
 //                   />
 //                 </motion.button>
 
-//                 {/* Botón para pantalla completa */}
 //                 <motion.button
 //                   whileHover={{ scale: 1.1 }}
 //                   whileTap={{ scale: 0.95 }}
@@ -1533,18 +1537,12 @@ export default ProductoDetallado;
 //                       <span>
 //                         📸 {selectedImage + 1} de {images.length}
 //                       </span>
-//                       {images.length > 1 && (
-//                         <button
-//                           onClick={() => setAutoPlay(!autoPlay)}
-//                           className={`px-2 py-1 text-xs rounded-full ${
-//                             autoPlay
-//                               ? "bg-green-500 text-white"
-//                               : "bg-gray-200 text-gray-700"
-//                           }`}
-//                         >
-//                           {autoPlay ? "⏸️ Pausar" : "▶️ Auto"}
-//                         </button>
-//                       )}
+//                       <button
+//                         onClick={() => setAutoPlay(!autoPlay)}
+//                         className={`px-2 py-1 text-xs rounded-full ${autoPlay ? "bg-green-500 text-white" : "bg-gray-200 text-gray-700"}`}
+//                       >
+//                         {autoPlay ? "⏸️ Pausar" : "▶️ Auto"}
+//                       </button>
 //                     </div>
 //                   </div>
 //                 )}
@@ -1557,19 +1555,15 @@ export default ProductoDetallado;
 //                     exit={{ opacity: 0 }}
 //                     transition={{ duration: 0.2 }}
 //                     src={images[selectedImage]}
-//                     alt={producto.nombre}
+//                     alt={`${producto.nombre} - imagen ${selectedImage + 1}`}
 //                     className="w-full h-full object-contain p-8 cursor-zoom-in"
 //                     onClick={() => openFullscreen(selectedImage)}
 //                     onError={(e) => {
-//                       console.error(
-//                         `❌ Error cargando imagen: ${images[selectedImage]}`,
-//                       );
 //                       e.target.src = "/imagenes/no-image.png";
 //                     }}
 //                   />
 //                 </AnimatePresence>
 
-//                 {/* IMAGE NAVIGATION */}
 //                 {images.length > 1 && (
 //                   <>
 //                     <button
@@ -1592,9 +1586,6 @@ export default ProductoDetallado;
 //               {images.length > 0 && (
 //                 <div className="mt-4">
 //                   <div className="flex justify-between items-center mb-3">
-//                     {/* <h4 className="font-medium text-gray-800">
-//                       Imágenes ({images.length})
-//                     </h4> */}
 //                     {images.length > 1 && (
 //                       <div className="flex gap-1">
 //                         {images.map((_, index) => (
@@ -1629,18 +1620,14 @@ export default ProductoDetallado;
 //                         <div className="w-full h-full bg-gray-100 flex items-center justify-center relative group">
 //                           <img
 //                             src={img}
-//                             alt={`Vista ${index + 1}`}
+//                             alt={`${producto.nombre} - vista ${index + 1}`}
 //                             className="w-full h-full object-cover"
 //                             onError={(e) => {
-//                               console.error(
-//                                 `❌ Error cargando thumbnail: ${img}`,
-//                               );
 //                               e.target.src = "/imagenes/no-image.png";
 //                             }}
 //                           />
 //                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 //                         </div>
-//                         {/* Indicador de número */}
 //                         <div className="absolute bottom-1 right-1 w-5 h-5 bg-black/70 text-white text-xs rounded-full flex items-center justify-center">
 //                           {index + 1}
 //                         </div>
@@ -1846,7 +1833,6 @@ export default ProductoDetallado;
 //                     >
 //                       {tab === "descripcion" && "Descripción"}
 //                       {tab === "especificaciones" && "Especificaciones"}
-
 //                       {activeTab === tab && (
 //                         <motion.div
 //                           layoutId="activeTab"
@@ -1962,45 +1948,30 @@ export default ProductoDetallado;
 //               className="flex gap-6 overflow-x-auto scroll-smooth pb-6 snap-x snap-mandatory scrollbar-hide"
 //             >
 //               {recomendados.map((p) => {
-//                 // Función para obtener imágenes de productos recomendados
 //                 const getProductImages = (prod) => {
-//                   const images = [];
-
-//                   // Buscar en array
+//                   const imgs = [];
 //                   if (prod.imagenes && Array.isArray(prod.imagenes)) {
 //                     prod.imagenes.forEach((img) => {
-//                       if (typeof img === "object" && img.url) {
-//                         images.push(img.url);
-//                       } else if (typeof img === "string") {
-//                         images.push(img);
-//                       }
+//                       if (typeof img === "object" && img.url)
+//                         imgs.push(img.url);
+//                       else if (typeof img === "string") imgs.push(img);
 //                     });
 //                   }
-
-//                   // Buscar en campos Cloudinary
-//                   if (images.length === 0) {
+//                   if (imgs.length === 0) {
 //                     [
 //                       prod.imagen_cloud1,
 //                       prod.imagen_cloud2,
 //                       prod.imagen_cloud3,
 //                       prod.imagen,
 //                     ].forEach((img) => {
-//                       if (img && typeof img === "string") {
-//                         images.push(img);
-//                       }
+//                       if (img && typeof img === "string") imgs.push(img);
 //                     });
 //                   }
-
-//                   return images.length > 0
-//                     ? images
-//                     : ["/imagenes/no-image.png"];
+//                   return imgs.length > 0 ? imgs : ["/imagenes/no-image.png"];
 //                 };
 
 //                 const productoImagenes = getProductImages(p);
-//                 const primeraImagen =
-//                   productoImagenes.length > 0
-//                     ? productoImagenes[0]
-//                     : "/imagenes/no-image.png";
+//                 const primeraImagen = productoImagenes[0];
 //                 const precioProd = Number(p.precio || 0);
 //                 const precioAntesProd = Number(p.precio_antes || 0);
 //                 const esOfertaProd =
