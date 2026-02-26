@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@prerenderer/renderer-puppeteer": "^1.2.4",
+    "@types/node": "^25.3.1",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
