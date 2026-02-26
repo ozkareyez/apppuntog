@@ -2,14 +2,38 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
+// import prerender from "vite-plugin-prerender"; // ✅ Comentado temporalmente
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // prerender({ // ✅ Comentado temporalmente
+    //   staticDir: path.join(__dirname, "dist"),
+    //   routes: [
+    //     "/",
+    //     "/productos",
+    //     "/nosotros",
+    //     "/contacto",
+    //     "/pagos",
+    //     "/politicas-envios",
+    //     "/terminos-y-condiciones",
+    //     "/cambios-y-devoluciones",
+    //     "/garantias",
+    //     "/politica-de-privacidad",
+    //     "/politica-de-cookies",
+    //     "/uso-responsable",
+    //   ],
+    //   renderer: "@prerenderer/renderer-puppeteer",
+    //   rendererOptions: {
+    //     renderAfterTime: 3000,
+    //   },
+    // }),
+  ],
   css: {
-    postcss: './postcss.config.cjs'
+    postcss: "./postcss.config.cjs",
   },
   resolve: {
     alias: {
@@ -26,10 +50,6 @@ export default defineConfig({
   preview: {
     port: process.env.PORT || 3000,
     host: true,
-    allowedHosts: [
-      "puntogsexshop.com",
-      "localhost",
-      "127.0.0.1"
-    ]
+    allowedHosts: ["puntogsexshop.com", "localhost", "127.0.0.1"],
   },
 });

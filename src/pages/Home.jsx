@@ -6,12 +6,22 @@ import MainCTA from "../componentes/MainCTA";
 import AgeVerification from "../pages/AgeVerification";
 import Resenas from "../componentes/Resenas";
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 
 const Home = () => {
   const [showContent, setShowContent] = useState(false);
 
   return (
     <>
+      <Helmet>
+        <title>Punto G | Ropa Íntima y Accesorios Eróticos Colombia</title>
+        <meta
+          name="description"
+          content="Compra ropa íntima femenina y accesorios eróticos en Colombia. Envíos discretos y seguros a todo el país."
+        />
+        <link rel="canonical" href="https://puntogsexshop.com/" />
+      </Helmet>
+
       {/* VERIFICACIÓN DE EDAD */}
       <AgeVerification onVerified={() => setShowContent(true)} />
 

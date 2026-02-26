@@ -59,10 +59,6 @@ function App() {
             path="/politica-de-privacidad"
             element={<PoliticaPrivacidad />}
           />
-          <Route
-            path="/politica-de-privacidad"
-            element={<PoliticaPrivacidad />}
-          />
 
           <Route path="/nosotros" element={<SobreNosotros />} />
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async"; // 👈 NUEVO
 import {
   ShoppingCart,
   Tag,
@@ -25,7 +26,6 @@ const Productos = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Agrega una referencia para el contenedor de productos
   const productosContainerRef = useRef(null);
 
   const [productos, setProductos] = useState([]);
@@ -44,7 +44,6 @@ const Productos = () => {
   const categoriaSlug = searchParams.get("categoria") || null;
   const filtroOferta = searchParams.get("filtro") === "ofertas";
 
-  // Mapeo CORREGIDO basado en tus datos reales
   const MAPEO_CATEGORIAS = {
     categoria1: "Juguetes",
     categoria2: "Lencería",
@@ -52,114 +51,43 @@ const Productos = () => {
     categoria4: "Accesorios",
   };
 
-  // FUNCIÓN: Navegar a detalles con scroll al top
   const navigateToProductDetails = (productId) => {
     navigate(`/productos/${productId}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Cargar categorías
   useEffect(() => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("✅ Categorías cargadas del backend:", data);
         setCategorias(Array.isArray(data) ? data : []);
       })
       .catch(console.error);
   }, []);
 
-  // Cargar productos
   useEffect(() => {
     setLoading(true);
 
     let url = `${API_URL}/api/productos`;
     const params = new URLSearchParams();
 
-    // Si hay categoría seleccionada
     if (categoriaSlug) {
-      // Determinar qué nombre enviar al backend
       let nombreParaBackend;
-
       if (categoriaSlug === "categoria1") nombreParaBackend = "Juguetes";
       else if (categoriaSlug === "categoria2") nombreParaBackend = "Lencería";
       else if (categoriaSlug === "categoria3")
         nombreParaBackend = "Lubricantes";
       else if (categoriaSlug === "categoria4") nombreParaBackend = "Accesorios";
       else nombreParaBackend = categoriaSlug;
-
       params.append("categoria", nombreParaBackend);
-      console.log(`🎯 Filtro backend: categoria=${nombreParaBackend}`);
     }
 
-    if (filtroOferta) {
-      params.append("es_oferta", "true");
-    }
-
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-
-    console.log("📡 Fetching:", url);
+    if (filtroOferta) params.append("es_oferta", "true");
+    if (params.toString()) url += `?${params.toString()}`;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        console.log(`✅ ${data.length} productos recibidos`);
-
-        // DIAGNÓSTICO DETALLADO
-        if (data.length > 0) {
-          const primerProducto = data[0];
-          console.log(
-            "📊 ESTRUCTURA COMPLETA del primer producto:",
-            primerProducto,
-          );
-          console.log(
-            "🔍 Campos disponibles en el primer producto:",
-            Object.keys(primerProducto),
-          );
-          console.log(
-            "📋 Valor de 'estado' en primer producto:",
-            primerProducto.estado,
-          );
-          console.log(
-            "📋 Valor de 'status' en primer producto:",
-            primerProducto.status,
-          );
-          console.log(
-            "📋 Valor de 'disponible' en primer producto:",
-            primerProducto.disponible,
-          );
-          console.log(
-            "📋 Valor de 'stock' en primer producto:",
-            primerProducto.stock,
-          );
-          console.log(
-            "📋 Valor de 'activo' en primer producto:",
-            primerProducto.activo,
-          );
-          console.log(
-            "📋 Valor de 'agotado' en primer producto:",
-            primerProducto.agotado,
-          );
-        }
-
-        // Verificar todos los productos
-        const productosConEstado = data.filter((p) => p.estado !== undefined);
-        const productosSinEstado = data.filter((p) => p.estado === undefined);
-        console.log(
-          `📈 Productos CON campo 'estado': ${productosConEstado.length}`,
-        );
-        console.log(
-          `📈 Productos SIN campo 'estado': ${productosSinEstado.length}`,
-        );
-
-        if (productosConEstado.length > 0) {
-          console.log("📊 Valores distintos de 'estado' encontrados:", [
-            ...new Set(productosConEstado.map((p) => p.estado)),
-          ]);
-        }
-
         setProductos(Array.isArray(data) ? data : []);
         setTotalPages(Math.ceil(data.length / itemsPerPage));
         setLoading(false);
@@ -175,22 +103,16 @@ const Productos = () => {
     setCurrentPage(1);
   }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
 
-  // Efecto para manejar el scroll cuando cambia la página
   useEffect(() => {
-    // Solo hacer scroll si el contenedor existe y no es la primera carga
     if (productosContainerRef.current && currentPage > 1) {
-      // Hacer scroll suave al contenedor de productos
       productosContainerRef.current.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
     }
-  }, [currentPage]); // Solo se ejecuta cuando cambia currentPage
+  }, [currentPage]);
 
-  // Funciones auxiliares
-  const getNombreCategoria = (slug) => {
-    return MAPEO_CATEGORIAS[slug] || "Categoría";
-  };
+  const getNombreCategoria = (slug) => MAPEO_CATEGORIAS[slug] || "Categoría";
 
   const getCategoriaActualNombre = () => {
     if (!categoriaSlug) return "Todos los productos";
@@ -199,33 +121,23 @@ const Productos = () => {
 
   const cambiarCategoria = (slug) => {
     const params = new URLSearchParams(searchParams);
-
     if (!slug || slug === "todas") {
       params.delete("categoria");
     } else {
       params.set("categoria", slug);
     }
-
-    if (filtroOferta) {
-      params.set("filtro", "ofertas");
-    }
-
+    if (filtroOferta) params.set("filtro", "ofertas");
     setSearchParams(params);
   };
 
   const toggleOferta = () => {
     const params = new URLSearchParams(searchParams);
-
     if (filtroOferta) {
       params.delete("filtro");
     } else {
       params.set("filtro", "ofertas");
     }
-
-    if (categoriaSlug) {
-      params.set("categoria", categoriaSlug);
-    }
-
+    if (categoriaSlug) params.set("categoria", categoriaSlug);
     setSearchParams(params);
   };
 
@@ -244,89 +156,47 @@ const Productos = () => {
     return `${API_URL}/images/${imagen}`;
   };
 
-  // FUNCIÓN MEJORADA con más opciones de diagnóstico
   const getEstadoProducto = (producto) => {
-    console.log(`🔎 Analizando estado para producto: ${producto.nombre}`);
-    console.log(`🔎 Campo 'estado' directo:`, producto.estado);
-    console.log(`🔎 Tipo de 'estado':`, typeof producto.estado);
-
-    // 1. Verificar campo 'estado' (1 = Disponible, 0 = Agotado)
     if (producto.estado !== undefined && producto.estado !== null) {
-      const estadoNum = Number(producto.estado);
-      console.log(`🔎 'estado' convertido a número:`, estadoNum);
-      const resultado = estadoNum === 1 ? "Disponible" : "Agotado";
-      console.log(`🔎 Resultado basado en 'estado':`, resultado);
-      return resultado;
+      return Number(producto.estado) === 1 ? "Disponible" : "Agotado";
     }
-
-    // 2. Verificar campo 'status' (alternativo)
     if (producto.status !== undefined && producto.status !== null) {
       const status = String(producto.status).toLowerCase();
-      console.log(`🔎 Campo 'status' encontrado:`, status);
-      if (status === "activo" || status === "disponible" || status === "1") {
+      if (status === "activo" || status === "disponible" || status === "1")
         return "Disponible";
-      }
-      if (status === "inactivo" || status === "agotado" || status === "0") {
+      if (status === "inactivo" || status === "agotado" || status === "0")
         return "Agotado";
-      }
     }
-
-    // 3. Verificar campo 'disponible' (booleano)
     if (producto.disponible !== undefined && producto.disponible !== null) {
-      console.log(`🔎 Campo 'disponible' encontrado:`, producto.disponible);
       return producto.disponible ? "Disponible" : "Agotado";
     }
-
-    // 4. Verificar campo 'agotado' (booleano)
     if (producto.agotado !== undefined && producto.agotado !== null) {
-      console.log(`🔎 Campo 'agotado' encontrado:`, producto.agotado);
       return producto.agotado ? "Agotado" : "Disponible";
     }
-
-    // 5. Verificar stock
     if (producto.stock !== undefined && producto.stock !== null) {
-      console.log(`🔎 Campo 'stock' encontrado:`, producto.stock);
       return Number(producto.stock) > 0 ? "Disponible" : "Agotado";
     }
-
-    // 6. Verificar campo 'activo' (booleano)
     if (producto.activo !== undefined && producto.activo !== null) {
-      console.log(`🔎 Campo 'activo' encontrado:`, producto.activo);
       return producto.activo ? "Disponible" : "Agotado";
     }
-
-    console.log(
-      `🔎 Ningún campo de estado encontrado, usando valor por defecto`,
-    );
     return "Disponible";
   };
 
-  // FUNCIÓN: Obtener color según estado
   const getEstadoColor = (estado) => {
-    if (estado === "Agotado") {
-      return "bg-red-100 text-red-800 border-red-200";
-    }
+    if (estado === "Agotado") return "bg-red-100 text-red-800 border-red-200";
     return "bg-green-100 text-green-800 border-green-200";
   };
 
-  // FUNCIÓN: Obtener icono según estado
   const getEstadoIcono = (estado) => {
-    if (estado === "Agotado") {
-      return <XCircle className="w-3 h-3" />;
-    }
+    if (estado === "Agotado") return <XCircle className="w-3 h-3" />;
     return <CheckCircle className="w-3 h-3" />;
   };
 
-  // Ordenamiento y filtrado
   const sortedProductos = () => {
     let sorted = [...productos];
-
-    // Primero filtrar por precio
     sorted = sorted.filter(
       (p) => p.precio >= priceRange[0] && p.precio <= priceRange[1],
     );
-
-    // Luego ordenar
     switch (sortBy) {
       case "precio-asc":
         return sorted.sort((a, b) => (a.precio || 0) - (b.precio || 0));
@@ -349,7 +219,6 @@ const Productos = () => {
     Math.min(indexOfLastItem, filteredProductos.length),
   );
 
-  // Función para cambiar de página SIN scroll al inicio
   const paginate = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
@@ -358,35 +227,26 @@ const Productos = () => {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
     } else {
       if (currentPage <= 3) {
-        for (let i = 1; i <= 5; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = 1; i <= 5; i++) pageNumbers.push(i);
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = totalPages - 4; i <= totalPages; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = totalPages - 4; i <= totalPages; i++) pageNumbers.push(i);
       } else {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        for (let i = currentPage - 1; i <= currentPage + 1; i++)
           pageNumbers.push(i);
-        }
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       }
     }
-
     return pageNumbers;
   };
 
@@ -402,24 +262,48 @@ const Productos = () => {
     </div>
   );
 
-  // Función temporal para debug en el render
-  const debugEstado = (producto) => {
-    if (!producto) return "";
-    const estado = getEstadoProducto(producto);
-    console.log(`🔄 Render - ${producto.nombre}:`, {
-      estadoValor: producto.estado,
-      estadoCalculado: estado,
-      stock: producto.stock,
-      activo: producto.activo,
-      agotado: producto.agotado,
-      disponible: producto.disponible,
-      status: producto.status,
-    });
-    return estado;
+  // =====================================================
+  // SEO: título y descripción dinámicos según filtros
+  // =====================================================
+  const getSeoTitle = () => {
+    if (filtroOferta) return "Ofertas y Descuentos | Punto G Sex Shop Colombia";
+    if (categoriaSlug)
+      return `${getCategoriaActualNombre()} | Punto G Sex Shop Colombia`;
+    return "Productos | Catálogo Lencería y Accesorios | Punto G Sex Shop";
+  };
+
+  const getSeoDescription = () => {
+    if (filtroOferta)
+      return "Aprovecha las mejores ofertas en lencería femenina y accesorios eróticos. Descuentos exclusivos con envío discreto en Colombia.";
+    if (categoriaSlug)
+      return `Compra ${getCategoriaActualNombre()} en Punto G Sex Shop Colombia. Productos premium con envío discreto y seguro a todo el país.`;
+    return "Catálogo completo de lencería femenina y accesorios eróticos. Compra online con envío discreto y seguro a toda Colombia.";
+  };
+
+  const getSeoCanonical = () => {
+    if (categoriaSlug)
+      return `https://puntogsexshop.com/productos?categoria=${categoriaSlug}`;
+    return "https://puntogsexshop.com/productos";
   };
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12">
+      {/* =====================================================
+          👇 HELMET SEO
+          ===================================================== */}
+      <Helmet>
+        <title>{getSeoTitle()}</title>
+        <meta name="description" content={getSeoDescription()} />
+        <link rel="canonical" href={getSeoCanonical()} />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content={getSeoTitle()} />
+        <meta property="og:description" content={getSeoDescription()} />
+        <meta property="og:url" content={getSeoCanonical()} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Punto G Sex Shop" />
+        <meta property="og:locale" content="es_CO" />
+      </Helmet>
+
       <div className="max-w-7xl mx-auto px-4 mb-8">
         <div className="text-center mb-6 pt-15">
           <motion.h1
@@ -470,7 +354,6 @@ const Productos = () => {
         </div>
       </div>
 
-      {/* Agrega el ref aquí, justo antes de la sección de productos */}
       <div ref={productosContainerRef} className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="w-full md:w-auto">
@@ -531,8 +414,7 @@ const Productos = () => {
                   }`}
               >
                 <Tag size={14} />
-                <span className="hidden sm:inline">Ofertas</span>
-                <span className="sm:hidden">Ofertas</span>
+                Ofertas
               </button>
 
               <button
@@ -540,8 +422,7 @@ const Productos = () => {
                 className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 hover:border-red-600 hover:text-red-600 transition text-sm whitespace-nowrap flex-shrink-0"
               >
                 <Filter size={14} />
-                <span className="hidden sm:inline">Filtros</span>
-                <span className="sm:hidden">Filtros</span>
+                Filtros
               </button>
             </div>
           </div>
@@ -626,9 +507,7 @@ const Productos = () => {
               const esOferta = Boolean(producto.es_oferta);
               const imagenUrl = getImageSrc(producto.imagen);
               const isWishlisted = wishlist.includes(producto.id);
-
-              // Obtener estado del producto CON DIAGNÓSTICO
-              const estadoProducto = debugEstado(producto);
+              const estadoProducto = getEstadoProducto(producto);
               const estaDisponible = estadoProducto === "Disponible";
               const estadoColor = getEstadoColor(estadoProducto);
               const estadoIcono = getEstadoIcono(estadoProducto);
@@ -672,7 +551,6 @@ const Productos = () => {
                           Últimas
                         </span>
                       )}
-                    {/* Badge de estado Disponible/Agotado */}
                     <span
                       className={`px-2 py-1 text-xs font-bold rounded-full border ${estadoColor} flex items-center gap-1`}
                     >
@@ -681,7 +559,6 @@ const Productos = () => {
                     </span>
                   </div>
 
-                  {/* IMAGEN - Deshabilitada si está agotado */}
                   <div
                     onClick={() =>
                       estaDisponible && navigateToProductDetails(producto.id)
@@ -698,8 +575,6 @@ const Productos = () => {
                       className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => (e.target.src = "/imagenes/no-image.png")}
                     />
-
-                    {/* Solo mostrar botón de vista rápida si está disponible */}
                     {estaDisponible && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity duration-300">
                         <button
@@ -717,7 +592,6 @@ const Productos = () => {
                   </div>
 
                   <div className="p-2.5 md:p-3">
-                    {/* TÍTULO - Deshabilitado si está agotado */}
                     <h3
                       onClick={() =>
                         estaDisponible && navigateToProductDetails(producto.id)
@@ -739,30 +613,23 @@ const Productos = () => {
                           </p>
                         )}
                         <p
-                          className={`text-base md:text-lg font-bold ${
-                            !estaDisponible ? "text-gray-500" : "text-red-600"
-                          }`}
+                          className={`text-base md:text-lg font-bold ${!estaDisponible ? "text-gray-500" : "text-red-600"}`}
                         >
                           ${precio.toLocaleString()}
                         </p>
                       </div>
                       <span
-                        className={`text-xs ${
-                          !estaDisponible ? "text-gray-400" : "text-gray-500"
-                        }`}
+                        className={`text-xs ${!estaDisponible ? "text-gray-400" : "text-gray-500"}`}
                       >
                         {producto.stock || 0} unid.
                       </span>
                     </div>
 
                     <div className="flex gap-1.5">
-                      {/* BOTÓN AGREGAR - Deshabilitado si está agotado */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (estaDisponible) {
-                            addToCart(producto);
-                          }
+                          if (estaDisponible) addToCart(producto);
                         }}
                         disabled={!estaDisponible}
                         className={`flex-1 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition-all shadow-md text-xs md:text-sm px-1 md:px-2 ${
@@ -777,13 +644,11 @@ const Productos = () => {
                         </span>
                       </button>
 
-                      {/* BOTÓN VER - Solo funciona si está disponible */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (estaDisponible) {
+                          if (estaDisponible)
                             navigateToProductDetails(producto.id);
-                          }
                         }}
                         disabled={!estaDisponible}
                         className={`px-2 py-2 rounded-lg font-medium border transition text-xs ${
@@ -855,12 +720,11 @@ const Productos = () => {
               <button
                 onClick={() => paginate(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm
-                  ${
-                    currentPage === 1
-                      ? "text-gray-400 cursor-not-allowed border border-gray-200"
-                      : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
-                  }`}
+                className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm ${
+                  currentPage === 1
+                    ? "text-gray-400 cursor-not-allowed border border-gray-200"
+                    : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+                }`}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -877,12 +741,11 @@ const Productos = () => {
                   <button
                     key={pageNumber}
                     onClick={() => paginate(pageNumber)}
-                    className={`w-10 h-10 rounded-md font-medium transition text-sm
-                      ${
-                        currentPage === pageNumber
-                          ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md"
-                          : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
-                      }`}
+                    className={`w-10 h-10 rounded-md font-medium transition text-sm ${
+                      currentPage === pageNumber
+                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md"
+                        : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+                    }`}
                   >
                     {pageNumber}
                   </button>
@@ -892,12 +755,11 @@ const Productos = () => {
               <button
                 onClick={() => paginate(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm
-                  ${
-                    currentPage === totalPages
-                      ? "text-gray-400 cursor-not-allowed border border-gray-200"
-                      : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
-                  }`}
+                className={`flex items-center justify-center w-10 h-10 rounded-md font-medium transition text-sm ${
+                  currentPage === totalPages
+                    ? "text-gray-400 cursor-not-allowed border border-gray-200"
+                    : "border border-gray-300 text-gray-700 hover:border-red-600 hover:text-red-600 hover:shadow-sm"
+                }`}
               >
                 <ChevronRight size={16} />
               </button>
@@ -1039,7 +901,7 @@ const Productos = () => {
 
 export default Productos;
 
-// import { useEffect, useState } from "react";
+// import { useEffect, useState, useRef } from "react";
 // import { useSearchParams, useNavigate } from "react-router-dom";
 // import {
 //   ShoppingCart,
@@ -1065,6 +927,9 @@ export default Productos;
 //   const { addToCart } = useCart();
 //   const navigate = useNavigate();
 //   const [searchParams, setSearchParams] = useSearchParams();
+
+//   // Agrega una referencia para el contenedor de productos
+//   const productosContainerRef = useRef(null);
 
 //   const [productos, setProductos] = useState([]);
 //   const [categorias, setCategorias] = useState([]);
@@ -1212,6 +1077,18 @@ export default Productos;
 //   useEffect(() => {
 //     setCurrentPage(1);
 //   }, [categoriaSlug, filtroOferta, sortBy, priceRange]);
+
+//   // Efecto para manejar el scroll cuando cambia la página
+//   useEffect(() => {
+//     // Solo hacer scroll si el contenedor existe y no es la primera carga
+//     if (productosContainerRef.current && currentPage > 1) {
+//       // Hacer scroll suave al contenedor de productos
+//       productosContainerRef.current.scrollIntoView({
+//         behavior: "smooth",
+//         block: "start",
+//       });
+//     }
+//   }, [currentPage]); // Solo se ejecuta cuando cambia currentPage
 
 //   // Funciones auxiliares
 //   const getNombreCategoria = (slug) => {
@@ -1375,10 +1252,10 @@ export default Productos;
 //     Math.min(indexOfLastItem, filteredProductos.length),
 //   );
 
+//   // Función para cambiar de página SIN scroll al inicio
 //   const paginate = (pageNumber) => {
 //     if (pageNumber < 1 || pageNumber > totalPages) return;
 //     setCurrentPage(pageNumber);
-//     window.scrollTo({ top: 0, behavior: "smooth" });
 //   };
 
 //   const getPageNumbers = () => {
@@ -1496,7 +1373,8 @@ export default Productos;
 //         </div>
 //       </div>
 
-//       <div className="max-w-7xl mx-auto px-4">
+//       {/* Agrega el ref aquí, justo antes de la sección de productos */}
+//       <div ref={productosContainerRef} className="max-w-7xl mx-auto px-4">
 //         <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 //           <div className="w-full md:w-auto">
 //             <div className="flex overflow-x-auto pb-2 md:pb-0 md:flex-wrap gap-2 scrollbar-hide">

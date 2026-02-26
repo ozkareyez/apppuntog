@@ -1,15 +1,62 @@
+import { Helmet } from "react-helmet-async";
+
 export default function MetodosPago() {
+  const lastUpdated = new Date().toLocaleDateString("es-CO");
+  const lastUpdatedISO = new Date().toISOString();
+
   return (
     <div className="bg-white min-h-screen">
+      <Helmet>
+        <title>Métodos de Pago | Punto G Sex Shop Colombia</title>
+        <meta
+          name="description"
+          content="Conoce todos los métodos de pago disponibles en Punto G: efectivo, transferencia PSE y Nequi. Pagos seguros, confidenciales y fáciles en Colombia."
+        />
+        <link rel="canonical" href="https://puntogsexshop.com/metodos-pago" />
+        <meta name="robots" content="index, follow" />
+
+        {/* Open Graph - SIN IMAGEN */}
+        <meta
+          property="og:title"
+          content="Métodos de Pago | Punto G Sex Shop Colombia"
+        />
+        <meta
+          property="og:description"
+          content="Paga de forma segura con efectivo, PSE o Nequi. Transacciones protegidas y 100% confidenciales en Colombia."
+        />
+        <meta
+          property="og:url"
+          content="https://puntogsexshop.com/metodos-pago"
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Punto G Sex Shop" />
+        {/* 👆 Sin og:image */}
+
+        {/* Twitter Card - versión sin imagen */}
+        <meta name="twitter:card" content="summary" />
+        <meta
+          name="twitter:title"
+          content="Métodos de Pago | Punto G Sex Shop Colombia"
+        />
+        <meta
+          name="twitter:description"
+          content="Paga de forma segura con efectivo, PSE o Nequi. Transacciones protegidas y confidenciales."
+        />
+        {/* 👆 Sin twitter:image */}
+
+        {/* Meta de actualización */}
+        <meta property="article:modified_time" content={lastUpdatedISO} />
+      </Helmet>
+
+      {/* Resto del contenido igual */}
       <div className="max-w-5xl mx-auto px-6 py-14 text-gray-700">
         {/* Header */}
         <div className="mb-10 border-b border-red-100 pb-6">
           <h1 className="text-4xl font-extrabold text-gray-900">
             Métodos de <span className="text-red-600">Pago</span>
           </h1>
-
           <p className="mt-3 text-sm text-gray-500">
-            Última actualización: {new Date().toLocaleDateString("es-CO")}
+            Última actualización: {lastUpdated}
           </p>
         </div>
 
