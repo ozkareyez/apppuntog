@@ -620,7 +620,7 @@ const Productos = () => {
                       <span
                         className={`text-xs ${!estaDisponible ? "text-gray-400" : "text-gray-500"}`}
                       >
-                        {!estaDisponible}
+                        {/* {producto.stock || 0} */}
                       </span>
                     </div>
 
