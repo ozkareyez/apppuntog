@@ -21,8 +21,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Configuración del backend
-const BACKEND_URL =
-  "https://gleaming-motivation-production-4018.up.railway.app";
+const BACKEND_URL = "";
 // const BACKEND_URL = "http://localhost:3002"; // Para desarrollo local
 
 export default function Login() {
