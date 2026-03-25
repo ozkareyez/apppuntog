@@ -52,10 +52,11 @@ export default function Login() {
   }, []);
 
   // Función para verificar si el backend está online
+  // Función para verificar si el backend está online
   const checkBackendStatus = async () => {
     try {
       setBackendStatus("checking");
-      const response = await fetch(`${BACKEND_URL}/`, {
+      const response = await fetch(`${BACKEND_URL}/api/`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -75,7 +76,6 @@ export default function Login() {
       setConnectionTested(true);
     }
   };
-
   // Efecto para mostrar nivel de seguridad de contraseña
   useEffect(() => {
     if (password.length === 0) {
