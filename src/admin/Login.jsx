@@ -40,7 +40,7 @@ export default function Login() {
 
   // Verificar estado del backend al cargar
   useEffect(() => {
-    checkBackendStatus();
+    //checkBackendStatus();
     localStorage.removeItem("admin_token");
     document.title = "Panel Admin | PuntoG";
 
