@@ -56,15 +56,15 @@ export default function Login() {
   const checkBackendStatus = async () => {
     try {
       setBackendStatus("checking");
-      const response = await fetch(`${BACKEND_URL}/api/`, {
+      const response = await fetch(`/api/`, {
+        // Cambiado a /api/
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
 
       if (response.ok) {
         setBackendStatus("online");
-        const data = await response.json();
-        console.log("✅ Backend conectado:", data.message);
+        console.log("✅ Backend conectado");
       } else {
         setBackendStatus("offline");
         console.error("❌ Backend respondió con error:", response.status);
